@@ -1,0 +1,20 @@
+[package]
+name = "sidestep-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Generated reqwest client for the StepSecurity API. Regenerate via `cargo xtask regen`."
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
+progenitor-client.workspace = true
+futures.workspace = true

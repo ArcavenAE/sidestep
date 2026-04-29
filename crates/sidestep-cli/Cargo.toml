@@ -1,0 +1,30 @@
+[package]
+name = "sidestep-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Rust CLI for the StepSecurity API. Agent-first ergonomics, audit-trail-as-feature."
+
+[[bin]]
+name = "sidestep"
+path = "src/main.rs"
+
+[dependencies]
+sidestep-sdk = { path = "../sidestep-sdk", version = "0.0.1" }
+
+clap.workspace = true
+clap_complete.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+predicates.workspace = true

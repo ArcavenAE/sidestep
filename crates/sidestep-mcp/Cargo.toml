@@ -1,0 +1,15 @@
+[package]
+name = "sidestep-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "MCP server backed by sidestep-sdk. Placeholder — wired in a follow-on ticket."
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+sidestep-sdk = { path = "../sidestep-sdk", version = "0.0.1" }
