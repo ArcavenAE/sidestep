@@ -1,0 +1,17 @@
+# Rust
+/target/
+
+# macOS
+.DS_Store
+
+# Local audit-trail JSONL (developer machine only — see docs/audit-trail-format.md)
+/.sidestep-audit/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Beads (orc-shared)
+.beads
