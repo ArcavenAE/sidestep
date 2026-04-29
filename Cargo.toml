@@ -32,7 +32,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Async + HTTP
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "io-util", "signal"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "stream"] }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 
 # CLI + config
@@ -44,7 +44,8 @@ dirs = "6"
 keyring = { version = "3", features = ["apple-native", "linux-native"] }
 
 # Codegen runtime (progenitor's runtime crate, used by sidestep-api)
-progenitor-client = "0.10"
+progenitor-client = "0.14"
+bytes = "1"
 
 # Tests
 wiremock = "0.6"

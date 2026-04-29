@@ -10,6 +10,10 @@ description = "Generated reqwest client for the StepSecurity API. Regenerate via
 
 [lib]
 path = "src/lib.rs"
+# Generated code includes doctests pulled from the OpenAPI spec; they are
+# illustrative and not guaranteed to compile against the runtime crate.
+# Real verification lives in sidestep-sdk integration tests.
+doctest = false
 
 [dependencies]
 serde.workspace = true
@@ -18,3 +22,5 @@ chrono.workspace = true
 reqwest.workspace = true
 progenitor-client.workspace = true
 futures.workspace = true
+bytes.workspace = true
+uuid.workspace = true
