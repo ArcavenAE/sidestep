@@ -209,29 +209,29 @@ patterns in `docs/permissions.md` is a follow-on.
 
 ### F6: Distribution [partially resolved]
 
-Two-channel Homebrew distribution, mirroring the fleet's
-forestage/jr/ThreeDoors pattern:
+Single-channel Homebrew distribution, kos pattern. One formula
+`Formula/sidestep.rb` published on every push to main (alpha versions)
+and on `v*` tags (stable versions, when first cut). Two workflows
+write to the same formula; only one fires per push event:
 
-- **Alpha channel** — `Formula/sidestep-a.rb` updated by
-  `.github/workflows/alpha.yml` on every push to `main`.
-  Tag format `alpha-YYYYMMDD-HHMMSS-<sha7>`; published as a
-  GitHub prerelease. Old prereleases pruned to the last 30
-  (kos pattern). Binary installs as `sidestep-a` so it can
-  coexist with stable. **Active.**
-- **Stable channel** — `Formula/sidestep.rb` updated by
-  `.github/workflows/release.yml` on `v*` tag push. Binary
-  installs as `sidestep`. **Dormant** — first tag deferred
-  until the curated CLI verb set lands.
+- `.github/workflows/alpha.yml` — push to main. Tag format
+  `alpha-YYYYMMDD-HHMMSS-<sha7>`; GitHub prerelease; old prereleases
+  pruned to last 30. **Active.**
+- `.github/workflows/release.yml` — `v*` tag push. Stable release.
+  **Dormant** until first tag.
 
-Both workflows mac-arm64 only, gated by `vars.SIGNING_ENABLED`.
-Signing: Apple Developer ID + notarytool zip submission (no
-`.pkg`/`.dmg`/`.app` — Homebrew consumes the raw signed binary
-via URL + sha256, kos's pattern). The `release` environment +
-org-level signing/notary/tap secrets are configured on
-`ArcavenAE/sidestep`.
+Both mac-arm64 only, gated by `vars.SIGNING_ENABLED`. Apple Developer
+ID signing + notarytool zip submission (no `.pkg`/`.dmg`/`.app` — the
+raw signed binary is consumed via URL + sha256). The `release`
+environment is set on the repo.
 
 Open follow-ons:
-- First green alpha publish to validate the pipeline end-to-end.
+- **Org-level signing secrets aren't reaching sidestep**: first
+  alpha run failed at "Import certificates" with
+  `APPLE_CERTIFICATE_P12` empty. Org has the secret but it isn't
+  shared with this repo's `release` environment. Needs admin to
+  add sidestep to the secret's selected-repository list (or share
+  the secret to the `release` environment directly).
 - Linux + x86_64-darwin builds, if real demand emerges.
 - cosign + Sigstore Rekor attestation for the binary (per orc F24's
   frozen-composition lessons).
