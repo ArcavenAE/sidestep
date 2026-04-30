@@ -96,13 +96,6 @@ fn regen() -> Result<()> {
     let mut spec: openapiv3::OpenAPI =
         serde_yaml::from_str(&spec_text).context("parse spec as OpenAPI v3")?;
 
-    let synthesized = fill_missing_operation_ids(&mut spec);
-    if synthesized > 0 {
-        eprintln!(
-            "xtask: synthesized {synthesized} operationId(s) for operations the spec left unnamed"
-        );
-    }
-
     let collapsed_success = collapse_multi_responses(&mut spec, ResponseClass::Success);
     let collapsed_error = collapse_multi_responses(&mut spec, ResponseClass::Error);
     if collapsed_success + collapsed_error > 0 {
@@ -154,11 +147,17 @@ fn sync_spec() -> Result<()> {
         eprintln!("xtask: sanitized {applied} secret-shaped example(s) before writing");
     }
 
+    // Synthesize missing operationIds in the vendored copy. Keeps the spec
+    // self-contained: progenitor and the SDK both read the same file with
+    // every operation named. Round-trips through openapiv3 to apply the
+    // mutation, then re-serializes to YAML.
+    let normalized = normalize_with_synthesized_ids(&sanitized)?;
+
     fs::create_dir_all(spec_path.parent().expect("spec/ parent"))?;
-    fs::write(&spec_path, sanitized.as_bytes())
+    fs::write(&spec_path, normalized.as_bytes())
         .with_context(|| format!("write {}", spec_path.display()))?;
 
-    let body = sanitized.as_bytes();
+    let body = normalized.as_bytes();
     let mut hasher = Sha256::new();
     hasher.update(body);
     let digest = hex::encode(hasher.finalize());
@@ -183,12 +182,27 @@ fn workspace_root() -> Result<PathBuf> {
         .to_path_buf())
 }
 
+/// Round-trip the sanitized spec through openapiv3 to assign a
+/// deterministic operationId to every operation that lacks one, then
+/// re-serialize back to YAML. Lets the vendored on-disk file act as
+/// the single source of truth: every operation is reachable by ID
+/// from both progenitor (via xtask regen) and the SDK registry (which
+/// reads the same file at runtime).
+fn normalize_with_synthesized_ids(yaml: &str) -> Result<String> {
+    let mut spec: openapiv3::OpenAPI =
+        serde_yaml::from_str(yaml).context("parse spec as OpenAPI v3")?;
+    let synthesized = fill_missing_operation_ids(&mut spec);
+    if synthesized > 0 {
+        eprintln!("xtask: synthesized {synthesized} operationId(s) into vendored spec");
+    }
+    serde_yaml::to_string(&spec).context("re-serialize spec to YAML")
+}
+
 /// Walk every operation in the spec and assign a deterministic
 /// operationId to any that lacks one. progenitor requires every
 /// operation to have an ID; some StepSecurity operations don't carry
 /// one, so we derive `{method}_{path-with-params-stripped}` as a
-/// stable fallback. The vendored YAML on disk is unchanged — we only
-/// mutate the in-memory model handed to the generator.
+/// stable fallback.
 fn fill_missing_operation_ids(spec: &mut openapiv3::OpenAPI) -> usize {
     let mut count = 0;
     for (path, path_item) in spec.paths.paths.iter_mut() {
