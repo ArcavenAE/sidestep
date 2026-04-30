@@ -188,12 +188,26 @@ granularity? Should curated verbs use a separate axis
 (`Sidestep(detections:*)`)? Documenting the recommended permission
 patterns in `docs/permissions.md` is a follow-on.
 
-### F6: Distribution
+### F6: Distribution [partially resolved]
 
-When v0.1 is functional, distribution. Likely mirrors the ArcavenAE
-pattern: signed Homebrew tap, signed releases via cosign + Sigstore Rekor
-(per orc F24's frozen-composition lessons). Defer until the CLI is
-substantively useful.
+Release pipeline shipped at `aae-orc-pxai` close, mirroring forestage's
+shape (Apple Developer ID signing + notarytool + GitHub Releases +
+ArcavenAE/homebrew-tap update) trimmed to mac-arm64-only and
+binary-only. Tag-triggered on `v*`; gated by `vars.SIGNING_ENABLED`
+so push-without-signing is a no-op until the variable is set on the
+repo. The signed binary is consumed by Homebrew via raw URL +
+sha256 — no `.pkg`/`.dmg` (kos's pattern), since brew is the
+canonical install path. Notarization is via zip submission so
+direct downloads pass Gatekeeper online check.
+
+Open follow-ons:
+- Set `SIGNING_ENABLED=true` on `ArcavenAE/sidestep` repo variables.
+- Confirm the `release` GitHub environment + signing/notarization/tap
+  secrets are inherited from the org (forestage already uses them).
+- Cut the first tag (`v0.1.0`) once a curated verb set lands.
+- Linux + x86_64-darwin builds, if real demand emerges.
+- cosign + Sigstore Rekor attestation for the binary (per orc F24's
+  frozen-composition lessons).
 
 ---
 
