@@ -36,7 +36,10 @@ enum Cmd {
 #[command(long_about = "Manage credentials for sidestep.\n\n\
                   sidestep resolves tokens in this order:\n  \
                   1. SIDESTEP_API_TOKEN environment variable\n  \
-                  2. Platform keyring (macOS Keychain, Linux Secret Service)\n\n\
+                  2. Platform keyring (macOS Keychain, Linux Secret Service)\n  \
+                  3. Config file at ~/.config/sidestep/config.toml \
+                     (override with SIDESTEP_CONFIG)\n     \
+                     [auth] token = \"<value>\"\n\n\
                   Use `sidestep auth login` to store a token in the keyring.")]
 struct AuthArgs {
     #[command(subcommand)]
