@@ -2,12 +2,13 @@
 
 #![forbid(unsafe_code)]
 
+use std::io::Read;
 use std::process::ExitCode;
 
 use anyhow::{Context, anyhow};
 use clap::{Parser, Subcommand};
 use serde_json::{Map, Value};
-use sidestep_sdk::{CallOptions, Client, registry};
+use sidestep_sdk::{CallOptions, Client, auth, registry};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -27,6 +28,48 @@ enum Cmd {
     Api(ApiArgs),
     /// List operations in the spec.
     Ops(OpsArgs),
+    /// Manage stored credentials.
+    Auth(AuthArgs),
+}
+
+#[derive(clap::Args, Debug)]
+#[command(long_about = "Manage credentials for sidestep.\n\n\
+                  sidestep resolves tokens in this order:\n  \
+                  1. SIDESTEP_API_TOKEN environment variable\n  \
+                  2. Platform keyring (macOS Keychain, Linux Secret Service)\n\n\
+                  Use `sidestep auth login` to store a token in the keyring.")]
+struct AuthArgs {
+    #[command(subcommand)]
+    cmd: AuthCmd,
+}
+
+#[derive(Subcommand, Debug)]
+enum AuthCmd {
+    /// Store a bearer token in the platform keyring.
+    Login(AuthLoginArgs),
+    /// Show whether a token is configured and where it came from.
+    Status,
+    /// Remove the token from the platform keyring.
+    Logout,
+}
+
+#[derive(clap::Args, Debug)]
+#[command(
+    long_about = "Store a StepSecurity API bearer token in the platform keyring.\n\n\
+                  Sources, in priority order:\n  \
+                  --token <value>      explicit, useful for scripts\n  \
+                  --stdin              read whole stdin (so `echo $T | sidestep auth login --stdin`)\n\n\
+                  At least one source must be provided. Interactive prompting is not supported in v0.1.\n\
+                  An existing keyring entry is overwritten without prompt."
+)]
+struct AuthLoginArgs {
+    /// Bearer token. Redacted from the audit-trail argv.
+    #[arg(long, value_name = "VALUE")]
+    token: Option<String>,
+
+    /// Read the token from stdin (entire stream, trimmed).
+    #[arg(long, conflicts_with = "token")]
+    stdin: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -100,6 +143,7 @@ fn main() -> ExitCode {
     let result = match cmd {
         Cmd::Api(args) => run_api(args),
         Cmd::Ops(args) => run_ops(args),
+        Cmd::Auth(args) => run_auth(args),
     };
 
     match result {
@@ -192,6 +236,70 @@ fn run_api(args: ApiArgs) -> anyhow::Result<()> {
 
     let pretty = serde_json::to_string_pretty(&response).context("serialize response as JSON")?;
     println!("{pretty}");
+    Ok(())
+}
+
+fn run_auth(args: AuthArgs) -> anyhow::Result<()> {
+    match args.cmd {
+        AuthCmd::Login(login) => auth_login(login),
+        AuthCmd::Status => auth_status(),
+        AuthCmd::Logout => auth_logout(),
+    }
+}
+
+fn auth_login(args: AuthLoginArgs) -> anyhow::Result<()> {
+    let token = if let Some(t) = args.token {
+        t
+    } else if args.stdin {
+        let mut buf = String::new();
+        std::io::stdin()
+            .read_to_string(&mut buf)
+            .context("read --stdin")?;
+        buf
+    } else {
+        return Err(anyhow!(
+            "no token source. Pass `--token <value>` or `--stdin`. \
+             See `sidestep auth login --help`."
+        ));
+    };
+    let token = token.trim();
+    if token.is_empty() {
+        return Err(anyhow!("token must not be empty"));
+    }
+    auth::store_keyring(token).map_err(|e| anyhow!("{e}"))?;
+    let target = match auth::read_keyring() {
+        Some(_) => "stored in keyring",
+        None => "stored — but immediate read-back failed (keyring backend may be unavailable)",
+    };
+    eprintln!("sidestep auth: {target}");
+    Ok(())
+}
+
+fn auth_status() -> anyhow::Result<()> {
+    match auth::resolve() {
+        Ok(resolved) => {
+            // Never print the token. Length + source is the contract.
+            println!(
+                "authenticated\n  source: {}\n  length: {} bytes",
+                resolved.source.as_str(),
+                resolved.token.len()
+            );
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("not authenticated: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn auth_logout() -> anyhow::Result<()> {
+    let removed = auth::delete_keyring().map_err(|e| anyhow!("{e}"))?;
+    if removed {
+        eprintln!("sidestep auth: keyring entry removed");
+    } else {
+        eprintln!("sidestep auth: no keyring entry to remove");
+    }
     Ok(())
 }
 

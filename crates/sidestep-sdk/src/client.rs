@@ -7,7 +7,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::audit::{AuditOp, Outcome, Outcomes, Span, shape_hash};
-use crate::auth;
+use crate::auth::{self, TokenSource};
 use crate::error::{Result, SidestepError};
 use crate::spec::{OperationMeta, registry};
 
@@ -15,6 +15,7 @@ use crate::spec::{OperationMeta, registry};
 pub struct Client {
     http: reqwest::Client,
     base_url: String,
+    auth_source: Option<TokenSource>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -29,13 +30,19 @@ pub struct CallOptions {
 }
 
 impl Client {
-    /// Construct from `SIDESTEP_API_TOKEN` (env-only for v0.1).
+    /// Resolve a token via env → keyring and construct a Client.
     pub fn from_env() -> Result<Self> {
-        let token = auth::resolve_token()?;
-        Self::with_token(&token)
+        let resolved = auth::resolve()?;
+        Self::build(&resolved.token, Some(resolved.source))
     }
 
+    /// Construct with an explicit token (skips the resolver chain). The
+    /// audit trail records `auth_source` as `None` for this path.
     pub fn with_token(token: &str) -> Result<Self> {
+        Self::build(token, None)
+    }
+
+    fn build(token: &str, auth_source: Option<TokenSource>) -> Result<Self> {
         let mut headers = HeaderMap::new();
         let auth = format!("Bearer {token}");
         let mut auth_value = HeaderValue::from_str(&auth)
@@ -54,11 +61,19 @@ impl Client {
             .map_err(|e| SidestepError::Network(e.to_string()))?;
 
         let base_url = registry().base_url.clone();
-        Ok(Self { http, base_url })
+        Ok(Self {
+            http,
+            base_url,
+            auth_source,
+        })
     }
 
     pub fn base_url(&self) -> &str {
         &self.base_url
+    }
+
+    pub fn auth_source(&self) -> Option<TokenSource> {
+        self.auth_source
     }
 
     /// Execute an operation by ID. `params` is a JSON object whose
@@ -73,6 +88,7 @@ impl Client {
         let op = registry().find(operation_id)?.clone();
         let trace_id = opts.trace_id.unwrap_or_else(Uuid::now_v7);
         let mut span = Span::start(trace_id);
+        span.auth_source = self.auth_source;
 
         if opts.no_audit {
             self.execute_silent(&op, params, span).await

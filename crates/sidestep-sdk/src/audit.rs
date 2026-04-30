@@ -13,6 +13,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
+use crate::auth::TokenSource;
 use crate::error::Result;
 use crate::redact;
 
@@ -69,6 +70,7 @@ pub struct Span {
     pub host: String,
     pub user: String,
     pub tty: bool,
+    pub auth_source: Option<TokenSource>,
     pub op: Option<AuditOp>,
 }
 
@@ -105,6 +107,7 @@ impl Span {
             host: hostname(),
             user: std::env::var("USER").unwrap_or_default(),
             tty: std::io::IsTerminal::is_terminal(&std::io::stdout()),
+            auth_source: None,
             op: None,
         }
     }
@@ -134,6 +137,7 @@ impl Span {
                 "host": self.host,
                 "user": self.user,
                 "tty": self.tty,
+                "auth_source": self.auth_source.map(|s| s.as_str()),
             },
             "result": outcomes.outcome.as_str(),
             "redacted_fields": outcomes.redacted_fields,
