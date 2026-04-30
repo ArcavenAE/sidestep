@@ -4,7 +4,7 @@
 > Restores context for a collaborator who was present but does not persist.
 > Follows the kos process: Orient → Ideate → Question → Probe → Harvest → Promote.
 
-Last updated: 2026-04-30 (harvest — F1 → B2, sessions through alpha-on-main, charter materialized into `_kos/nodes/`).
+Last updated: 2026-04-30 (harvest — first green alpha published, secret allowlist resolved, `.pkg` path dropped).
 
 ---
 
@@ -225,13 +225,24 @@ ID signing + notarytool zip submission (no `.pkg`/`.dmg`/`.app` — the
 raw signed binary is consumed via URL + sha256). The `release`
 environment is set on the repo.
 
+First end-to-end alpha shipped 2026-04-30 as
+`alpha-20260430-215941-40b3708`. `Formula/sidestep.rb` lives in
+`ArcavenAE/homebrew-tap`; `brew install ArcavenAE/tap/sidestep`
+works.
+
+Org-level signing/notary/tap secrets (`APPLE_CERTIFICATE_*`,
+`APPLE_SIGNING_IDENTITY`, `APPLE_NOTARIZATION_*`,
+`HOMEBREW_TAP_TOKEN`) are `visibility: selected`; sidestep is now
+on each allowlist. Empirically the fleet uses the same org-level
+mechanism (no env-scoped or repo-scoped secrets on
+kos/forestage/sideshow/marvel/switchboard/BetterDials).
+
 Open follow-ons:
-- **Org-level signing secrets aren't reaching sidestep**: first
-  alpha run failed at "Import certificates" with
-  `APPLE_CERTIFICATE_P12` empty. Org has the secret but it isn't
-  shared with this repo's `release` environment. Needs admin to
-  add sidestep to the secret's selected-repository list (or share
-  the secret to the `release` environment directly).
+- **Restore `.pkg` build path** if non-Homebrew installs become
+  important. The fleet (kos, forestage, marvel) builds .pkg/.dmg
+  alongside the binary; sidestep dropped them to keep the alpha
+  pipeline minimal. Would need the 3 `APPLE_INSTALLER_*` secrets
+  added to sidestep's allowlist.
 - Linux + x86_64-darwin builds, if real demand emerges.
 - cosign + Sigstore Rekor attestation for the binary (per orc F24's
   frozen-composition lessons).
@@ -268,3 +279,4 @@ emerges.
 | Release pipeline (stable) | 2026-04-30 | Tag-triggered v* workflow: check → build mac-arm64 → sign + notarize-zip → GitHub Release → tap update. `Formula/sidestep.rb`. SIGNING_ENABLED + release environment configured on the repo. Dormant until first tag. F6 partial. orc bd `aae-orc-pxai`. |
 | Alpha-on-main release | 2026-04-30 | `.github/workflows/alpha.yml` ships alpha on every push to main: `alpha-YYYYMMDD-HHMMSS-<sha7>` prereleases pruned to last 30 (kos pattern). `Formula/sidestep-a.rb` installs as `sidestep-a` so alpha + stable coexist (forestage-a / threedoors-a / jr-a convention). F6 expanded with two-channel posture. orc bd `aae-orc-2jh8`. |
 | Harvest | 2026-04-30 | Charter F1 → B2 (closed); B2 expanded with the three pre-pass implementation; F2 marked partial. Charter materialized into `_kos/nodes/` (5 bedrock elements, 1 graveyard, 4 frontier questions). `kos doctor` clean. |
+| Single-channel revert + first publish | 2026-04-30 | Reverted `sidestep-a` channel after user correction (kos/sideshow use a single formula; I had drawn from forestage/jr/ThreeDoors). One `Formula/sidestep.rb` written by both alpha-on-main and tag-on-tag workflows. Added sidestep to org-secret selected-repos allowlist for the 7 secrets the workflow uses. First green alpha shipped: `alpha-20260430-215941-40b3708`, signed + notarized + in `ArcavenAE/homebrew-tap`. `brew install ArcavenAE/tap/sidestep` works. `.pkg` build path remains dropped (could be restored later). |
