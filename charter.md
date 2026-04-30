@@ -141,14 +141,33 @@ analysis), `sidestep audit traces` (trace_id rendering),
 audit lines become a flyloft catalog adapter so an LLM can `fly` against
 them? Out of scope for v0.1; design once the trail has weeks of data.
 
-### F4: Auth UX
+### F4: Auth UX [partially resolved]
 
-Spec uses Bearer-token. Plan: `SIDESTEP_API_TOKEN` env var (highest
-precedence) → keyring on macOS/Linux (via `keyring` crate) → config file
-fallback (`~/.config/sidestep/config.toml`). Open: how does an agent
-session bootstrap a token without interactive prompts? `sidestep auth
-login` interactive, `sidestep auth set-token <value>` non-interactive,
-`SIDESTEP_API_TOKEN` for CI. Probably mirrors `jr`'s pattern.
+Spec uses Bearer-token. Two layers shipped:
+
+- `SIDESTEP_API_TOKEN` env var (highest precedence) — implemented in
+  the SDK MVP (commit `29ae9c7`).
+- Platform keyring (macOS Keychain, Linux Secret Service via the
+  `keyring` crate's `apple-native` / `linux-native` features) —
+  implemented at commit `aae-orc-2kmy` close. Service `sidestep`,
+  user `default`. Backend errors (no daemon, denied access) treated
+  as "no entry" rather than fatal so env still works.
+
+CLI surface:
+- `sidestep auth login --token <v>` (non-interactive)
+- `sidestep auth login --stdin` (`echo $T | sidestep auth login --stdin`)
+- `sidestep auth status` (reports source: env / keyring; never prints
+  the token; non-zero exit when no token is configured)
+- `sidestep auth logout` (no-op-safe deletion)
+
+The audit trail's `invocation.auth_source` records `"env"` or
+`"keyring"` so a future analyzer can see how agents authenticate
+over time.
+
+Open: config file fallback (`~/.config/sidestep/config.toml`) —
+useful for CI lanes where keyring isn't available and env-only is
+clumsy. Lower priority now that env + keyring covers the common
+paths.
 
 ### F5: Permissions Model for Agent Use
 

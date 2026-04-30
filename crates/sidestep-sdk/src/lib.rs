@@ -17,6 +17,7 @@ pub mod error;
 pub mod redact;
 pub mod spec;
 
+pub use auth::{ResolvedToken, TokenSource};
 pub use client::{CallOptions, Client};
 pub use error::{Result, SidestepError};
 pub use spec::{HttpMethod, OperationMeta, Registry, registry};
