@@ -1,0 +1,39 @@
+id: question-curated-cli-verbs
+type: question
+confidence: frontier
+title: "Curated CLI verbs over the highest-value triage-and-harden workflows"
+content: |
+  Spec-aware passthrough is shipped at `29ae9c7` — every operation is
+  reachable via `sidestep api <operationId> --param k=v`, and
+  `sidestep ops list/show` covers discovery. That gives agents day-one
+  access to all 93 operations without us writing 93 verbs.
+
+  Open: which curated verbs earn ergonomic surface beyond the
+  passthrough? Candidates from the spec:
+  - `runs list|get`
+  - `detections list|get|suppress`
+  - `checks list|get|run`
+  - `policies list|attach|detach`
+  - `rules list|create|delete`
+  - `incidents list|get`
+  - `run-policy-evaluations list`
+  - `audit-logs list`
+
+  Sub-question: should there be a separate `sidestep harden` namespace
+  for harden-runner-specific verbs, or do they live under the resource
+  they touch?
+
+  Resolving this is gated on real usage — let the audit trail show
+  which `sidestep api <opId>` invocations cluster, then promote the
+  hottest ones to curated verbs (avoiding YAGNI).
+edges:
+  - target: elem-sdk-backed-cli
+    type: derives
+    note: "Verbs are CLI presentation over the SDK's call_op"
+  - target: elem-audit-trail-schema
+    type: derives
+    note: "Audit-trail clustering is the data input for prioritization"
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: scaffold

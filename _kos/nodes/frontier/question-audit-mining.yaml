@@ -1,0 +1,30 @@
+id: question-audit-mining
+type: question
+confidence: frontier
+title: "Audit-trail pattern-mining surface — what tooling reads the JSONL?"
+content: |
+  Once the audit trail is emitting in production (it is, as of the SDK
+  MVP), the second-order question is what tooling reads it.
+
+  Candidates:
+  - `sidestep audit query` — local aggregation, e.g.
+    `--since 7d --group-by operation.id`.
+  - `sidestep audit traces` — render trace_id trees so a "triage
+    session" appears as a coherent unit.
+  - `sidestep meta propose` — LLM call against a window of trail to
+    suggest curated verbs that compose hot operation sequences.
+  - flyloft catalog adapter — battens that index audit lines so an
+    LLM can `fly` against them (depends on flyloft maturity).
+
+  Out of scope for v0.1; design once the trail has weeks of data.
+  The schema's stable join keys (`operation.id`, `trace_id`,
+  `shape_hash`) are designed to enable any of these without a schema
+  change.
+edges:
+  - target: elem-audit-trail-schema
+    type: derives
+    note: "Mining tools read the schema this question depends on"
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: scaffold

@@ -1,0 +1,29 @@
+id: elem-vendored-spec
+type: element
+confidence: bedrock
+title: "Vendored OpenAPI spec, fetched and normalized at sync time"
+content: |
+  The spec is vendored under `spec/stepsecurity-v1.yaml` with a
+  `.sha256` pin. `cargo xtask sync-spec`:
+
+  1. Fetches from
+     `https://app.stepsecurity.io/assets/shared/step-security-api-v1.yaml`.
+  2. Sanitizes regex-matched secret-shaped examples (Slack webhook
+     URLs detected verbatim) — the vendored copy never republishes
+     a real-looking webhook from upstream.
+  3. Synthesizes missing operationIds into the vendored YAML so the
+     spec on disk is the single source of truth for both progenitor
+     (xtask regen) and the SDK registry.
+  4. Writes spec + sha256.
+
+  Spec changes are reviewed in PR. `cargo xtask diff-spec` (forthcoming)
+  will summarize added/removed/changed operations between the upstream
+  and vendored copy.
+edges:
+  - target: elem-codegen-via-progenitor
+    type: supports
+    note: "Vendored spec is what gets generated against"
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: scaffold

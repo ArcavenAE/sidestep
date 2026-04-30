@@ -1,5 +1,7 @@
-# Homebrew formula for sidestep (stable channel)
-# Updated automatically by CI on tagged releases (v*)
+# Homebrew formula for sidestep
+# Single channel, kos pattern: updated by CI on every push to main
+# (alpha-... versions) and on v* tags (stable versions). The same
+# formula tracks the latest published artifact, alpha or stable.
 # macOS only (arm64). Linux support is a future option.
 
 class Sidestep < Formula
@@ -21,13 +23,12 @@ class Sidestep < Formula
 
   def caveats
     <<~EOS
-      sidestep needs a StepSecurity API token before it can call the API.
-      Recommended (keychain bootstrap):
+      sidestep updates on every push to main (alpha versions) until the
+      first stable tag is cut.
+
+      Bootstrap a token (recommended — uses macOS Keychain):
 
         sidestep auth login --token <bearer-token>
-
-      Verify:
-
         sidestep auth status
 
       Discover and invoke operations:

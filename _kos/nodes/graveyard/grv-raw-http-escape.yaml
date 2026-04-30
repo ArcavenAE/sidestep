@@ -1,0 +1,25 @@
+id: grv-raw-http-escape
+type: graveyard
+confidence: graveyard
+title: "raw HTTP escape hatch (gh-CLI-style)"
+content: |
+  Considered shipping `sidestep raw <method> <path>` (gh-CLI-style) for
+  endpoints not in the spec. Ruled out: the spec is the canonical
+  surface; `raw` would let drift hide. If we ever need it, we update
+  the spec and regenerate. The `sidestep api <operationId>` command is
+  the spec-aware escape hatch and serves the same need without
+  bypassing the contract.
+edges:
+  - target: elem-codegen-via-progenitor
+    type: contradicts
+    note: "raw bypasses the spec; codegen treats the spec as the contract"
+graveyard:
+  approach: "sidestep raw <method> <path> — send arbitrary HTTP requests"
+  context: "Some StepSecurity endpoints might not be in the spec yet."
+  finding: "An escape hatch lets drift hide. The spec is the contract; bypassing it is a smell."
+  ruling: "Use sidestep api <operationId> for all spec operations. If a real op is missing, update the spec."
+  reopener: "Concrete need for an undocumented endpoint that StepSecurity declines to add to the spec."
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: scaffold

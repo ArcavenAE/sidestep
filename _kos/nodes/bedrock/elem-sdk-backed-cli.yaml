@@ -1,0 +1,30 @@
+id: elem-sdk-backed-cli
+type: element
+confidence: bedrock
+title: "SDK-backed CLI with future MCP as sibling consumer"
+content: |
+  The workspace is structured as four crates: `sidestep-api` (generated),
+  `sidestep-sdk` (hand-written), `sidestep-cli` (consumer), `sidestep-mcp`
+  (placeholder consumer). All shared concerns — auth, retry, pagination,
+  audit emission, redaction — live in the SDK. The CLI and MCP are sibling
+  presentation layers.
+
+  Rationale: an MCP server reasoned about as an afterthought duplicates
+  exactly the surface that must be identical between human and agent
+  invocations. By making it a sibling of the CLI from day one, both
+  consumers inherit the same auth / audit / redaction / paging logic for
+  free.
+edges:
+  - target: elem-codegen-via-progenitor
+    type: derives
+    note: "SDK depends on the generated client crate"
+  - target: elem-audit-trail-schema
+    type: supports
+    note: "Audit lives in the SDK; CLI and MCP both inherit it"
+  - target: elem-auth-three-layer
+    type: supports
+    note: "Auth resolution lives in the SDK"
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: scaffold

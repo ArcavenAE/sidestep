@@ -1,0 +1,39 @@
+id: elem-audit-trail-schema
+type: element
+confidence: bedrock
+title: "Audit trail JSONL schema v1 — emitted per API call"
+content: |
+  Every API call emits one JSONL line under `~/.sidestep/audit/`
+  (macOS) or `~/.local/state/sidestep/audit/` (Linux), one file per
+  UTC day. Schema v1 fields:
+
+  - `schema_version: 1`
+  - `trace_id` (UUID v7) — shared across one CLI invocation
+  - `span_id` (UUID v7) — unique per HTTP call
+  - `parent_span_id` — for nested operations (e.g. paginated reads)
+  - `ts_start` (RFC 3339, milliseconds, UTC)
+  - `duration_ms`
+  - `invocation` — argv (redacted), binary_version, host, user, tty,
+    auth_source (`"env" | "keyring" | "config" | null`)
+  - `operation` — operationId, method, url_template, path_params,
+    query_params
+  - `response` — status, size_bytes, items_returned, next_cursor,
+    shape_hash (sha256 over keys+types of redacted body, no values)
+  - `result` — `ok | http_error | network_error | auth_error |
+    redacted_block`
+  - `redacted_fields` — paths stripped before write
+
+  Rationale: the schema's join keys (`operation.id` from OpenAPI,
+  `trace_id` clustering CLI invocations, `shape_hash` for response-shape
+  pattern detection) are designed to support future LLM mining for
+  meta-action candidates without storing PII or secrets.
+
+  See `docs/audit-trail-format.md` for the full schema reference.
+edges:
+  - target: question-audit-mining
+    type: supports
+    note: "The schema is designed to be mineable for patterns"
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: scaffold

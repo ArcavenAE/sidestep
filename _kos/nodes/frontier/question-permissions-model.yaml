@@ -1,0 +1,26 @@
+id: question-permissions-model
+type: question
+confidence: frontier
+title: "Permissions model for agent invocation (Sidestep(api:*) etc.)"
+content: |
+  sidestep is intended for agent invocation. Claude Code can scope
+  permissions like `Sidestep(api:listWorkflowRuns)` or `Sidestep(api:*)`
+  if the operationId is the addressable unit.
+
+  Open:
+  - Is operationId the right granularity? Or should it be HTTP method
+    (`Sidestep(api:get*)` for read-only)?
+  - Should curated verbs (when they land — see
+    question-curated-cli-verbs) use a separate axis like
+    `Sidestep(detections:*)`, or fold under the api: scope?
+  - How do we want permissions to interact with the audit trail's
+    `auth_source` field — should a config-file-sourced token have
+    different default scoping than env?
+
+  Output: `docs/permissions.md` recommending patterns for typical
+  agent scopes (read-only triage, write-permitted suppression flows,
+  org-admin operations).
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: scaffold

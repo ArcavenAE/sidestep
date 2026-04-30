@@ -1,0 +1,47 @@
+id: question-distribution
+type: question
+confidence: frontier
+title: "Distribution — single Homebrew formula, alpha-on-main + stable-on-tag"
+content: |
+  Single-channel Homebrew distribution, kos pattern. One formula
+  `Formula/sidestep.rb` published on every push to main (alpha
+  versions) and on `v*` tags (stable versions, when first cut). Two
+  workflows write to the same formula; only one fires per push event:
+
+  - `.github/workflows/alpha.yml` — push to main. Tag format
+    `alpha-YYYYMMDD-HHMMSS-<sha7>`; GitHub prerelease; old prereleases
+    pruned to last 30. **Active.**
+  - `.github/workflows/release.yml` — `v*` tag push. Stable release.
+    **Dormant** until first tag.
+
+  Both: mac-arm64 only, gated by `vars.SIGNING_ENABLED`. Apple
+  Developer ID signing + notarytool zip submission. Raw signed binary
+  consumed via URL + sha256 — no `.pkg`/`.dmg`/`.app`.
+
+  Open:
+  - **Org-level signing secrets aren't reaching sidestep**. First
+    alpha run failed at "Import certificates" with
+    `APPLE_CERTIFICATE_P12` empty. Needs admin to share the org's
+    Apple-cert / notarization / tap secrets with sidestep (selected
+    repos list, or environment-scoped).
+  - Linux + x86_64-darwin builds, if real demand emerges.
+  - cosign + Sigstore Rekor attestation
+    (per orc F24's frozen-composition lessons).
+  - First `v*` tag once curated verbs are ready.
+edges:
+  - target: elem-sdk-backed-cli
+    type: supports
+    note: "Distribution is what makes the CLI reachable"
+provenance:
+  created_by: human
+  created_at: 2026-04-30
+  session: alpha-on-main
+
+edges:
+  - target: elem-sdk-backed-cli
+    type: supports
+    note: "Distribution is what makes the CLI reachable"
+provenance:
+  created_by: human
+  created_at: 2026-04-30
+  session: alpha-on-main
