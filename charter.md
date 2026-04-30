@@ -94,6 +94,37 @@ and updates both files. Spec changes are reviewed in PR via
 `cargo xtask diff-spec` (forthcoming) which summarizes added/removed/
 changed operations.
 
+### B5: Auth UX — Three-Layer Resolution Chain
+
+Token resolution walks env → keyring → config file → error. Each
+layer's failure mode is graceful in service of the next:
+
+- `SIDESTEP_API_TOKEN` env var — highest precedence. Empty string
+  treated as unset.
+- Platform keyring (macOS Keychain, Linux Secret Service via the
+  `keyring` crate's `apple-native` / `linux-native` features).
+  Service `sidestep`, user `default`. Backend errors (no daemon,
+  denied access) treated as "no entry" rather than fatal — so a
+  missing Secret Service doesn't block env or config users.
+- Config file at `~/.config/sidestep/config.toml` (override via
+  `SIDESTEP_CONFIG`). Format: `[auth] token = "<value>"`. Missing
+  file is silent; **malformed file is fatal** (silent failure here
+  would mask a real auth misconfiguration).
+
+CLI surface:
+- `sidestep auth login --token <v>` (non-interactive)
+- `sidestep auth login --stdin` (`echo $T | sidestep auth login --stdin`)
+- `sidestep auth status` (reports source: env / keyring / config;
+  never prints the token; non-zero exit when no token is configured)
+- `sidestep auth logout` (no-op-safe keyring deletion)
+
+The audit trail's `invocation.auth_source` records `"env"`,
+`"keyring"`, or `"config"` (or `null` for `Client::with_token`). The
+schema_version stays at 1 — the field is additive.
+
+Evidence: end-to-end verified across all three sources, including
+malformed-config rejection with line/column diagnostic.
+
 ### B4: Audit Trail Schema (Initial)
 
 Every API call emits one JSONL line under `~/.local/state/sidestep/audit/`
@@ -141,33 +172,12 @@ analysis), `sidestep audit traces` (trace_id rendering),
 audit lines become a flyloft catalog adapter so an LLM can `fly` against
 them? Out of scope for v0.1; design once the trail has weeks of data.
 
-### F4: Auth UX [partially resolved]
+### F4: Auth UX [RESOLVED → B5]
 
-Spec uses Bearer-token. Two layers shipped:
-
-- `SIDESTEP_API_TOKEN` env var (highest precedence) — implemented in
-  the SDK MVP (commit `29ae9c7`).
-- Platform keyring (macOS Keychain, Linux Secret Service via the
-  `keyring` crate's `apple-native` / `linux-native` features) —
-  implemented at commit `aae-orc-2kmy` close. Service `sidestep`,
-  user `default`. Backend errors (no daemon, denied access) treated
-  as "no entry" rather than fatal so env still works.
-
-CLI surface:
-- `sidestep auth login --token <v>` (non-interactive)
-- `sidestep auth login --stdin` (`echo $T | sidestep auth login --stdin`)
-- `sidestep auth status` (reports source: env / keyring; never prints
-  the token; non-zero exit when no token is configured)
-- `sidestep auth logout` (no-op-safe deletion)
-
-The audit trail's `invocation.auth_source` records `"env"` or
-`"keyring"` so a future analyzer can see how agents authenticate
-over time.
-
-Open: config file fallback (`~/.config/sidestep/config.toml`) —
-useful for CI lanes where keyring isn't available and env-only is
-clumsy. Lower priority now that env + keyring covers the common
-paths.
+Promoted to bedrock B5 — see below. Resolution chain
+env → keyring → config file is implemented across the SDK MVP
+(`29ae9c7`), keyring fallback (`82b8cef`), and config file fallback
+(`aae-orc-tqu6` close).
 
 ### F5: Permissions Model for Agent Use
 

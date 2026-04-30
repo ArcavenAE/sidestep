@@ -33,11 +33,22 @@ cargo build --release
 
 ## Configure
 
-Authentication will resolve in this order (forthcoming):
+Authentication resolves in this order:
 
 1. `SIDESTEP_API_TOKEN` environment variable
-2. Platform keyring (macOS Keychain, Linux Secret Service)
-3. `~/.config/sidestep/config.toml`
+2. Platform keyring (macOS Keychain, Linux Secret Service) — managed via
+   `sidestep auth login`, `auth status`, `auth logout`
+3. Config file at `~/.config/sidestep/config.toml` (override path with
+   `SIDESTEP_CONFIG`):
+   ```toml
+   [auth]
+   token = "your-bearer-token"
+   ```
+
+A missing config file is silent. A malformed config file fails fast
+with a line/column diagnostic — by design, so a typo doesn't quietly
+fall through to "no token configured." Every API call records its
+`auth_source` in the audit trail.
 
 ## Usage
 

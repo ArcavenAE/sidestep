@@ -82,7 +82,7 @@ optional.
 | `invocation.host` | `gethostname`. |
 | `invocation.user` | `$USER` (best-effort). |
 | `invocation.tty` | `true` if stdout is a tty. |
-| `invocation.auth_source` | Where the bearer token was resolved from: `"env"` \| `"keyring"` \| `null`. `null` means an explicit `with_token` constructor was used; nothing was resolved. |
+| `invocation.auth_source` | Where the bearer token was resolved from: `"env"` \| `"keyring"` \| `"config"` \| `null`. `null` means an explicit `with_token` constructor was used; nothing was resolved. |
 | `operation.id` | OpenAPI `operationId`. The stable join key for pattern mining. |
 | `operation.method` | HTTP method. |
 | `operation.url_template` | OpenAPI path template (`/github/{owner}/actions/runs`), not the concrete path. Aggregates cleanly across owners/repos. |
