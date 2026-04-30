@@ -18,12 +18,16 @@ content: |
   Developer ID signing + notarytool zip submission. Raw signed binary
   consumed via URL + sha256 — no `.pkg`/`.dmg`/`.app`.
 
+  First end-to-end alpha shipped 2026-04-30 as
+  `alpha-20260430-215941-40b3708`. Signed, notarized, in the tap.
+  `brew install ArcavenAE/tap/sidestep` works.
+
   Open:
-  - **Org-level signing secrets aren't reaching sidestep**. First
-    alpha run failed at "Import certificates" with
-    `APPLE_CERTIFICATE_P12` empty. Needs admin to share the org's
-    Apple-cert / notarization / tap secrets with sidestep (selected
-    repos list, or environment-scoped).
+  - Restore `.pkg` build path if non-Homebrew installs become
+    important. The fleet (kos, forestage, marvel) builds
+    `.pkg`/`.dmg` alongside the binary; sidestep dropped them.
+    Would need the 3 `APPLE_INSTALLER_*` secrets added to
+    sidestep's allowlist.
   - Linux + x86_64-darwin builds, if real demand emerges.
   - cosign + Sigstore Rekor attestation
     (per orc F24's frozen-composition lessons).
