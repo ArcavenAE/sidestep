@@ -17,10 +17,12 @@ run *args:
 # ─── Test ──────────────────────────────────────────────
 
 test:
-    cargo test --workspace
+    cargo test --workspace --all-targets
 
+# Doctests, skipping the generated sidestep-api crate (its doctests come
+# from the OpenAPI spec and are illustrative, not verified).
 test-doc:
-    cargo test --workspace --doc
+    cargo test --workspace --doc --exclude sidestep-api
 
 # ─── Quality Checks ────────────────────────────────────
 
@@ -44,7 +46,7 @@ fmt:
 
 # ─── CI Mirror ─────────────────────────────────────────
 
-ci: check-fmt check-clippy build check-deny test
+ci: check-fmt check-clippy build check-deny test test-doc
 
 # ─── Spec / Codegen ────────────────────────────────────
 
