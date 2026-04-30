@@ -1,0 +1,51 @@
+# Release Verification
+# Triggers: after release workflow completes
+# Verifies the homebrew-tap CI passed after the formula push.
+name: Release Verify
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-tap:
+    name: Verify Homebrew Tap
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@6c3c2f2c1c457b00c10c4848d6f5491db3b629df # v2.18.0
+        with:
+          egress-policy: audit
+
+      - name: Check tap CI status
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          echo "Checking ArcavenAE/homebrew-tap CI for the latest commit..."
+          # Wait briefly for the formula commit to land and CI to start.
+          sleep 30
+          for _ in $(seq 1 20); do
+            STATUS=$(gh run list \
+              --repo ArcavenAE/homebrew-tap \
+              --limit 1 \
+              --json status,conclusion \
+              --jq '.[0]')
+            CONCLUSION=$(echo "$STATUS" | jq -r '.conclusion // "in_progress"')
+            if [ "$CONCLUSION" = "success" ]; then
+              echo "Tap CI: success"
+              exit 0
+            fi
+            if [ "$CONCLUSION" = "failure" ] || [ "$CONCLUSION" = "cancelled" ]; then
+              echo "::error::Tap CI failed: $CONCLUSION"
+              exit 1
+            fi
+            echo "Tap CI status: $CONCLUSION — waiting…"
+            sleep 30
+          done
+          echo "::warning::Tap CI did not complete within window; check manually."
