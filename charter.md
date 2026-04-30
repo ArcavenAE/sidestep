@@ -190,24 +190,33 @@ patterns in `docs/permissions.md` is a follow-on.
 
 ### F6: Distribution [partially resolved]
 
-Release pipeline shipped at `aae-orc-pxai` close, mirroring forestage's
-shape (Apple Developer ID signing + notarytool + GitHub Releases +
-ArcavenAE/homebrew-tap update) trimmed to mac-arm64-only and
-binary-only. Tag-triggered on `v*`; gated by `vars.SIGNING_ENABLED`
-so push-without-signing is a no-op until the variable is set on the
-repo. The signed binary is consumed by Homebrew via raw URL +
-sha256 — no `.pkg`/`.dmg` (kos's pattern), since brew is the
-canonical install path. Notarization is via zip submission so
-direct downloads pass Gatekeeper online check.
+Two-channel Homebrew distribution, mirroring the fleet's
+forestage/jr/ThreeDoors pattern:
+
+- **Alpha channel** — `Formula/sidestep-a.rb` updated by
+  `.github/workflows/alpha.yml` on every push to `main`.
+  Tag format `alpha-YYYYMMDD-HHMMSS-<sha7>`; published as a
+  GitHub prerelease. Old prereleases pruned to the last 30
+  (kos pattern). Binary installs as `sidestep-a` so it can
+  coexist with stable. **Active.**
+- **Stable channel** — `Formula/sidestep.rb` updated by
+  `.github/workflows/release.yml` on `v*` tag push. Binary
+  installs as `sidestep`. **Dormant** — first tag deferred
+  until the curated CLI verb set lands.
+
+Both workflows mac-arm64 only, gated by `vars.SIGNING_ENABLED`.
+Signing: Apple Developer ID + notarytool zip submission (no
+`.pkg`/`.dmg`/`.app` — Homebrew consumes the raw signed binary
+via URL + sha256, kos's pattern). The `release` environment +
+org-level signing/notary/tap secrets are configured on
+`ArcavenAE/sidestep`.
 
 Open follow-ons:
-- Set `SIGNING_ENABLED=true` on `ArcavenAE/sidestep` repo variables.
-- Confirm the `release` GitHub environment + signing/notarization/tap
-  secrets are inherited from the org (forestage already uses them).
-- Cut the first tag (`v0.1.0`) once a curated verb set lands.
+- First green alpha publish to validate the pipeline end-to-end.
 - Linux + x86_64-darwin builds, if real demand emerges.
 - cosign + Sigstore Rekor attestation for the binary (per orc F24's
   frozen-composition lessons).
+- First `v*` tag once curated verbs are ready.
 
 ---
 
