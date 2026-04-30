@@ -11,4 +11,8 @@ pre-commit:
 pre-push:
   commands:
     test:
-      run: cargo test --workspace
+      run: cargo test --workspace --all-targets
+    doctest:
+      # See ci.yml — `--exclude sidestep-api` skips progenitor's
+      # generated illustrative doctests.
+      run: cargo test --workspace --doc --exclude sidestep-api
