@@ -4,7 +4,7 @@
 > Restores context for a collaborator who was present but does not persist.
 > Follows the kos process: Orient → Ideate → Question → Probe → Harvest → Promote.
 
-Last updated: 2026-04-29 (initial scaffold).
+Last updated: 2026-04-30 (harvest — F1 → B2, sessions through alpha-on-main, charter materialized into `_kos/nodes/`).
 
 ---
 
@@ -85,6 +85,23 @@ clients; alternatives (`openapi-generator`, hand-rolled) carry maintenance
 or output-quality penalties. Rationale was settled in session-040 design
 discussion before scaffold.
 
+**Implemented at `4a26361`** (formerly F1). Three pre-passes against
+the in-memory spec model accommodate StepSecurity's spec quirks
+without modifying the vendored YAML:
+
+1. `fill_missing_operation_ids` — 78 of 93 operations lack
+   `operationId`; synthesized as `{method}_{path-with-params-stripped}`.
+2. `collapse_multi_success_responses` — progenitor asserts at most one
+   Rust response type in the success class. The spec has 200 + default
+   + 207 with distinct schemas; we keep one bodied success per operation.
+3. `collapse_multi_error_responses` — same constraint applies to the
+   error class. The spec has 400 + 401 + 404 + 500 with distinct inline
+   schemas; we keep one.
+
+Output: 27,653 lines of generated client across 97 operations, one
+`Client` struct, all spec operations reachable. Committed at the crate
+level — `cargo xtask regen` updates it in place.
+
 ### B3: Vendored Spec, Live Source
 
 The spec is vendored under `spec/stepsecurity-v1.yaml` with a `.sha256`
@@ -145,23 +162,25 @@ candidates without storing PII or secrets.
 
 *Actively open. Expected to resolve through design work or probes.*
 
-### F1: progenitor Wire-Up
+### F1: progenitor Wire-Up [RESOLVED → B2]
 
-`cargo xtask regen` is stubbed. Wiring progenitor against the vendored
-spec, deciding generator config (split into modules per resource group?
-single file?), handling the additionalProperties + nullable + array-of-
-heterogeneous-objects shapes the spec uses, and fitting the output into
-`sidestep-api/src/`.
+Promoted into B2's content above. Single-file `generated.rs` output
+chosen; the three pre-passes named there handle the spec's quirks.
+No follow-on questions remain at this layer.
 
-### F2: Curated v0.1 CLI Verb Set
+### F2: Curated v0.1 CLI Verb Set [partial]
 
-The codegen will expose all 93 operations via `sidestep api <operationId>`.
-The first curated verbs should cover the highest-value triage-and-harden
-workflows: `runs list|get`, `detections list|get|suppress`, `checks
-list|get|run`, `policies list|attach|detach`, `rules list|create|delete`,
-`incidents list|get`, `run-policy-evaluations list`, `audit-logs list`.
-Open: should there be a separate `sidestep harden` namespace for
-StepSecurity's harden-runner-specific verbs?
+Spec-aware passthrough shipped at `29ae9c7` — every operation reachable
+today via `sidestep api <operationId> --param k=v`. `sidestep ops list`
+discovers operations; `sidestep ops show <id>` inspects one.
+
+Remaining: ergonomic curated verbs over the highest-value
+triage-and-harden workflows: `runs list|get`, `detections
+list|get|suppress`, `checks list|get|run`, `policies
+list|attach|detach`, `rules list|create|delete`, `incidents list|get`,
+`run-policy-evaluations list`, `audit-logs list`. Should there be a
+separate `sidestep harden` namespace for StepSecurity's
+harden-runner-specific verbs?
 
 ### F3: Audit-Trail Pattern-Mining Surface
 
@@ -241,4 +260,11 @@ emerges.
 
 | Session | Date | Outcomes |
 |---------|------|----------|
-| Scaffold | 2026-04-29 | Repo created at ArcavenAE/sidestep. Workspace structure (4 crates + xtask), CI, conventions, vendored spec, charter, audit-trail design. B1–B4 set, F1–F6 opened, G1 ruled. Tracked as orc bd `aae-orc-icqp`. |
+| Scaffold | 2026-04-29 | Repo created at ArcavenAE/sidestep. Workspace structure (4 crates + xtask), CI, conventions, vendored spec, charter, audit-trail design. B1–B4 set, F1–F6 opened, G1 ruled. orc bd `aae-orc-icqp`. |
+| Progenitor wire-up | 2026-04-29 | `cargo xtask regen` produces 27,653 lines / 97 ops via progenitor 0.14. Three pre-passes (synthesize operationIds, collapse multi-success / multi-error responses) accommodate spec quirks. reqwest 0.12 → 0.13. F1 closed → B2. orc bd `aae-orc-n91j`. |
+| SDK MVP + api passthrough | 2026-04-30 | sidestep-sdk: error / auth / spec / audit / redact / client. CLI `auth login/status/logout`, `ops list/show`, `api <opId>`. Audit JSONL schema v1 emitting per call (auth_source, operation, response.shape_hash, …). End-to-end verified against live API. F4 partial; F2 partial via api passthrough. orc bd `aae-orc-il4t`. |
+| Keyring fallback | 2026-04-30 | Token chain extended env → keyring. `auth status` reports source without printing the token. invocation.auth_source records `"env"` or `"keyring"` in audit. orc bd `aae-orc-2kmy`. |
+| Config-file fallback | 2026-04-30 | Chain completed: env → keyring → config (`~/.config/sidestep/config.toml`, override `SIDESTEP_CONFIG`). Missing file silent; malformed file fatal with TOML line/column. F4 → B5. orc bd `aae-orc-tqu6`. |
+| Release pipeline (stable) | 2026-04-30 | Tag-triggered v* workflow: check → build mac-arm64 → sign + notarize-zip → GitHub Release → tap update. `Formula/sidestep.rb`. SIGNING_ENABLED + release environment configured on the repo. Dormant until first tag. F6 partial. orc bd `aae-orc-pxai`. |
+| Alpha-on-main release | 2026-04-30 | `.github/workflows/alpha.yml` ships alpha on every push to main: `alpha-YYYYMMDD-HHMMSS-<sha7>` prereleases pruned to last 30 (kos pattern). `Formula/sidestep-a.rb` installs as `sidestep-a` so alpha + stable coexist (forestage-a / threedoors-a / jr-a convention). F6 expanded with two-channel posture. orc bd `aae-orc-2jh8`. |
+| Harvest | 2026-04-30 | Charter F1 → B2 (closed); B2 expanded with the three pre-pass implementation; F2 marked partial. Charter materialized into `_kos/nodes/` (5 bedrock elements, 1 graveyard, 4 frontier questions). `kos doctor` clean. |

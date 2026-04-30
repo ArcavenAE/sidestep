@@ -24,27 +24,13 @@ local audit trail intended to be mined for meta-action patterns.
 
 ## Install
 
-sidestep ships two channels via Homebrew:
-
-- **alpha** (`sidestep-a`) — auto-published on every push to `main`.
-  This is the recommended channel today; the project is early and the
-  alpha channel is where iteration happens.
-- **stable** (`sidestep`) — published on `v*` tags. Not yet cut. Will
-  appear once the curated CLI verb set lands.
-
-Both formulas can coexist on the same machine; the alpha binary is named
-`sidestep-a` so it doesn't collide with stable.
-
-### Alpha (today)
+sidestep is published as a single Homebrew formula. CI updates it on
+every push to `main` (alpha versions like `alpha-20260430-…`); when the
+first stable tag is cut, the same formula switches to the stable
+version. No separate `-a` channel — kos's pattern.
 
 ```sh
 brew tap arcavenae/tap                        # one-time
-brew install arcavenae/tap/sidestep-a
-```
-
-### Stable (when tagged)
-
-```sh
 brew install arcavenae/tap/sidestep
 ```
 
@@ -52,14 +38,13 @@ brew install arcavenae/tap/sidestep
 
 ```sh
 brew update
-brew upgrade arcavenae/tap/sidestep-a         # alpha
-brew upgrade arcavenae/tap/sidestep           # stable
+brew upgrade arcavenae/tap/sidestep
 ```
 
 ### Uninstall
 
 ```sh
-brew uninstall arcavenae/tap/sidestep-a       # or sidestep
+brew uninstall arcavenae/tap/sidestep
 brew untap arcavenae/tap                      # optional, removes the tap
 ```
 
@@ -75,9 +60,6 @@ cargo build --release
 macOS arm64 only for now. Other platforms can build from source.
 
 ## Getting started
-
-> Examples below use `sidestep`. If you installed the alpha channel,
-> substitute `sidestep-a` for every `sidestep` invocation.
 
 Recommended path — store your StepSecurity API token in the macOS Keychain
 once, and let sidestep find it on every call:

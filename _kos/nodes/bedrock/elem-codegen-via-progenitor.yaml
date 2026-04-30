@@ -1,0 +1,39 @@
+id: elem-codegen-via-progenitor
+type: element
+confidence: bedrock
+title: "OpenAPI codegen via progenitor with three pre-passes"
+content: |
+  `sidestep-api` is regenerated from `spec/stepsecurity-v1.yaml` via
+  `cargo xtask regen`. Generator: progenitor (Oxide Computer's
+  spec-to-reqwest tool). Generated source is committed (not built at
+  compile time) so it is grep-able by humans and agents.
+
+  Implementation (commit `4a26361`): three pre-passes against the
+  in-memory spec model accommodate StepSecurity's quirks without
+  modifying the vendored YAML:
+
+  1. `fill_missing_operation_ids` — 78 of 93 operations lack
+     `operationId`; synthesized as
+     `{method}_{path-with-params-stripped}`.
+  2. `collapse_multi_success_responses` — progenitor asserts at most
+     one Rust response type in the success class. Spec has 200 +
+     default + 207 with distinct schemas; we keep one bodied success
+     per operation.
+  3. `collapse_multi_error_responses` — same constraint applies to
+     the error class. Spec has 400 + 401 + 404 + 500 with distinct
+     inline schemas; we keep one.
+
+  Output: 27,653 lines / 97 operations / one `Client` struct, all
+  spec operations reachable.
+
+  Alternatives evaluated (and ruled out): `openapi-generator` (output
+  quality), hand-rolled (maintenance cost). progenitor was the mature
+  choice for Rust + reqwest + spec-driven clients.
+edges:
+  - target: elem-vendored-spec
+    type: derives
+    note: "Codegen reads the vendored spec on disk"
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  session: progenitor-wire-up

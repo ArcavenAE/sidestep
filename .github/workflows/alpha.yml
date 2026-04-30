@@ -1,9 +1,9 @@
 # Alpha Release
-# Triggers: push to main (alpha builds), pull requests do not release.
-# Builds binary, signs/notarizes, creates GitHub prerelease, updates
-# ArcavenAE/homebrew-tap with the sidestep-a formula. macOS arm64 only.
-# Mirrors kos's CI-integrated alpha pattern (separated into its own
-# workflow file for clarity); stable releases live in release.yml.
+# Triggers: push to main. Single-channel kos pattern — there is no
+# separate sidestep-a binary or formula. The same Formula/sidestep.rb
+# is updated by this workflow with an alpha-... version until the first
+# v* tag is cut, at which point release.yml takes over the same formula
+# with a stable version. macOS arm64 only.
 name: Alpha Release
 
 on:
@@ -73,19 +73,16 @@ jobs:
       - name: Build alpha binary
         run: |
           cargo build --release --target aarch64-apple-darwin --bin sidestep
-          # Alpha artifacts use the `-a` suffix so the alpha and stable
-          # formulas in the tap can coexist (formula installs as
-          # `sidestep-a`, not `sidestep`).
-          cp target/aarch64-apple-darwin/release/sidestep sidestep-a-darwin-arm64
+          cp target/aarch64-apple-darwin/release/sidestep sidestep-darwin-arm64
 
       - name: Verify binary
-        run: ./sidestep-a-darwin-arm64 --version
+        run: ./sidestep-darwin-arm64 --version
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: alpha-binaries-darwin-arm64
-          path: sidestep-a-darwin-arm64
+          path: sidestep-darwin-arm64
 
   sign-and-notarize:
     name: Sign & Notarize
@@ -137,10 +134,10 @@ jobs:
           codesign --force --options runtime \
             --sign "$APPLE_SIGNING_IDENTITY" \
             --timestamp \
-            sidestep-a-darwin-arm64
+            sidestep-darwin-arm64
 
       - name: Verify signature
-        run: codesign --verify --deep --strict sidestep-a-darwin-arm64
+        run: codesign --verify --deep --strict sidestep-darwin-arm64
 
       - name: Notarize binary (via zip submission)
         env:
@@ -148,19 +145,19 @@ jobs:
           APPLE_NOTARIZATION_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
           APPLE_NOTARIZATION_TEAM_ID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
         run: |
-          ditto -c -k --keepParent sidestep-a-darwin-arm64 sidestep-a-darwin-arm64.zip
-          xcrun notarytool submit sidestep-a-darwin-arm64.zip \
+          ditto -c -k --keepParent sidestep-darwin-arm64 sidestep-darwin-arm64.zip
+          xcrun notarytool submit sidestep-darwin-arm64.zip \
             --apple-id "$APPLE_NOTARIZATION_APPLE_ID" \
             --password "$APPLE_NOTARIZATION_PASSWORD" \
             --team-id "$APPLE_NOTARIZATION_TEAM_ID" \
             --wait --timeout 14400
-          rm -f sidestep-a-darwin-arm64.zip
+          rm -f sidestep-darwin-arm64.zip
 
       - name: Upload signed artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: signed-alpha-binaries-darwin-arm64
-          path: sidestep-a-darwin-arm64
+          path: sidestep-darwin-arm64
           retention-days: 14
 
       - name: Cleanup keychain
@@ -210,7 +207,7 @@ jobs:
           **Signed:** ${{ needs.sign-and-notarize.result == 'success' && 'Yes (Apple Developer ID, notarized)' || 'No (unsigned)' }}
 
           Install via Homebrew:
-              brew install ArcavenAE/tap/sidestep-a
+              brew install ArcavenAE/tap/sidestep
           NOTES
           )" \
             dist/*
@@ -227,8 +224,8 @@ jobs:
               gh release delete "$tag" --repo "${{ github.repository }}" --yes --cleanup-tag
             done
 
-  update-homebrew-alpha:
-    name: Update Homebrew Tap (alpha)
+  update-homebrew:
+    name: Update Homebrew Tap
     needs: [build, sign-and-notarize, create-prerelease]
     if: needs.create-prerelease.result == 'success' && needs.sign-and-notarize.result == 'success'
     permissions:
@@ -245,30 +242,31 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download signed alpha binary
+      - name: Download signed binary
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: signed-alpha-binaries-darwin-arm64
           path: dist/
 
-      - name: Update Homebrew alpha formula
+      - name: Update Homebrew formula
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           TAG="${{ needs.build.outputs.tag }}"
-          SHA256_DARWIN_ARM64=$(shasum -a 256 dist/sidestep-a-darwin-arm64 | cut -d' ' -f1)
+          SHA256_DARWIN_ARM64=$(shasum -a 256 dist/sidestep-darwin-arm64 | cut -d' ' -f1)
 
           git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/ArcavenAE/homebrew-tap.git" homebrew-tap-repo
           cd homebrew-tap-repo
 
           mkdir -p Formula
-          cp ../Formula/sidestep-a.rb Formula/sidestep-a.rb
+          cp ../Formula/sidestep.rb Formula/sidestep.rb
 
-          sed -i "s|TAG_PLACEHOLDER|$TAG|g" Formula/sidestep-a.rb
-          sed -i "s|SHA256_DARWIN_ARM64_PLACEHOLDER|$SHA256_DARWIN_ARM64|g" Formula/sidestep-a.rb
+          sed -i "s|VERSION_PLACEHOLDER|$TAG|g" Formula/sidestep.rb
+          sed -i "s|TAG_PLACEHOLDER|$TAG|g" Formula/sidestep.rb
+          sed -i "s|SHA256_DARWIN_ARM64_PLACEHOLDER|$SHA256_DARWIN_ARM64|g" Formula/sidestep.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/sidestep-a.rb
-          git diff --cached --quiet || git commit -m "Update sidestep-a to $TAG"
+          git add Formula/sidestep.rb
+          git diff --cached --quiet || git commit -m "Update sidestep to $TAG"
           git push
