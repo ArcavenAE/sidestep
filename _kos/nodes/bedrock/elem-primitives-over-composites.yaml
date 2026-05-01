@@ -1,0 +1,71 @@
+id: elem-primitives-over-composites
+type: element
+confidence: bedrock
+title: "Primitives over composites — sidestep v0.1 verb algebra"
+content: |
+  v0.1 ships the **primitive algebra**, not opinionated composite verbs.
+  Six primitives compose JSON-line streams of typed records into
+  exported, actionable plans — the WebUI's gap. Composite verbs
+  (`triage`, `inventory`, `plan`, `orient`, `verify`) emerge as v0.2
+  recipe sugar designed from accumulated audit-trail evidence, not from
+  intuition.
+
+  **Primitives:** `list <noun>`, `get <noun> <id>`, `search <noun> <name>`,
+  `enrich --with <kind>`, `filter --where '<CEL>'`, `emit --format <fmt>`.
+  Plus `api <opId>` peer escape hatch.
+
+  **Stream contract:** JSON-lines, `_kind`-tagged, primitives compose
+  stdin → stdout. 9 v0.1 kinds: `run`, `detection`, `check`, `policy`,
+  `rule`, `incident`, `audit_log`, `repo`, `threat_intel`. 5 deferred
+  kinds (baseline, ai_agent, mcp_server, npm_package, pypi_package) for
+  v0.2+ as audit-trail evidence demands.
+
+  **Predicate language:** raw CEL (`cel-rust`) with strict canonical
+  adapter rules (timestamps parsed at ingest, absent fields omit keys,
+  list collections always `Value::List<T>` with concrete `T`, missing
+  fields error not null, `now` bound per query). Two trivial sugar
+  freebies: `--limit N`, `--since <duration>`. Schema-aware tooling —
+  `filter --explain` and column-accurate, schema-suggesting error
+  messages — collapses friction better than per-flag sugar would
+  (Quinn's TRIZ reframe).
+
+  **Enrichment recipes (3):** `policy-context`, `repo-owner`,
+  `severity-roll-up`. Two deferred (baseline-diff, incident-correlation)
+  for v0.2+.
+
+  **Audit instrumentation extends elem-audit-trail-schema:** adds
+  `verb_phase`, `synthesis_keys`, `recipe_id`, `step_index`,
+  `predicate_text`, `predicate_ast_shape`, `field_paths_referenced`,
+  `literal_values_by_path`, `predicate_outcome`, `retry_chain_id`,
+  `time_to_next_invocation`. Schema_version 1 → 2, additive. The trail
+  is the v0.2 sugar-design dataset.
+
+  Evidence: 5 BMAD party-mode rounds (10 agents, 4 lenses), 9-agent
+  rescue-poll convergence (K-2 threat_intel 78%, E-3 severity-roll-up
+  44%), CEL stress-test against 5 real predicates showing 3 of 5 expose
+  un-presugarable cross-kind/enrichment shapes (Sally + Amelia), Quinn's
+  TRIZ reframe (schema-aware tooling collapses ergonomics/completeness
+  contradiction).
+
+  See `_kos/findings/finding-001-primitives-over-composites.md`,
+  `_kos/probes/brief-primitive-layer-v01.md`, charter B6.
+edges:
+  - target: elem-sdk-backed-cli
+    type: derives
+    note: "Primitives are CLI presentation over the SDK's call_op"
+  - target: elem-audit-trail-schema
+    type: derives
+    note: "Extends the audit trail with 8 new fields for predicate clustering"
+  - target: question-curated-cli-verbs
+    type: supersedes
+    note: "Reframed: the question wasn't 'which composite verbs' but 'which primitives compose'"
+  - target: question-audit-mining
+    type: supports
+    note: "The new audit metadata is exactly the dataset audit-mining needs"
+  - target: question-permissions-model
+    type: partially_resolves
+    note: "Two-axis story emerges: Sidestep(verb:filter) for curated, Sidestep(api:<opId>) for raw"
+provenance:
+  created_by: human
+  created_at: 2026-05-01
+  session: 041

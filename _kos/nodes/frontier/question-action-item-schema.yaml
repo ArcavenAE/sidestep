@@ -1,0 +1,50 @@
+id: question-action-item-schema
+type: question
+confidence: frontier
+title: "ActionItem schema — what shape does the engineer's actionable unit take?"
+content: |
+  The primitive algebra (B6 / elem-primitives-over-composites) treats
+  `_kind: action-item` as a stream record type, the same shape that
+  `triage`-style v0.2 recipes will emerge as. But the canonical
+  `ActionItem` schema isn't written yet.
+
+  Quinn's reframe (finding-001): write `ActionItem` first, then
+  back-propagate the 14-kind input schemas from what `ActionItem`
+  requires. If we write the input kinds first, we'll design them around
+  what StepSecurity's API returns (spec-driven, comfortable, wrong). If
+  we write `ActionItem` first, the kinds derive from "what an engineer
+  needs to act."
+
+  Working hypothesis (5 fields):
+
+  - `id` — stable hash of `(kind, target, finding_ref)`
+  - `kind` — enum: `harden_workflow | suppress_detection | attach_policy
+    | update_rule | replace_action | uninstall_package | ...`
+  - `target` — `{ repo?, workflow?, rule_id?, policy_id?, package?, ... }`
+  - `severity` — enum: `critical | high | medium | low | info`
+  - `evidence` — `[{ operation_id, response_ref, ts }]` — audit-trail
+    join keys
+
+  Open: Is `id` stable across runs when finding-refs rotate (e.g.,
+  StepSecurity rotates detection IDs)? Does `kind` need to be open-set
+  for v0.2 expansion or closed-enum for v0.1 type safety? Does
+  `evidence` carry the response shape or just a pointer back to the
+  audit trail? What fields does `plan --format markdown` need that
+  aren't in the 5 above (assignee? status? recommended_text?) — and do
+  those belong on `ActionItem` or on a sibling render-context object?
+
+  Resolution path: bd `aae-orc-0t43` (Track A, ~30 min generative work)
+  produces `docs/research/action-item-schema.md`. Validation: each
+  field must ladder to "what does the engineer need to act on this";
+  fields that don't are suspect.
+edges:
+  - target: elem-primitives-over-composites
+    type: derives
+    note: "ActionItem is the synthesis-seam shape the primitives compose toward"
+  - target: elem-audit-trail-schema
+    type: derives
+    note: "evidence field uses audit-trail join keys (operation_id, response_ref, ts)"
+provenance:
+  created_by: human
+  created_at: 2026-05-01
+  session: 041
