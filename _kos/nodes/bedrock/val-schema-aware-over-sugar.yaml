@@ -1,0 +1,37 @@
+id: val-schema-aware-over-sugar
+type: value
+confidence: bedrock
+title: "Schema-aware tooling over sugar layers"
+content: |
+  When facing the ergonomics-vs-completeness contradiction in a tool
+  with a typed expression language, prefer making the raw form
+  composable over building a wrapper layer that hides it.
+
+  Sugar flags (`--severity high --since 24h`) widen one friction stage
+  (typing) and only for the predicates someone thought to bake in. They
+  leave the harder stages — discovery ("what fields exist?"),
+  validation ("is this correct?"), iteration ("why is the result
+  empty?") — untouched and create an undocumented gap between sugar
+  coverage and raw expressiveness.
+
+  Schema-aware tooling — autocomplete, dry-run preview, type-check
+  before submission, schema-suggesting error messages ("did you mean
+  `created_at`?") — collapses the contradiction. The 80% case becomes
+  guided rather than memorized; the 20% case stays expressible. Sugar
+  designed up-front forecloses; sugar from accumulated evidence
+  canonizes real patterns.
+
+  Quinn's TRIZ formulation: the contradiction *we want ergonomics AND
+  completeness AND we don't want two surfaces* resolves through
+  separation-by-quality (Principle 3, Local Quality) — give different
+  parts different properties optimized for their role. Tooling around
+  the raw language, not over it.
+
+  First instantiation in sidestep: raw CEL + canonical adapter +
+  `filter --explain` + ruthless error messages, with two trivial sugar
+  freebies (`--limit`, `--since`) and full sugar deferred to v0.2 from
+  audit-trail evidence (see elem-primitives-over-composites).
+provenance:
+  created_by: human
+  created_at: 2026-05-01
+  session: 041
