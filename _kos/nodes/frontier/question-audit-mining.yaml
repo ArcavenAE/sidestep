@@ -20,10 +20,26 @@ content: |
   The schema's stable join keys (`operation.id`, `trace_id`,
   `shape_hash`) are designed to enable any of these without a schema
   change.
+
+  **Session-041 update:** `elem-primitives-over-composites` (B6)
+  extends the audit schema with 8 additive fields specifically
+  designed to make `meta propose` tractable: `verb_phase`,
+  `synthesis_keys`, `recipe_id`, `step_index`, `predicate_text`,
+  `predicate_ast_shape`, `field_paths_referenced`,
+  `literal_values_by_path`, `predicate_outcome`, `retry_chain_id`,
+  `time_to_next_invocation`. The first concrete consumer is
+  `aae-orc-vjc6` (CEL sugar layer designed from audit-trail
+  evidence) — clusters predicates by `predicate_ast_shape`, mines
+  `field_paths_referenced` for compound flag candidates. Murat's
+  threshold for v0.2 sugar design: ~200 distinct `predicate_text`
+  values × ≥10 invocation contexts (~8-12 weeks of dogfooding).
 edges:
   - target: elem-audit-trail-schema
     type: derives
     note: "Mining tools read the schema this question depends on"
+  - target: elem-primitives-over-composites
+    type: derives
+    note: "B6's 8 added metadata fields make meta propose tractable"
 provenance:
   created_by: human
   created_at: 2026-04-29
