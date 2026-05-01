@@ -1,0 +1,70 @@
+id: elem-action-item-schema
+type: element
+confidence: bedrock
+title: "ActionItem schema — the bridge artifact between observation and action"
+content: |
+  ActionItem is the canonical record sidestep emits to bridge
+  StepSecurity's observation surface and the engineer's action
+  surface (Quinn's reframe, finding-001). Every v0.1 primitive
+  produces, transforms, or consumes ActionItems.
+
+  Five fields:
+
+  - **`id`** — content-addressed string. `sha256(kind ||
+    target_canonical || root_cause)[:16]`. Stable across StepSecurity
+    detection-ID rotation because root_cause names what makes the
+    problem distinct, not the observation that surfaced it.
+  - **`kind`** — closed enum, 6 values for v0.1: `harden_workflow`,
+    `suppress_detection`, `replace_action`, `attach_policy`,
+    `update_rule`, `acknowledge_incident`. v0.2 extensions additive only.
+  - **`target`** — discriminated union by kind. Each kind specifies
+    its target shape (e.g., `harden_workflow` → `{repo, workflow_path}`,
+    `replace_action` → `{action_ref, repos_affected[]}`). Per-kind
+    schemas let `plan --format` templates avoid defensive checks.
+  - **`severity`** — closed 5-level enum: `critical | high | medium |
+    low | info`. Post-triage stored value (triage recipes can override
+    raw source severity). `severity_source` field deferred to v0.2.
+  - **`evidence`** — `[{ operation_id, trace_ref, ts }]`. Min
+    cardinality 1. `trace_ref` (`<trace_id>:<span_id>`) points back
+    to the audit JSONL for the full API response; ActionItem stays
+    portable.
+
+  Stream-level: `_kind: "action-item"` is added by the stream
+  contract; the five fields above fill the rest of the JSON-line.
+
+  **NOT on ActionItem (deferred to v0.2 `RenderContext` sibling):**
+  `assignee`, `status`, `recommended_text`, `due_date`, `labels`,
+  `dependencies`, `confidence`. Keeps ActionItem byte-identical
+  across `emit --format markdown|jira|sarif`.
+
+  **Back-propagation to v0.1 input kinds:** writing ActionItem first
+  surfaced field requirements per `_kind` — `detection` must carry
+  `workflow_path` for `harden_workflow.target`, `incident` must carry
+  `action_refs[]` and `package_refs[]`, `audit_log` and `repo` do
+  not produce ActionItems (only support evidence/targets in others).
+  The full back-propagation list is the spec for Track B (bd
+  `aae-orc-kdz1`).
+
+  Full schema rationale, per-field engineer-action ladders, per-kind
+  target shapes, and bedrock-promotion checklist live in
+  `docs/research/action-item-schema.md`.
+
+  Bedrock-promotion checklist remaining (post-Track A):
+  - [ ] Track B (spine fixtures) round-trips ActionItem records
+        through filter/rank/emit without special-casing
+  - [ ] Track C (recipe sketches) produces coherent ActionItem
+        streams from all four composite recipes
+  - [ ] One Markdown template renders all 6 kinds without per-kind
+        special cases
+edges:
+  - target: elem-primitives-over-composites
+    type: derives
+    note: "ActionItem is the synthesis-seam shape primitives compose toward"
+  - target: elem-audit-trail-schema
+    type: derives
+    note: "evidence.trace_ref + operation_id are audit-trail join keys"
+provenance:
+  created_by: human
+  created_at: 2026-05-01
+  session: 041
+  promoted_from: question-action-item-schema
