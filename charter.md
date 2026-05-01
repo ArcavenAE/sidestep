@@ -4,7 +4,7 @@
 > Restores context for a collaborator who was present but does not persist.
 > Follows the kos process: Orient → Ideate → Question → Probe → Harvest → Promote.
 
-Last updated: 2026-04-30 (harvest — first green alpha published, secret allowlist resolved, `.pkg` path dropped).
+Last updated: 2026-05-01 (session-041 — primitives-over-composites convergence; F2 → B6; brief replaced; v0.1 surface locked).
 
 ---
 
@@ -156,6 +156,50 @@ clustering CLI invocations, `shape_hash` for response-shape pattern
 detection) are designed to support future LLM mining for meta-action
 candidates without storing PII or secrets.
 
+### B6: Primitives over Composites
+
+v0.1 ships the **primitive algebra**, not opinionated composite verbs.
+Six primitives compose JSON-line streams of typed records into
+exported, actionable plans — the WebUI's gap. Composite verbs
+(`triage`, `inventory`, `plan`, `orient`, `verify`) emerge as v0.2
+recipe sugar designed from accumulated audit-trail evidence, not from
+intuition.
+
+**Primitives:** `list <noun>`, `get <noun> <id>`, `search <noun> <name>`,
+`enrich --with <kind>`, `filter --where '<CEL>'`, `emit --format <fmt>`.
+Plus `api <opId>` peer escape hatch (B2).
+
+**Stream contract:** JSON-lines, `_kind`-tagged, primitives
+compose stdin → stdout. 9 v0.1 kinds: `run`, `detection`, `check`,
+`policy`, `rule`, `incident`, `audit_log`, `repo`, `threat_intel`.
+
+**Predicate language:** raw CEL (`cel-rust`) with strict canonical
+adapter rules (timestamps parsed at ingest, absent fields omit keys,
+list collections always `Value::List<T>` with concrete `T`, missing
+fields error not null, `now` bound per query). Two trivial sugar
+freebies: `--limit N`, `--since <duration>`. Schema-aware tooling —
+`filter --explain` and column-accurate, schema-suggesting error
+messages — collapses friction better than per-flag sugar would.
+
+**Enrichment recipes (3):** `policy-context`, `repo-owner`,
+`severity-roll-up`.
+
+**Audit instrumentation:** `verb_phase`, `synthesis_keys`,
+`recipe_id`, `step_index`, `predicate_text`, `predicate_ast_shape`,
+`field_paths_referenced`, `literal_values_by_path`,
+`predicate_outcome`, `retry_chain_id`, `time_to_next_invocation`. The
+trail is the v0.2 sugar-design dataset.
+
+Evidence: 5 party-mode rounds (10 BMAD agents, 4 lenses), 9-agent
+rescue-poll convergence (K-2 threat_intel 78%, E-3 severity-roll-up
+44%), CEL stress test against 5 real predicates (Sally + Amelia)
+showing 3 of 5 predicates expose un-presugarable shapes. Quinn's
+TRIZ reframe: schema-aware tooling collapses the
+ergonomics/completeness contradiction without baking opinions in.
+
+See `_kos/findings/finding-001-primitives-over-composites.md` and
+`_kos/probes/brief-primitive-layer-v01.md`.
+
 ---
 
 ## Frontier
@@ -168,19 +212,13 @@ Promoted into B2's content above. Single-file `generated.rs` output
 chosen; the three pre-passes named there handle the spec's quirks.
 No follow-on questions remain at this layer.
 
-### F2: Curated v0.1 CLI Verb Set [partial]
+### F2: Curated v0.1 CLI Verb Set [RESOLVED → B6]
 
-Spec-aware passthrough shipped at `29ae9c7` — every operation reachable
-today via `sidestep api <operationId> --param k=v`. `sidestep ops list`
-discovers operations; `sidestep ops show <id>` inspects one.
-
-Remaining: ergonomic curated verbs over the highest-value
-triage-and-harden workflows: `runs list|get`, `detections
-list|get|suppress`, `checks list|get|run`, `policies
-list|attach|detach`, `rules list|create|delete`, `incidents list|get`,
-`run-policy-evaluations list`, `audit-logs list`. Should there be a
-separate `sidestep harden` namespace for StepSecurity's
-harden-runner-specific verbs?
+Resolved by finding-001 (session-041). The framing changed: not "what
+curated verbs," but "what primitive algebra composes into the verbs
+users will reach for." See B6. Composite verbs (`triage`, `inventory`,
+`plan`, `orient`, `verify`) deferred to v0.2 as recipe sugar designed
+from audit-trail evidence.
 
 ### F3: Audit-Trail Pattern-Mining Surface
 
@@ -280,3 +318,4 @@ emerges.
 | Alpha-on-main release | 2026-04-30 | `.github/workflows/alpha.yml` ships alpha on every push to main: `alpha-YYYYMMDD-HHMMSS-<sha7>` prereleases pruned to last 30 (kos pattern). `Formula/sidestep-a.rb` installs as `sidestep-a` so alpha + stable coexist (forestage-a / threedoors-a / jr-a convention). F6 expanded with two-channel posture. orc bd `aae-orc-2jh8`. |
 | Harvest | 2026-04-30 | Charter F1 → B2 (closed); B2 expanded with the three pre-pass implementation; F2 marked partial. Charter materialized into `_kos/nodes/` (5 bedrock elements, 1 graveyard, 4 frontier questions). `kos doctor` clean. |
 | Single-channel revert + first publish | 2026-04-30 | Reverted `sidestep-a` channel after user correction (kos/sideshow use a single formula; I had drawn from forestage/jr/ThreeDoors). One `Formula/sidestep.rb` written by both alpha-on-main and tag-on-tag workflows. Added sidestep to org-secret selected-repos allowlist for the 7 secrets the workflow uses. First green alpha shipped: `alpha-20260430-215941-40b3708`, signed + notarized + in `ArcavenAE/homebrew-tap`. `brew install ArcavenAE/tap/sidestep` works. `.pkg` build path remains dropped (could be restored later). |
+| Primitives convergence (041) | 2026-05-01 | F2 → B6 via 5 party-mode rounds (10 BMAD agents) + value-prop research + 9-agent rescue poll. v0.1 surface locked: 6 primitives (`list`, `get`, `search`, `enrich`, `filter`, `emit`) + `api` peer, 9 `_kind`s (run, detection, check, policy, rule, incident, audit_log, repo, threat_intel), 3 enrichments (policy-context, repo-owner, severity-roll-up), raw CEL with canonical adapter, 2 sugar freebies (`--limit`, `--since`), `filter --explain`, rich audit instrumentation. Composite verbs deferred to v0.2 as recipes designed from audit-trail evidence. Two research artifacts: `docs/research/{noun-inventory,value-propositions}.md`. Brief replaced: `_kos/probes/brief-primitive-layer-v01.md`. Finding: `_kos/findings/finding-001-primitives-over-composites.md`. |
