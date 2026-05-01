@@ -1,0 +1,55 @@
+id: grv-curated-cli-verbs
+type: graveyard
+confidence: graveyard
+title: "Curated composite CLI verbs as the v0.1 surface"
+content: |
+  Originally framed (charter F2): ship 4-6 curated composite verbs in
+  v0.1 over the highest-value triage-and-harden workflows — `runs
+  list|get`, `detections list|get|suppress`, `checks list|get|run`,
+  `policies list|attach|detach`, `rules list|create|delete`, `incidents
+  list|get`, `run-policy-evaluations list`, `audit-logs list`. With a
+  possible `sidestep harden` namespace for harden-runner-specific verbs.
+
+  Reasoning at scaffold time (2026-04-29): spec passthrough at `29ae9c7`
+  gave agents access to all 93 operations; curated verbs would add
+  ergonomic surface for the triage-and-harden flows real users
+  invoke most.
+
+  **Why this framing was abandoned (session-041, 2026-05-01):** the
+  user reframed the design problem mid-probe with three load-bearing
+  clarifications — (1) the job-to-be-done is `orient → plan → verify →
+  improve` producing exported, actionable plans; (2) `triage` is not a
+  primitive, it's `filter + rank + maybe enrich` with one opinionated
+  policy hardcoded; (3) establish primitives first, let composites
+  emerge from real audit-trail evidence.
+
+  Five party-mode rounds + a 9-agent rescue poll converged on
+  primitives over composites (see `elem-primitives-over-composites`,
+  charter B6, `_kos/findings/finding-001-primitives-over-composites.md`).
+
+  Composite verbs are not gone — they're deferred to v0.2 as recipe
+  sugar designed from audit-trail evidence (Murat's threshold: ~200
+  distinct predicate_text values × ≥10 invocation contexts, ~8-12 weeks
+  of dogfooding). bd `aae-orc-vjc6` tracks the v0.2 sugar layer;
+  `aae-orc-emap` tracks the `rank` primitive separately.
+edges:
+  - target: elem-primitives-over-composites
+    type: supersedes
+    note: "Reframed: not 'which composite verbs' but 'which primitives compose into them'"
+  - target: elem-sdk-backed-cli
+    type: derives
+    note: "Original framing — verbs as CLI presentation over the SDK"
+  - target: elem-audit-trail-schema
+    type: derives
+    note: "Original framing — audit trail clusters drive verb prioritization (still true, just for v0.2 sugar)"
+graveyard:
+  approach: "Ship 4-6 curated composite verbs (runs list|get, detections list|get|suppress, etc.) as the v0.1 surface beyond api passthrough"
+  context: "Spec passthrough covers the API surface; curated verbs would add ergonomic shape for the highest-value workflows"
+  finding: "Composite verbs hardcode policy. triage isn't a primitive. The primitives that compose into composites are themselves the right v0.1 abstraction."
+  ruling: "v0.1 ships primitives (list/get/search/enrich/filter/emit + api peer). Composites become v0.2 recipes designed from audit-trail evidence."
+  reopener: "If audit-trail evidence over 8-12 weeks shows agents/humans never compose primitives — if every recurring pattern needs a frozen verb shape — reopen and reconsider whether composites should be first-class earlier."
+provenance:
+  created_by: human
+  created_at: 2026-04-29
+  superseded_at: 2026-05-01
+  session: scaffold (created), 041 (graveyard)
