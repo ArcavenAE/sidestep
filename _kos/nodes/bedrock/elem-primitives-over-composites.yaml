@@ -65,6 +65,12 @@ edges:
   - target: question-permissions-model
     type: partially_resolves
     note: "Two-axis story emerges: Sidestep(verb:filter) for curated, Sidestep(api:<opId>) for raw"
+  - target: val-schema-aware-over-sugar
+    type: instantiates
+    note: "filter --explain + canonical adapter + schema-suggesting errors over per-flag sugar"
+  - target: val-evidence-driven-design
+    type: instantiates
+    note: "Raw CEL + rich audit metadata in v0.1; sugar/composites designed from data in v0.2"
 provenance:
   created_by: human
   created_at: 2026-05-01

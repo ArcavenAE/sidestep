@@ -1,0 +1,46 @@
+id: val-evidence-driven-design
+type: value
+confidence: bedrock
+title: "Ship raw, instrument hard, design v2 from data"
+content: |
+  When v0.1 must commit to one of several plausible designs and the
+  cost of wrong is medium-high, prefer shipping the rawest workable
+  surface plus rich instrumentation, and design the v2 layer from the
+  audit-trail evidence rather than from intuition.
+
+  Three sidestep instances of this pattern:
+
+  1. **Audit-trail mining (elem-audit-trail-schema, question-audit-mining):**
+     ship the trail in v0.1 with join keys (operation_id, trace_id,
+     shape_hash). Don't try to design the mining tools first; let the
+     trail accumulate, then design tools against real patterns.
+
+  2. **CEL sugar layer (bd aae-orc-vjc6):** ship raw CEL with rich
+     predicate metadata in v0.1 (predicate_text, predicate_ast_shape,
+     field_paths_referenced, literal_values_by_path, predicate_outcome,
+     retry_chain_id, time_to_next_invocation). Design sugar in v0.2
+     from clustered predicates after ~200 distinct predicate_texts × 10
+     contexts (Murat's threshold, ~8-12 weeks).
+
+  3. **`replay <trace_id>` primitive (bd aae-orc-jsai):** the audit
+     trail's read path is a primitive earned by the data accumulating,
+     not by speculation about what mining tools will need.
+
+  The pattern: rich instrumentation in v0.1 is cheap if designed in;
+  expensive to retrofit later (Murat's "trace keys before composites
+  land" rule). Wrong design in v0.2 is expensive — sugar is
+  user-visible contract, deprecation cycles corrode the audit trail
+  itself by polluting predicate_text with phantom patterns.
+
+  Cousin to orc B12 (Harvest Checklist — distribution-verified): name
+  scope on findings, don't claim distribution-verified from
+  development-only validation. Same epistemological move at a
+  different level.
+edges:
+  - target: elem-audit-trail-schema
+    type: instantiates
+    note: "audit trail's structured-for-mining design is the canonical case"
+provenance:
+  created_by: human
+  created_at: 2026-05-01
+  session: 041
