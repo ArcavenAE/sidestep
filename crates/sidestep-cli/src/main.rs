@@ -9,7 +9,7 @@ use anyhow::{Context, anyhow};
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value};
 use sidestep_sdk::{
-    CallOptions, Client, Record, SourceRef, auth, kind_spec, kinds, read_stream, registry,
+    CallOptions, Client, Record, SourceRef, auth, cel, kind_spec, kinds, read_stream, registry,
     write_record,
 };
 
@@ -37,6 +37,8 @@ enum Cmd {
     List(ListArgs),
     /// Format a JSON-line stream from stdin.
     Emit(EmitArgs),
+    /// Drop records that don't match a CEL predicate.
+    Filter(FilterArgs),
 }
 
 #[derive(clap::Args, Debug)]
@@ -161,6 +163,36 @@ enum EmitFormat {
 }
 
 #[derive(clap::Args, Debug)]
+#[command(long_about = "Drop records that don't match a CEL predicate.\n\n\
+                  The predicate is Common Expression Language (CEL). Each top-level field \
+                  of a record is bound as a top-level variable, so you can write \
+                  `severity == \"high\" && status == \"open\"` directly. The full record \
+                  is also available as `record` for use with the `has()` macro \
+                  (`has(record.suppressed_by)`).\n\n\
+                  Adapter rules (per finding-001):\n  \
+                  - `*_at` and `ts` fields are promoted to timestamps so `created_at < now` works\n  \
+                  - missing top-level field access raises a runtime error (use `has(record.X)` instead)\n  \
+                  - `now` is bound to the current UTC time per query\n  \
+                  - the predicate must return a boolean\n\n\
+                  Use `--explain` to print the schema, parsed AST, and `now` binding without \
+                  consuming any records.\n\n\
+                  Examples:\n  \
+                  sidestep filter --where '_kind == \"detection\" && status == \"open\"'\n  \
+                  sidestep filter --where 'severity in [\"critical\",\"high\"]'\n  \
+                  sidestep filter --where 'created_at < now - duration(\"24h\")'\n  \
+                  sidestep filter --where 'has(record.suppressed_by)' --explain")]
+struct FilterArgs {
+    /// CEL predicate. Returns one record per matching input.
+    #[arg(long, value_name = "CEL")]
+    r#where: String,
+
+    /// Print the schema, parsed AST, and `now` binding, then exit
+    /// without consuming stdin.
+    #[arg(long)]
+    explain: bool,
+}
+
+#[derive(clap::Args, Debug)]
 struct OpsArgs {
     #[command(subcommand)]
     cmd: OpsCmd,
@@ -208,6 +240,7 @@ fn main() -> ExitCode {
         Cmd::Auth(args) => run_auth(args),
         Cmd::List(args) => run_list(args),
         Cmd::Emit(args) => run_emit(args),
+        Cmd::Filter(args) => run_filter(args),
     };
 
     match result {
@@ -417,6 +450,66 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
         write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
     }
     Ok(())
+}
+
+fn run_filter(args: FilterArgs) -> anyhow::Result<()> {
+    let predicate = &args.r#where;
+    let program = cel::compile(predicate).map_err(|e| anyhow!("{e}"))?;
+
+    if args.explain {
+        return explain_filter(predicate, &program);
+    }
+
+    let now = chrono_now();
+    let stdin = std::io::stdin();
+    let stdin = BufReader::new(stdin.lock());
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+
+    for record in read_stream(stdin) {
+        let record = record.map_err(|e| anyhow!("{e}"))?;
+        let keep = cel::evaluate(&program, &record, now, predicate).map_err(|e| anyhow!("{e}"))?;
+        if keep {
+            write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+        }
+    }
+    Ok(())
+}
+
+fn explain_filter(predicate: &str, program: &cel_interpreter::Program) -> anyhow::Result<()> {
+    let now = chrono_now();
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+
+    writeln!(out, "predicate: {predicate}")?;
+    writeln!(out, "now:       {}", now.to_rfc3339())?;
+    writeln!(out, "ast:       {program:#?}")?;
+    writeln!(out)?;
+    writeln!(out, "v0.1 kind schemas (for predicate authoring):")?;
+    for spec in kinds::all_kinds() {
+        writeln!(
+            out,
+            "  {:<14}  id={}  severity={}  ts={}",
+            spec.name,
+            spec.id_field,
+            spec.severity_field.unwrap_or("-"),
+            spec.primary_timestamp_field.unwrap_or("-"),
+        )?;
+    }
+    writeln!(out)?;
+    writeln!(
+        out,
+        "Bindings per record: each top-level field becomes a CEL variable;"
+    )?;
+    writeln!(
+        out,
+        "the full record is also available as `record` for `has()` checks."
+    )?;
+    Ok(())
+}
+
+fn chrono_now() -> chrono::DateTime<chrono::Utc> {
+    chrono::Utc::now()
 }
 
 fn run_emit(args: EmitArgs) -> anyhow::Result<()> {
