@@ -14,12 +14,16 @@ pub mod audit;
 pub mod auth;
 pub mod client;
 pub mod error;
+pub mod kinds;
 pub mod redact;
 pub mod spec;
+pub mod stream;
 
 pub use auth::{ResolvedToken, TokenSource};
 pub use client::{CallOptions, Client};
 pub use error::{Result, SidestepError};
+pub use kinds::{KindSpec, all_kinds, extract_items, kind_spec};
 pub use spec::{HttpMethod, OperationMeta, Registry, registry};
+pub use stream::{Record, SourceRef, read_stream, write_record};
 
 pub const SDK_VERSION: &str = env!("CARGO_PKG_VERSION");
