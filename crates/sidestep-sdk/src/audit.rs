@@ -56,10 +56,11 @@ impl Outcome {
     }
 }
 
-/// One audit emission per HTTP call. Construct via `Span::start`,
-/// finish via `Span::finish`. Drop without finish is a bug; if it
-/// happens we lose the line silently (we don't want a panic in the
-/// audit path).
+/// One audit emission per HTTP call or stream-transform verb.
+/// Construct via `Span::start`. Finish via `finish` (API-shape) or
+/// `finish_as_verb` (verb-shape, no operation/response/outcome).
+/// Drop without finish is a bug; if it happens we lose the line
+/// silently (we don't want a panic in the audit path).
 pub struct Span {
     pub trace_id: Uuid,
     pub span_id: Uuid,
@@ -72,6 +73,16 @@ pub struct Span {
     pub tty: bool,
     pub auth_source: Option<TokenSource>,
     pub op: Option<AuditOp>,
+
+    /// Verb-phase tag — `list`, `get`, `search`, `api`, `filter`,
+    /// `enrich`, `emit`. Emitted as the v2 `verb_phase` audit field.
+    /// `None` means "treat as legacy" (the v1 emission shape).
+    pub verb_phase: Option<&'static str>,
+
+    /// Per-record synthesis keys — e.g. `["id"]` for kinds keyed on
+    /// `id`. Surfaced in the v2 audit so miners can join records
+    /// across runs without re-deriving the kind's primary key.
+    pub synthesis_keys: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -94,6 +105,13 @@ pub struct Outcomes {
 }
 
 impl Span {
+    /// Construct a span with a fresh UUIDv7 trace_id. Most callers
+    /// want this — only the SDK Client uses [`Span::start`] directly
+    /// to allow `CallOptions::trace_id` to thread through.
+    pub fn start_fresh() -> Self {
+        Self::start(Uuid::now_v7())
+    }
+
     pub fn start(trace_id: Uuid) -> Self {
         let argv: Vec<String> = std::env::args().collect();
         let argv_redacted = redact::redact_argv(&argv);
@@ -109,6 +127,8 @@ impl Span {
             tty: std::io::IsTerminal::is_terminal(&std::io::stdout()),
             auth_source: None,
             op: None,
+            verb_phase: None,
+            synthesis_keys: Vec::new(),
         }
     }
 
@@ -117,31 +137,30 @@ impl Span {
         self
     }
 
-    /// Build the JSONL record and write it. Best-effort: any IO failure
-    /// is swallowed to a `tracing::warn` so audit failures don't break
-    /// the user's command.
+    pub fn with_verb_phase(mut self, phase: &'static str) -> Self {
+        self.verb_phase = Some(phase);
+        self
+    }
+
+    pub fn with_synthesis_keys<I, S>(mut self, keys: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.synthesis_keys = keys.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// Build an API-shape JSONL record and write it. Best-effort: any
+    /// IO failure is swallowed to a `tracing::warn` so audit failures
+    /// don't break the user's command.
     pub fn finish(self, outcomes: Outcomes) {
         let ts_end = Utc::now();
         let duration_ms = (ts_end - self.started_at).num_milliseconds().max(0) as u64;
 
-        let mut record = json!({
-            "schema_version": 1,
-            "trace_id": self.trace_id.to_string(),
-            "span_id": self.span_id.to_string(),
-            "parent_span_id": self.parent_span_id.map(|u| u.to_string()),
-            "ts_start": self.started_at.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-            "duration_ms": duration_ms,
-            "invocation": {
-                "argv": self.argv_redacted,
-                "binary_version": self.binary_version,
-                "host": self.host,
-                "user": self.user,
-                "tty": self.tty,
-                "auth_source": self.auth_source.map(|s| s.as_str()),
-            },
-            "result": outcomes.outcome.as_str(),
-            "redacted_fields": outcomes.redacted_fields,
-        });
+        let mut record = self.base_record(duration_ms);
+        record["result"] = json!(outcomes.outcome.as_str());
+        record["redacted_fields"] = json!(outcomes.redacted_fields);
 
         if let Some(op) = &self.op {
             record["operation"] = serde_json::to_value(op).unwrap_or(Value::Null);
@@ -170,6 +189,53 @@ impl Span {
         if let Err(e) = write_line(&record) {
             tracing::warn!(error = %e, "audit emission failed");
         }
+    }
+
+    /// Build a verb-shape JSONL record and write it. Used by stream
+    /// transforms (`filter`, `enrich`, `emit`) that have no API call.
+    /// `extra` carries verb-specific fields — `predicate_text`,
+    /// `predicate_outcome`, `recipe_id`, etc.
+    pub fn finish_as_verb(self, extra: serde_json::Map<String, Value>) {
+        let ts_end = Utc::now();
+        let duration_ms = (ts_end - self.started_at).num_milliseconds().max(0) as u64;
+
+        let mut record = self.base_record(duration_ms);
+        for (k, v) in extra {
+            record[k] = v;
+        }
+
+        if let Err(e) = write_line(&record) {
+            tracing::warn!(error = %e, "audit emission failed");
+        }
+    }
+
+    /// Common header shared by API and verb emissions. v2 schema:
+    /// adds `verb_phase` and `synthesis_keys` when present, leaves
+    /// outcome/response detail to the caller.
+    fn base_record(&self, duration_ms: u64) -> Value {
+        let mut record = json!({
+            "schema_version": 2,
+            "trace_id": self.trace_id.to_string(),
+            "span_id": self.span_id.to_string(),
+            "parent_span_id": self.parent_span_id.map(|u| u.to_string()),
+            "ts_start": self.started_at.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+            "duration_ms": duration_ms,
+            "invocation": {
+                "argv": self.argv_redacted,
+                "binary_version": self.binary_version,
+                "host": self.host,
+                "user": self.user,
+                "tty": self.tty,
+                "auth_source": self.auth_source.map(|s| s.as_str()),
+            },
+        });
+        if let Some(p) = self.verb_phase {
+            record["verb_phase"] = json!(p);
+        }
+        if !self.synthesis_keys.is_empty() {
+            record["synthesis_keys"] = json!(self.synthesis_keys);
+        }
+        record
     }
 }
 

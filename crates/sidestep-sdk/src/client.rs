@@ -27,6 +27,13 @@ pub struct CallOptions {
     /// If true, the SDK records a stub audit line marked
     /// `result=redacted_block` instead of the operation detail.
     pub no_audit: bool,
+    /// Verb-phase tag for the audit emission. CLI primitives set this
+    /// (`list`, `get`, `search`, `api`); leave `None` for the legacy
+    /// shape if you're driving the SDK directly without a CLI verb.
+    pub verb_phase: Option<&'static str>,
+    /// Per-record synthesis keys for the v2 audit. Typically the
+    /// kind's primary key field, e.g. `["id"]`.
+    pub synthesis_keys: Vec<String>,
 }
 
 impl Client {
@@ -89,6 +96,12 @@ impl Client {
         let trace_id = opts.trace_id.unwrap_or_else(Uuid::now_v7);
         let mut span = Span::start(trace_id);
         span.auth_source = self.auth_source;
+        if let Some(phase) = opts.verb_phase {
+            span = span.with_verb_phase(phase);
+        }
+        if !opts.synthesis_keys.is_empty() {
+            span = span.with_synthesis_keys(opts.synthesis_keys.clone());
+        }
 
         if opts.no_audit {
             self.execute_silent(&op, params, span).await
