@@ -52,7 +52,15 @@ wildcards = "deny"
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-ignore = []
+ignore = [
+    # paste 1.0.15 — unmaintained per RUSTSEC-2024-0436. Pulled transitively
+    # via cel-interpreter (the predicate engine for `sidestep filter`).
+    # paste is a small, stable proc-macro helper widely depended-on across
+    # the ecosystem; the "unmaintained" status reflects upstream archival,
+    # not a known vulnerability. Accept until cel-rust drops paste or a
+    # safe replacement is published.
+    { id = "RUSTSEC-2024-0436", reason = "paste transitively via cel-interpreter; stable and widely used; no known vulnerability" },
+]
 
 [sources]
 unknown-registry = "deny"

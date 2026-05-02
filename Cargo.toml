@@ -52,6 +52,9 @@ bytes = "1"
 sha2 = "0.10"
 urlencoding = "2"
 
+# Predicate language for `sidestep filter --where '<CEL>'`
+cel-interpreter = { version = "0.10", default-features = false, features = ["chrono", "json"] }
+
 # Tests
 wiremock = "0.6"
 insta = { version = "1", features = ["json"] }
