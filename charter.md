@@ -4,7 +4,7 @@
 > Restores context for a collaborator who was present but does not persist.
 > Follows the kos process: Orient → Ideate → Question → Probe → Harvest → Promote.
 
-Last updated: 2026-05-01 (session-041 — F2 → B6; v0.1 surface locked + validated through Tracks A+B+C; `diff` primitive surfaced and filed for v0.2).
+Last updated: 2026-05-02 (session-044 — v0.1 primitive layer SHIPPED across 5 slices on main; B7 added; F3 active per audit-mining dataset now flowing).
 
 ---
 
@@ -200,6 +200,54 @@ ergonomics/completeness contradiction without baking opinions in.
 See `_kos/findings/finding-001-primitives-over-composites.md` and
 `_kos/probes/brief-primitive-layer-v01.md`.
 
+### B7: v0.1 Primitive Layer Shipped
+
+The v0.1 verb surface from B6 is implemented and on `main`. Five
+slices, each its own commit, each green at all gates (clippy +
+deny + 98 tests + Track B shell asserts):
+
+- Slice 1 (`da6d220`) — stream contract + 9-kind table + `list` +
+  `emit` (jsonl, md). End-to-end: `cat fixture | sidestep emit
+  --format jsonl` round-trips byte-identically.
+- Slice 2 (`b8d62fe`) — `filter --where '<CEL>'` + `--explain`,
+  raw CEL via `cel-interpreter` 0.10 with the canonical adapter
+  from finding-001. Track C's `triage.sh` predicate runs verbatim.
+- Slice 3 (`d0f4db1`) — `get`, `search`, `--limit`, `--since`.
+  `--since` is a CEL post-filter (`<ts_field> > now -
+  duration("...")`) with hand-rolled Go-duration validator that
+  fail-fasts before any network call.
+- Slice 4 (`0e7c6d8`) — `enrich --with <recipe>`. Three recipes:
+  `policy-context` (rule → parent policy join), `severity-roll-up`
+  (max(rule, parent) when both present, else copy-rename),
+  `repo-owner` (hoist `repo.owner` to top-level for filter
+  convenience). Auxiliary records via `--policies <FILE>`;
+  API-fetched aux is follow-up (`aae-orc-if85`).
+- Slice 5 (`332d420`) — audit `schema_version` 1 → 2. Adds
+  `verb_phase`, `synthesis_keys`, `recipe_id`, `predicate_text`,
+  `predicate_ast_shape` (literal-stripped sha256 of parsed
+  Program), `predicate_outcome`. Stream-transform verbs (filter,
+  enrich) emit verb-shape audit lines via
+  `Span::finish_as_verb`; API-shape lines (list/get/search/api)
+  ride along with `verb_phase` + `synthesis_keys`.
+
+Caveats captured: cel-interpreter 0.10's antlr4rust parser
+panics on some malformed predicates rather than returning Err
+(`aae-orc-qvk9`); `paste 1.0.15` advisory ignored in deny.toml
+(unmaintained per RUSTSEC-2024-0436, no known vulnerability).
+
+Deferred to v0.2 per finding-001 + this slice's notes:
+field_paths_referenced + literal_values_by_path audit fields
+(`aae-orc-deux`, AST-walk work); rank, replay, act primitives
+(aae-orc-emap/jsai/7nhb); diff primitive (aae-orc-08gd); CEL
+sugar layer (vjc6); 5 deferred kinds + 2 deferred enrichments
+(t3mc); SDK base-URL override + wiremock integration tests
+(`aae-orc-if85`).
+
+Evidence: bd `aae-orc-lyeh` closed with full slice provenance
+(2026-05-02). 98 tests green at close (45 SDK unit + 33 CLI
+integration + 14 sub-test groups + 3 MCP + Track B shell
+asserts + 3 doc tests).
+
 ---
 
 ## Frontier
@@ -220,14 +268,30 @@ users will reach for." See B6. Composite verbs (`triage`, `inventory`,
 `plan`, `orient`, `verify`) deferred to v0.2 as recipe sugar designed
 from audit-trail evidence.
 
-### F3: Audit-Trail Pattern-Mining Surface
+### F3: Audit-Trail Pattern-Mining Surface [now active per B7]
 
 Once the audit trail is emitting in production, the second-order question
 is what tooling reads it. Candidates: `sidestep audit query` (local
 analysis), `sidestep audit traces` (trace_id rendering),
 `sidestep meta propose` (LLM-driven meta-action suggestion). Also: should
 audit lines become a flyloft catalog adapter so an LLM can `fly` against
-them? Out of scope for v0.1; design once the trail has weeks of data.
+them?
+
+**Status as of session-044:** the v2 audit schema is emitting (B7,
+slice 5). Every CLI invocation produces a JSONL line with
+`verb_phase`, `synthesis_keys`, and verb-specific fields
+(`predicate_text` + `predicate_ast_shape` + `predicate_outcome`
+for filter; `recipe_id` + `transform_outcome` + auxiliary for
+enrich). The dataset that justifies v0.2 sugar design is now
+flowing — the question shifts from "design the schema" (resolved)
+to "what readers do we want, and what's the threshold of data
+volume before sugar candidates become statistically defensible."
+Murat's threshold of 8–12 weeks at 5–10 invocations/day
+(finding-001) is the bar.
+
+Pre-v0.2-design follow-up: `aae-orc-deux` adds the AST-walk
+audit fields (field_paths_referenced, literal_values_by_path)
+that complete Murat's set.
 
 ### F4: Auth UX [RESOLVED → B5]
 
@@ -322,3 +386,4 @@ emerges.
 | v0.1 Track A — ActionItem schema (041) | 2026-05-01 | 5-field bridge artifact (id content-addressed, kind closed enum 6 values, target discriminated union per kind, severity 5-level, evidence list min cardinality 1) shipped to `docs/research/action-item-schema.md`. Promoted to bedrock `elem-action-item-schema` (replaces frontier `question-action-item-schema`). Back-propagation surfaced concrete field requirements for the 9 input kinds (Track B spec). bd `aae-orc-0t43`. |
 | v0.1 Track B — spine fixtures + 3 asserts (041) | 2026-05-01 | 23 fixture records across 4 spine kinds (detection, run, policy, audit-log) + rule.jsonl as join target, in `examples/fixtures/`. 3 jq+shell asserts implemented and green: round-trip (parse+filter+emit byte-identical), cross-kind-enrich (3 policy join cases + orphan-rule detection), rank-stability (deterministic across runs + explicit severity-int mapping + ts-desc tiebreak). `make -C examples assert` runs all. Becomes regression contract for the Rust impl. bd `aae-orc-kdz1`. |
 | v0.1 Track C — recipe sketches + diff surfaced (041) | 2026-05-01 | 5 recipes shipped to `examples/recipes/`. `inventory.sh` + `triage.sh` work cleanly (4-pipe primitive composition). `orient.sh` bends (multi-source rollup uses shell-level count; aggregation isn't a v0.1 primitive — v0.2 design question deferred to audit-trail evidence). `verify.sh` + `changed-pinning.sh` (Winston's deliberate failing recipe) both demand set difference over two streams — strongest single missing-primitive signal. Filed bd `aae-orc-08gd` for the `diff` primitive (v0.2). v0.1 primitive set sufficient for inventory + triage flows; verify/time-travel flows gate on `diff` (08gd) + `replay` (jsai). bd `aae-orc-ldq1`. |
+| v0.1 primitive layer ship (044) | 2026-05-02 | Five-slice ship of the v0.1 verb surface from B6 → B7. Each slice its own commit, each green at every gate. Slice 1 (`da6d220`) — sidestep-sdk gains `stream` (Record + SourceRef + JSONL read/write helpers) and `kinds` (9-kind static table with id_field, severity_field, primary_timestamp_field, id_path_param, search_field). CLI gains `list` + `emit` (jsonl, md). End-to-end byte-identical round-trip against detection fixture verified. Slice 2 (`b8d62fe`) — sdk `cel` module wraps cel-interpreter 0.10 with the canonical adapter from finding-001 (timestamp promotion of `*_at`/`ts`, `record` map for `has()`, top-level + record bindings, now per query, non-bool error, missing-field error). CLI `filter --where '<CEL>' [--explain]`. Track C's triage predicate runs verbatim. Caveat captured: cel-rust antlr4rust panics on some malformed input (`aae-orc-qvk9`, P4); paste 1.0.15 RUSTSEC-2024-0436 ignored in deny.toml with rationale. Slice 3 (`d0f4db1`) — `get`/`search`/`--limit`/`--since`. KindSpec gains `id_path_param` (runid/head_sha/incidentId per kind) and `search_field`. `--since` is a CEL post-filter `<ts_field> > now - duration("...")` reusing the cel adapter. Hand-rolled `is_valid_go_duration` validates Go-duration syntax (ns/us/µs/ms/s/m/h, no `d` for days) before any network call so a typo doesn't burn a YubiKey tap. Slice 4 (`0e7c6d8`) — sdk `enrich` module + 3 recipes. policy-context attaches parent policy as `policy: {id, name, severity, attached_repos}` for rule records (orphans get null); severity-roll-up takes max(rule, parent) when both severities are present, falls back to copy-rename when only one is; repo-owner hoists `repo.owner` to a top-level `_repo_owner`. Auxiliary records via `--policies <FILE>`; API-fetched aux is follow-up `aae-orc-if85` (P2). Cross-kind-enrich semantic from Track B's shell assert is now also enforced through the Rust binary against the same fixtures. Slice 5 (`332d420`) — audit `schema_version` 1→2. Span gains `verb_phase` + `synthesis_keys` + `Span::start_fresh()` + `Span::finish_as_verb(extra)`. CallOptions gains verb_phase + synthesis_keys to thread through Client::call_op. CLI run_filter creates a Span, tracks kept/dropped/error counts, emits with `predicate_text` + `predicate_ast_shape` (literal-stripped sha256 of Debug-formatted Program — value-independent: `severity == "critical"` and `severity == "high"` hash identically; structurally different: `==` vs `in` flips the hash) + `predicate_outcome`. CLI run_enrich similarly emits with `recipe_id` + `transform_outcome` + auxiliary.policies_loaded. AST-walk audit fields (field_paths_referenced, literal_values_by_path) deferred to `aae-orc-deux` (P3). Charter F2 → B6 (resolved session-041) extended with B7 (shipped); F3 (audit-mining surface) updated from "design once data flows" to "data is now flowing, threshold gating v0.2 sugar design." Final: 98 tests green (45 SDK unit + 33 CLI integration + 6 sub-test groups + 3 MCP + Track B shell asserts + 3 doc tests); clippy + cargo deny + nightly fmt clean; lyeh closed with provenance; sidestep main pushed `b00a441..332d420`. bd: closed `aae-orc-lyeh`; filed `aae-orc-qvk9` (upstream cel-rust panic, P4), `aae-orc-if85` (SDK base-URL override + wiremock tests, P2), `aae-orc-deux` (AST-walk audit fields, P3). The v0.1 surface from finding-001 is on disk and signing alpha-on-main on next push to the formula. |
