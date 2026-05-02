@@ -35,6 +35,10 @@ enum Cmd {
     Auth(AuthArgs),
     /// List records of a `_kind` from the API as a JSON-line stream.
     List(ListArgs),
+    /// Fetch a single record by ID and emit one JSON line.
+    Get(GetArgs),
+    /// List + substring match against the kind's search field.
+    Search(SearchArgs),
     /// Format a JSON-line stream from stdin.
     Emit(EmitArgs),
     /// Drop records that don't match a CEL predicate.
@@ -131,10 +135,99 @@ struct ListArgs {
     #[arg(long)]
     owner: Option<String>,
 
+    /// Convenience for the `repo` path parameter (used by some kinds).
+    #[arg(long)]
+    repo: Option<String>,
+
     /// Path or query parameter as `key=value`. Repeatable. Use this for
-    /// any parameter beyond `--owner`.
+    /// any parameter beyond `--owner` and `--repo`.
     #[arg(long = "param", short = 'p', value_name = "KEY=VALUE")]
     params: Vec<String>,
+
+    /// Maximum number of records to emit. Applies after `--since`.
+    #[arg(long, value_name = "N")]
+    limit: Option<usize>,
+
+    /// Drop records older than this duration. Format follows Go's
+    /// duration syntax (`24h`, `30m`, `1h30m`, `0.5h`). Valid units:
+    /// `ns`, `us`, `µs`, `ms`, `s`, `m`, `h`. (Go duration does not
+    /// accept `d` for days — use `24h`, `48h`, etc.) Requires the
+    /// kind to have a primary timestamp field.
+    #[arg(long, value_name = "DUR")]
+    since: Option<String>,
+
+    /// Skip the per-call audit detail (still emits a stub).
+    #[arg(long)]
+    no_audit: bool,
+}
+
+#[derive(clap::Args, Debug)]
+#[command(long_about = "Fetch a single record by ID.\n\n\
+                  Most kinds need additional path context — `--owner` and often `--repo` — \
+                  to disambiguate. The `<id>` argument binds to the kind's id path parameter \
+                  (`runid` for runs, `incidentId` for incidents, etc.).\n\n\
+                  Examples:\n  \
+                  sidestep get run a1b2c3 --owner arcaven --repo marvel\n  \
+                  sidestep get incident inc_001 --owner arcaven")]
+struct GetArgs {
+    /// Stream-contract `_kind` (must have a get-by-id endpoint).
+    #[arg(value_parser = kind_value_parser())]
+    kind: String,
+
+    /// Identifier for the record. Maps to the kind's id path param.
+    id: String,
+
+    /// `owner` path parameter (required by every v0.1 get endpoint).
+    #[arg(long)]
+    owner: Option<String>,
+
+    /// `repo` path parameter (required by run + check).
+    #[arg(long)]
+    repo: Option<String>,
+
+    /// Additional path / query parameters as `key=value`. Repeatable.
+    #[arg(long = "param", short = 'p', value_name = "KEY=VALUE")]
+    params: Vec<String>,
+
+    /// Skip the per-call audit detail (still emits a stub).
+    #[arg(long)]
+    no_audit: bool,
+}
+
+#[derive(clap::Args, Debug)]
+#[command(
+    long_about = "Substring-match a `list` stream against the kind's search field.\n\n\
+                  Implementation: list under the hood, then drop records whose \
+                  `search_field` does not contain the query (case-insensitive). \
+                  This is a v0.1 fallback — kinds without dedicated search endpoints \
+                  use the kind-specific search field defined in the SDK kind table.\n\n\
+                  Examples:\n  \
+                  sidestep search policy egress --owner arcaven\n  \
+                  sidestep search detection malware --owner arcaven --limit 5"
+)]
+struct SearchArgs {
+    /// Stream-contract `_kind` (must define a search field).
+    #[arg(value_parser = kind_value_parser())]
+    kind: String,
+
+    /// Substring to match (case-insensitive).
+    query: String,
+
+    /// `owner` path parameter for the underlying `list` call.
+    #[arg(long)]
+    owner: Option<String>,
+
+    /// `repo` path parameter (used by some kinds).
+    #[arg(long)]
+    repo: Option<String>,
+
+    /// Additional path / query parameters as `key=value`. Repeatable.
+    #[arg(long = "param", short = 'p', value_name = "KEY=VALUE")]
+    params: Vec<String>,
+
+    /// Maximum number of matching records to emit.
+    #[arg(long, value_name = "N")]
+    limit: Option<usize>,
 
     /// Skip the per-call audit detail (still emits a stub).
     #[arg(long)]
@@ -239,6 +332,8 @@ fn main() -> ExitCode {
         Cmd::Ops(args) => run_ops(args),
         Cmd::Auth(args) => run_auth(args),
         Cmd::List(args) => run_list(args),
+        Cmd::Get(args) => run_get(args),
+        Cmd::Search(args) => run_search(args),
         Cmd::Emit(args) => run_emit(args),
         Cmd::Filter(args) => run_filter(args),
     };
@@ -414,42 +509,256 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
         )
     })?;
 
-    let mut params = parse_params(&args.params)?;
-    if let Some(owner) = &args.owner {
-        params.insert("owner".to_string(), Value::String(owner.clone()));
-    }
-    let params_value = Value::Object(params);
-
-    let client = Client::from_env().map_err(|e| anyhow!("{e}"))?;
-    let opts = CallOptions {
-        no_audit: args.no_audit,
-        ..Default::default()
+    // Validate --since before any network call so format errors don't
+    // burn an API request (or a YubiKey tap, for tokens routed through
+    // hardware-backed keychains).
+    let since_program = build_since_program(spec, args.since.as_deref())?;
+    let params = build_params(
+        &args.params,
+        args.owner.as_deref(),
+        args.repo.as_deref(),
+        &[],
+    )?;
+    let response = call_op_blocking(op_id, params, args.no_audit)?;
+    let items_owned: Vec<Value> = match kinds::extract_items(&response) {
+        Some(items) => items.to_vec(),
+        None => vec![response],
     };
 
+    let now = chrono_now();
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let mut emitted = 0usize;
+    for (idx, item) in items_owned.into_iter().enumerate() {
+        let record = Record::wrap(spec.name, SourceRef::now(op_id, idx), item);
+        if let Some(prog) = &since_program {
+            if !cel::evaluate(prog, &record, now, "<--since predicate>")
+                .map_err(|e| anyhow!("{e}"))?
+            {
+                continue;
+            }
+        }
+        write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+        emitted += 1;
+        if let Some(limit) = args.limit
+            && emitted >= limit
+        {
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn run_get(args: GetArgs) -> anyhow::Result<()> {
+    let spec = kind_spec(&args.kind).ok_or_else(|| {
+        anyhow!(
+            "unknown kind '{}' — run with --help to see the v0.1 set",
+            args.kind
+        )
+    })?;
+    let op_id = spec.get_operation_id.ok_or_else(|| {
+        anyhow!(
+            "kind '{}' has no get-by-id endpoint in v0.1 — try `sidestep list {} | sidestep filter --where 'id == \"<your-id>\"'`",
+            spec.name,
+            spec.name
+        )
+    })?;
+    let id_param = spec.id_path_param.ok_or_else(|| {
+        anyhow!(
+            "kind '{}' has a get endpoint but no declared id path parameter — file a bug",
+            spec.name
+        )
+    })?;
+
+    let extra = vec![(id_param.to_string(), Value::String(args.id.clone()))];
+    let params = build_params(
+        &args.params,
+        args.owner.as_deref(),
+        args.repo.as_deref(),
+        &extra,
+    )?;
+
+    let response = call_op_blocking(op_id, params, args.no_audit)?;
+    let record = Record::wrap(spec.name, SourceRef::now(op_id, 0), response);
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+    Ok(())
+}
+
+fn run_search(args: SearchArgs) -> anyhow::Result<()> {
+    let spec = kind_spec(&args.kind).ok_or_else(|| {
+        anyhow!(
+            "unknown kind '{}' — run with --help to see the v0.1 set",
+            args.kind
+        )
+    })?;
+    let op_id = spec.list_operation_id.ok_or_else(|| {
+        anyhow!(
+            "kind '{}' has no list endpoint in v0.1 — search composes on top of list",
+            spec.name
+        )
+    })?;
+    let search_field = spec.search_field.ok_or_else(|| {
+        anyhow!(
+            "kind '{}' has no search field declared in v0.1 — operators compose `list | filter` instead",
+            spec.name
+        )
+    })?;
+
+    let params = build_params(
+        &args.params,
+        args.owner.as_deref(),
+        args.repo.as_deref(),
+        &[],
+    )?;
+    let response = call_op_blocking(op_id, params, args.no_audit)?;
+    let items_owned: Vec<Value> = match kinds::extract_items(&response) {
+        Some(items) => items.to_vec(),
+        None => vec![response],
+    };
+
+    let needle = args.query.to_lowercase();
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let mut emitted = 0usize;
+    for (idx, item) in items_owned.into_iter().enumerate() {
+        let record = Record::wrap(spec.name, SourceRef::now(op_id, idx), item);
+        let Some(field_value) = record.get(search_field) else {
+            continue;
+        };
+        let Some(haystack) = field_value.as_str() else {
+            continue;
+        };
+        if !haystack.to_lowercase().contains(&needle) {
+            continue;
+        }
+        write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+        emitted += 1;
+        if let Some(limit) = args.limit
+            && emitted >= limit
+        {
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn build_params(
+    raw: &[String],
+    owner: Option<&str>,
+    repo: Option<&str>,
+    extras: &[(String, Value)],
+) -> anyhow::Result<Value> {
+    let mut params = parse_params(raw)?;
+    if let Some(o) = owner {
+        params.insert("owner".to_string(), Value::String(o.to_string()));
+    }
+    if let Some(r) = repo {
+        params.insert("repo".to_string(), Value::String(r.to_string()));
+    }
+    for (k, v) in extras {
+        params.insert(k.clone(), v.clone());
+    }
+    Ok(Value::Object(params))
+}
+
+fn call_op_blocking(op_id: &str, params: Value, no_audit: bool) -> anyhow::Result<Value> {
+    let client = Client::from_env().map_err(|e| anyhow!("{e}"))?;
+    let opts = CallOptions {
+        no_audit,
+        ..Default::default()
+    };
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .context("build tokio runtime")?;
-    let response = runtime
-        .block_on(client.call_op(op_id, &params_value, opts))
-        .map_err(|e| anyhow!("{e}"))?;
+    runtime
+        .block_on(client.call_op(op_id, &params, opts))
+        .map_err(|e| anyhow!("{e}"))
+}
 
-    let items_owned: Vec<Value> = match kinds::extract_items(&response) {
-        Some(items) => items.to_vec(),
-        None => {
-            // Single-record responses (no array wrapper) are still valid —
-            // surface the body as one record.
-            vec![response]
-        }
+/// Build a CEL post-filter program for `--since <duration>`. Returns
+/// `None` when `--since` was not supplied. Errors when the kind has no
+/// primary timestamp field — `--since` has no field to compare against.
+///
+/// The compiled predicate is `<primary_ts_field> > now - duration("<dur>")`,
+/// reusing the cel adapter so timestamp promotion + `now` binding apply
+/// consistently. CEL's `duration()` accepts Go-style durations
+/// (`24h`, `30m`, `1h30m`). cel-rust 0.10 accepts malformed inputs at
+/// compile time and only fails at runtime, so we pre-validate here to
+/// fail before any network call.
+fn build_since_program(
+    spec: &sidestep_sdk::KindSpec,
+    since: Option<&str>,
+) -> anyhow::Result<Option<cel_interpreter::Program>> {
+    let Some(dur) = since else {
+        return Ok(None);
     };
-
-    let stdout = std::io::stdout();
-    let mut out = stdout.lock();
-    for (idx, item) in items_owned.into_iter().enumerate() {
-        let record = Record::wrap(spec.name, SourceRef::now(op_id, idx), item);
-        write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+    let ts_field = spec.primary_timestamp_field.ok_or_else(|| {
+        anyhow!(
+            "kind '{}' has no primary timestamp field — `--since` is not applicable",
+            spec.name
+        )
+    })?;
+    if dur.contains('"') {
+        return Err(anyhow!("--since must not contain quotes: {dur:?}"));
     }
-    Ok(())
+    if !is_valid_go_duration(dur) {
+        return Err(anyhow!(
+            "--since: invalid duration {dur:?} — expected Go-style (e.g. 24h, 30m, 1h30m). \
+             Valid units: ns, us, µs, ms, s, m, h."
+        ));
+    }
+    let predicate = format!(r#"{ts_field} > now - duration("{dur}")"#);
+    let program = cel::compile(&predicate).map_err(|e| anyhow!("--since: {e}"))?;
+    Ok(Some(program))
+}
+
+/// Lightweight Go-duration validator. Accepts a non-empty sequence of
+/// `<number><unit>` pairs where units are one of `ns`, `us`, `µs`, `ms`,
+/// `s`, `m`, `h`. Numbers may carry a single decimal point. Empty input
+/// or missing/unknown units fail.
+fn is_valid_go_duration(s: &str) -> bool {
+    if s.is_empty() {
+        return false;
+    }
+    let mut chars = s.chars().peekable();
+    let mut had_pair = false;
+    while chars.peek().is_some() {
+        let mut saw_digit = false;
+        let mut saw_dot = false;
+        while let Some(&c) = chars.peek() {
+            if c.is_ascii_digit() {
+                saw_digit = true;
+                chars.next();
+            } else if c == '.' && !saw_dot {
+                saw_dot = true;
+                chars.next();
+            } else {
+                break;
+            }
+        }
+        if !saw_digit {
+            return false;
+        }
+        let mut unit = String::new();
+        while let Some(&c) = chars.peek() {
+            if c.is_ascii_alphabetic() || c == 'µ' {
+                unit.push(c);
+                chars.next();
+            } else {
+                break;
+            }
+        }
+        match unit.as_str() {
+            "ns" | "us" | "µs" | "ms" | "s" | "m" | "h" => had_pair = true,
+            _ => return false,
+        }
+    }
+    had_pair
 }
 
 fn run_filter(args: FilterArgs) -> anyhow::Result<()> {
@@ -596,4 +905,59 @@ fn parse_params(raw: &[String]) -> anyhow::Result<Map<String, Value>> {
         out.insert(k.to_string(), value);
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod since_tests {
+    use super::is_valid_go_duration;
+
+    #[test]
+    fn accepts_simple_units() {
+        assert!(is_valid_go_duration("24h"));
+        assert!(is_valid_go_duration("30m"));
+        assert!(is_valid_go_duration("60s"));
+        assert!(is_valid_go_duration("500ms"));
+        assert!(is_valid_go_duration("100ns"));
+        assert!(is_valid_go_duration("100us"));
+        assert!(is_valid_go_duration("100µs"));
+    }
+
+    #[test]
+    fn accepts_compound_durations() {
+        assert!(is_valid_go_duration("1h30m"));
+        assert!(is_valid_go_duration("2h45m30s"));
+    }
+
+    #[test]
+    fn accepts_decimal() {
+        assert!(is_valid_go_duration("1.5h"));
+        assert!(is_valid_go_duration("0.25s"));
+    }
+
+    #[test]
+    fn rejects_empty() {
+        assert!(!is_valid_go_duration(""));
+    }
+
+    #[test]
+    fn rejects_unknown_unit() {
+        assert!(!is_valid_go_duration("7d"));
+        assert!(!is_valid_go_duration("1w"));
+    }
+
+    #[test]
+    fn rejects_no_unit() {
+        assert!(!is_valid_go_duration("24"));
+    }
+
+    #[test]
+    fn rejects_no_number() {
+        assert!(!is_valid_go_duration("h"));
+    }
+
+    #[test]
+    fn rejects_garbage() {
+        assert!(!is_valid_go_duration("not-a-real-duration"));
+        assert!(!is_valid_go_duration("24h-extra"));
+    }
 }
