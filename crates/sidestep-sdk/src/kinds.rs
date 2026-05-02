@@ -65,6 +65,19 @@ pub struct KindSpec {
     /// (used by `--since` and the canonical adapter's `now` binding
     /// comparisons).
     pub primary_timestamp_field: Option<&'static str>,
+
+    /// Spec path-parameter name that the kind's `id` binds to in
+    /// `sidestep get <kind> <id>`. `None` when the kind has no
+    /// get-by-id endpoint (or the endpoint takes no id-shaped path
+    /// param). Other path params (owner, repo, …) are supplied via
+    /// `--owner` / `--param`.
+    pub id_path_param: Option<&'static str>,
+
+    /// Field name on each record that `sidestep search <kind> <text>`
+    /// matches against (case-insensitive substring). `None` means
+    /// search isn't supported for this kind in v0.1 — operators
+    /// compose `list | filter` instead.
+    pub search_field: Option<&'static str>,
 }
 
 /// Look up a kind by its stream-contract name.
@@ -91,6 +104,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: None,
         primary_timestamp_field: Some("triggered_at"),
+        id_path_param: Some("runid"),
+        search_field: Some("workflow_path"),
     },
     KindSpec {
         name: KIND_DETECTION,
@@ -99,6 +114,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: Some("severity"),
         primary_timestamp_field: Some("created_at"),
+        id_path_param: None,
+        search_field: Some("detection_pattern"),
     },
     KindSpec {
         name: KIND_CHECK,
@@ -107,6 +124,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: None,
         primary_timestamp_field: Some("created_at"),
+        id_path_param: Some("head_sha"),
+        search_field: None,
     },
     KindSpec {
         name: KIND_POLICY,
@@ -115,6 +134,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: Some("severity"),
         primary_timestamp_field: Some("last_evaluated_at"),
+        id_path_param: None,
+        search_field: Some("name"),
     },
     KindSpec {
         name: KIND_RULE,
@@ -123,6 +144,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: Some("severity"),
         primary_timestamp_field: Some("created_at"),
+        id_path_param: None,
+        search_field: Some("pattern"),
     },
     KindSpec {
         name: KIND_INCIDENT,
@@ -131,6 +154,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: Some("severity"),
         primary_timestamp_field: Some("first_seen"),
+        id_path_param: Some("incidentId"),
+        search_field: None,
     },
     KindSpec {
         name: KIND_AUDIT_LOG,
@@ -139,6 +164,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: None,
         primary_timestamp_field: Some("ts"),
+        id_path_param: None,
+        search_field: Some("operation"),
     },
     KindSpec {
         name: KIND_REPO,
@@ -147,6 +174,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "name",
         severity_field: None,
         primary_timestamp_field: None,
+        id_path_param: None,
+        search_field: Some("name"),
     },
     KindSpec {
         name: KIND_THREAT_INTEL,
@@ -155,6 +184,8 @@ const KIND_TABLE: &[KindSpec] = &[
         id_field: "id",
         severity_field: Some("severity"),
         primary_timestamp_field: Some("first_seen"),
+        id_path_param: Some("incidentId"),
+        search_field: None,
     },
 ];
 
@@ -207,6 +238,21 @@ mod tests {
             Some("get_github_owner_actions_detections")
         );
         assert_eq!(k.severity_field, Some("severity"));
+        assert_eq!(k.search_field, Some("detection_pattern"));
+    }
+
+    #[test]
+    fn run_kind_has_runid_path_param() {
+        let k = kind_spec("run").expect("run in table");
+        assert_eq!(k.id_path_param, Some("runid"));
+    }
+
+    #[test]
+    fn incident_and_threat_intel_share_id_path_param() {
+        let i = kind_spec("incident").expect("incident");
+        let t = kind_spec("threat_intel").expect("threat_intel");
+        assert_eq!(i.id_path_param, Some("incidentId"));
+        assert_eq!(t.id_path_param, Some("incidentId"));
     }
 
     #[test]
