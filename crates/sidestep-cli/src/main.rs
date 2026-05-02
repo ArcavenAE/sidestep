@@ -9,8 +9,8 @@ use anyhow::{Context, anyhow};
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value};
 use sidestep_sdk::{
-    CallOptions, Client, Record, SourceRef, auth, cel, kind_spec, kinds, read_stream, registry,
-    write_record,
+    CallOptions, Client, Record, SourceRef, auth, cel, enrich, kind_spec, kinds, read_stream,
+    registry, write_record,
 };
 
 #[derive(Parser, Debug)]
@@ -43,6 +43,8 @@ enum Cmd {
     Emit(EmitArgs),
     /// Drop records that don't match a CEL predicate.
     Filter(FilterArgs),
+    /// Attach computed/joined fields per a named recipe.
+    Enrich(EnrichArgs),
 }
 
 #[derive(clap::Args, Debug)]
@@ -286,6 +288,37 @@ struct FilterArgs {
 }
 
 #[derive(clap::Args, Debug)]
+#[command(
+    long_about = "Attach computed or joined fields to records per a named recipe.\n\n\
+                  Recipes (v0.1):\n  \
+                  policy-context     for each rule, attach parent policy as `policy: {...}`. \
+                                     Orphans get `policy: null`. Other kinds pass through. \
+                                     Requires --policies.\n  \
+                  severity-roll-up   for every record, set `severity_rollup`. With --policies, \
+                                     rule records take max(rule.severity, policy.severity).\n  \
+                  repo-owner         hoist `repo.owner` to a top-level `_repo_owner` field. \
+                                     Records without a repo pass through.\n\n\
+                  Auxiliary records come from --policies <FILE> (JSONL of policy records). \
+                  Streaming auxiliary fetch via the API will land in a later slice.\n\n\
+                  Examples:\n  \
+                  cat rules.jsonl | sidestep enrich --with policy-context --policies policies.jsonl\n  \
+                  sidestep list rules --owner arcaven | sidestep enrich --with severity-roll-up \\\n  \
+                                                                          --policies policies.jsonl"
+)]
+struct EnrichArgs {
+    /// Recipe name. One of: policy-context, severity-roll-up, repo-owner.
+    #[arg(long = "with", value_name = "RECIPE")]
+    recipe: String,
+
+    /// Auxiliary stream of policy records as JSONL.
+    /// Required by `policy-context`; optional but recommended for
+    /// `severity-roll-up` (without it, rule records can't roll up to
+    /// their parent policy's severity).
+    #[arg(long, value_name = "FILE")]
+    policies: Option<std::path::PathBuf>,
+}
+
+#[derive(clap::Args, Debug)]
 struct OpsArgs {
     #[command(subcommand)]
     cmd: OpsCmd,
@@ -336,6 +369,7 @@ fn main() -> ExitCode {
         Cmd::Search(args) => run_search(args),
         Cmd::Emit(args) => run_emit(args),
         Cmd::Filter(args) => run_filter(args),
+        Cmd::Enrich(args) => run_enrich(args),
     };
 
     match result {
@@ -819,6 +853,50 @@ fn explain_filter(predicate: &str, program: &cel_interpreter::Program) -> anyhow
 
 fn chrono_now() -> chrono::DateTime<chrono::Utc> {
     chrono::Utc::now()
+}
+
+fn run_enrich(args: EnrichArgs) -> anyhow::Result<()> {
+    let recipe = enrich::Recipe::parse(&args.recipe).ok_or_else(|| {
+        anyhow!(
+            "unknown recipe '{}'. v0.1 recipes: policy-context, severity-roll-up, repo-owner",
+            args.recipe
+        )
+    })?;
+
+    let ctx = build_enrichment_context(args.policies.as_deref())?;
+    ctx.validate_for(recipe).map_err(|e| anyhow!("{e}"))?;
+
+    let stdin = std::io::stdin();
+    let stdin = BufReader::new(stdin.lock());
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+
+    for record in read_stream(stdin) {
+        let record = record.map_err(|e| anyhow!("{e}"))?;
+        let enriched = enrich::apply(recipe, record, &ctx);
+        write_record(&mut out, &enriched).map_err(|e| anyhow!("{e}"))?;
+    }
+    Ok(())
+}
+
+fn build_enrichment_context(
+    policies_path: Option<&std::path::Path>,
+) -> anyhow::Result<enrich::EnrichmentContext> {
+    let Some(path) = policies_path else {
+        return Ok(enrich::EnrichmentContext::default());
+    };
+    let file = std::fs::File::open(path).with_context(|| format!("open {}", path.display()))?;
+    let reader = BufReader::new(file);
+    let policies: Vec<Record> = read_stream(reader)
+        .collect::<sidestep_sdk::Result<Vec<_>>>()
+        .map_err(|e| anyhow!("read --policies {}: {e}", path.display()))?;
+    if policies.iter().any(|p| p.kind != "policy") {
+        return Err(anyhow!(
+            "--policies {} contains records of kinds other than `policy`",
+            path.display()
+        ));
+    }
+    Ok(enrich::EnrichmentContext::with_policies(policies))
 }
 
 fn run_emit(args: EmitArgs) -> anyhow::Result<()> {
