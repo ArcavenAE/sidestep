@@ -14,6 +14,7 @@ pub mod audit;
 pub mod auth;
 pub mod cel;
 pub mod client;
+pub mod enrich;
 pub mod error;
 pub mod kinds;
 pub mod redact;
