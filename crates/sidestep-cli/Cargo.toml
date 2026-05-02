@@ -26,6 +26,7 @@ tracing-subscriber.workspace = true
 tokio.workspace = true
 chrono.workspace = true
 cel-interpreter.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 assert_cmd.workspace = true

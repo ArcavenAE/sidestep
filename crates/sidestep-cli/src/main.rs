@@ -7,10 +7,10 @@ use std::process::ExitCode;
 
 use anyhow::{Context, anyhow};
 use clap::{Parser, Subcommand, ValueEnum};
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 use sidestep_sdk::{
-    CallOptions, Client, Record, SourceRef, auth, cel, enrich, kind_spec, kinds, read_stream,
-    registry, write_record,
+    CallOptions, Client, Record, SourceRef, audit, auth, cel, enrich, kind_spec, kinds,
+    read_stream, registry, write_record,
 };
 
 #[derive(Parser, Debug)]
@@ -446,19 +446,8 @@ fn run_api(args: ApiArgs) -> anyhow::Result<()> {
     }
     let params_value = Value::Object(params);
 
-    let client = Client::from_env().map_err(|e| anyhow!("{e}"))?;
-    let opts = CallOptions {
-        no_audit: args.no_audit,
-        ..Default::default()
-    };
-
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .context("build tokio runtime")?;
-    let response = runtime
-        .block_on(client.call_op(&args.operation_id, &params_value, opts))
-        .map_err(|e| anyhow!("{e}"))?;
+    let response =
+        call_op_blocking_for_verb(&args.operation_id, params_value, args.no_audit, "api", &[])?;
 
     let pretty = serde_json::to_string_pretty(&response).context("serialize response as JSON")?;
     println!("{pretty}");
@@ -553,7 +542,8 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
         args.repo.as_deref(),
         &[],
     )?;
-    let response = call_op_blocking(op_id, params, args.no_audit)?;
+    let response =
+        call_op_blocking_for_verb(op_id, params, args.no_audit, "list", &[spec.id_field])?;
     let items_owned: Vec<Value> = match kinds::extract_items(&response) {
         Some(items) => items.to_vec(),
         None => vec![response],
@@ -613,7 +603,8 @@ fn run_get(args: GetArgs) -> anyhow::Result<()> {
         &extra,
     )?;
 
-    let response = call_op_blocking(op_id, params, args.no_audit)?;
+    let response =
+        call_op_blocking_for_verb(op_id, params, args.no_audit, "get", &[spec.id_field])?;
     let record = Record::wrap(spec.name, SourceRef::now(op_id, 0), response);
 
     let stdout = std::io::stdout();
@@ -648,7 +639,8 @@ fn run_search(args: SearchArgs) -> anyhow::Result<()> {
         args.repo.as_deref(),
         &[],
     )?;
-    let response = call_op_blocking(op_id, params, args.no_audit)?;
+    let response =
+        call_op_blocking_for_verb(op_id, params, args.no_audit, "search", &[spec.id_field])?;
     let items_owned: Vec<Value> = match kinds::extract_items(&response) {
         Some(items) => items.to_vec(),
         None => vec![response],
@@ -699,10 +691,18 @@ fn build_params(
     Ok(Value::Object(params))
 }
 
-fn call_op_blocking(op_id: &str, params: Value, no_audit: bool) -> anyhow::Result<Value> {
+fn call_op_blocking_for_verb(
+    op_id: &str,
+    params: Value,
+    no_audit: bool,
+    verb_phase: &'static str,
+    synthesis_keys: &[&str],
+) -> anyhow::Result<Value> {
     let client = Client::from_env().map_err(|e| anyhow!("{e}"))?;
     let opts = CallOptions {
         no_audit,
+        verb_phase: Some(verb_phase),
+        synthesis_keys: synthesis_keys.iter().map(|s| s.to_string()).collect(),
         ..Default::default()
     };
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -803,20 +803,118 @@ fn run_filter(args: FilterArgs) -> anyhow::Result<()> {
         return explain_filter(predicate, &program);
     }
 
+    let span = audit::Span::start_fresh().with_verb_phase("filter");
+    let ast_shape = predicate_ast_shape(&program);
+
     let now = chrono_now();
     let stdin = std::io::stdin();
     let stdin = BufReader::new(stdin.lock());
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
 
+    let mut kept = 0usize;
+    let mut dropped = 0usize;
+    let mut errors = 0usize;
+    let mut last_error: Option<anyhow::Error> = None;
+
     for record in read_stream(stdin) {
-        let record = record.map_err(|e| anyhow!("{e}"))?;
-        let keep = cel::evaluate(&program, &record, now, predicate).map_err(|e| anyhow!("{e}"))?;
-        if keep {
-            write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+        let record = match record {
+            Ok(r) => r,
+            Err(e) => {
+                errors += 1;
+                last_error = Some(anyhow!("{e}"));
+                break;
+            }
+        };
+        match cel::evaluate(&program, &record, now, predicate) {
+            Ok(true) => {
+                kept += 1;
+                if let Err(e) = write_record(&mut out, &record) {
+                    errors += 1;
+                    last_error = Some(anyhow!("{e}"));
+                    break;
+                }
+            }
+            Ok(false) => {
+                dropped += 1;
+            }
+            Err(e) => {
+                errors += 1;
+                last_error = Some(anyhow!("{e}"));
+                break;
+            }
         }
     }
-    Ok(())
+
+    let mut extra = serde_json::Map::new();
+    extra.insert("predicate_text".into(), json!(predicate));
+    extra.insert("predicate_ast_shape".into(), json!(ast_shape));
+    extra.insert(
+        "predicate_outcome".into(),
+        json!({
+            "kept_count": kept,
+            "dropped_count": dropped,
+            "error_count": errors,
+        }),
+    );
+    span.finish_as_verb(extra);
+
+    match last_error {
+        Some(e) => Err(e),
+        None => Ok(()),
+    }
+}
+
+/// Stable, value-independent fingerprint of the parsed CEL program.
+/// Two predicates with the same shape (same operators, same identifiers,
+/// different literals) produce the same hash. Used by audit miners to
+/// cluster predicates across runs.
+///
+/// Implementation: take the program's Debug repr, strip every quoted
+/// string and every numeric literal (including AST node IDs) to a
+/// constant placeholder, then sha256. This keeps operator structure +
+/// identifier names + nesting shape; drops literal contents + node
+/// IDs so cosmetic differences don't fragment the hash space.
+fn predicate_ast_shape(program: &cel_interpreter::Program) -> String {
+    use sha2::{Digest, Sha256};
+    let debug = format!("{program:?}");
+    let stripped = strip_literals(&debug);
+    let mut hasher = Sha256::new();
+    hasher.update(stripped.as_bytes());
+    format!("sha256:{:x}", hasher.finalize())
+}
+
+fn strip_literals(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '"' => {
+                out.push('"');
+                while let Some(&nc) = chars.peek() {
+                    chars.next();
+                    if nc == '\\' {
+                        chars.next();
+                    } else if nc == '"' {
+                        break;
+                    }
+                }
+                out.push('"');
+            }
+            c if c.is_ascii_digit() => {
+                while let Some(&nc) = chars.peek() {
+                    if nc.is_ascii_digit() || nc == '.' {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                out.push('0');
+            }
+            other => out.push(other),
+        }
+    }
+    out
 }
 
 fn explain_filter(predicate: &str, program: &cel_interpreter::Program) -> anyhow::Result<()> {
@@ -866,17 +964,56 @@ fn run_enrich(args: EnrichArgs) -> anyhow::Result<()> {
     let ctx = build_enrichment_context(args.policies.as_deref())?;
     ctx.validate_for(recipe).map_err(|e| anyhow!("{e}"))?;
 
+    let span = audit::Span::start_fresh().with_verb_phase("enrich");
+
     let stdin = std::io::stdin();
     let stdin = BufReader::new(stdin.lock());
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
 
+    let mut transformed = 0usize;
+    let mut errors = 0usize;
+    let mut last_error: Option<anyhow::Error> = None;
+
     for record in read_stream(stdin) {
-        let record = record.map_err(|e| anyhow!("{e}"))?;
+        let record = match record {
+            Ok(r) => r,
+            Err(e) => {
+                errors += 1;
+                last_error = Some(anyhow!("{e}"));
+                break;
+            }
+        };
         let enriched = enrich::apply(recipe, record, &ctx);
-        write_record(&mut out, &enriched).map_err(|e| anyhow!("{e}"))?;
+        if let Err(e) = write_record(&mut out, &enriched) {
+            errors += 1;
+            last_error = Some(anyhow!("{e}"));
+            break;
+        }
+        transformed += 1;
     }
-    Ok(())
+
+    let mut extra = serde_json::Map::new();
+    extra.insert("recipe_id".into(), json!(recipe.as_str()));
+    extra.insert(
+        "transform_outcome".into(),
+        json!({
+            "transformed_count": transformed,
+            "error_count": errors,
+        }),
+    );
+    extra.insert(
+        "auxiliary".into(),
+        json!({
+            "policies_loaded": ctx.policies_by_id.len(),
+        }),
+    );
+    span.finish_as_verb(extra);
+
+    match last_error {
+        Some(e) => Err(e),
+        None => Ok(()),
+    }
 }
 
 fn build_enrichment_context(
