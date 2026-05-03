@@ -4,3 +4,4 @@
 @kos-commits.md
 @bash.md
 @rust.md
+@cli-philosophy.md
