@@ -21,6 +21,17 @@ content: |
   `shape_hash`) are designed to enable any of these without a schema
   change.
 
+  **Session-045 update:** noise floor matters as much as feature
+  richness. `aae-orc-y7lq` (owner/customer resolution chain) was
+  filed after session-045 noticed that `path_params.owner` would be
+  a constant-valued field on every line of the dataset, drowning
+  per-call intent. The mining threshold (~200 distinct
+  `predicate_text` × 10 contexts) is reachable faster when the
+  signal isn't competing with constants. `path_params_source.owner`
+  (additive audit field per finding-002) lets miners separate
+  constant defaults from per-call intent. `val-resolution-chain` is
+  the value that produced this insight.
+
   **Session-041 update:** `elem-primitives-over-composites` (B6)
   extends the audit schema with 8 additive fields specifically
   designed to make `meta propose` tractable: `verb_phase`,
@@ -40,6 +51,9 @@ edges:
   - target: elem-primitives-over-composites
     type: derives
     note: "B6's 8 added metadata fields make meta propose tractable"
+  - target: val-resolution-chain
+    type: derives
+    note: "Resolution-chain noise reduction lowers the F3 threshold"
 provenance:
   created_by: human
   created_at: 2026-04-29

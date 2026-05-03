@@ -1,0 +1,77 @@
+id: val-resolution-chain
+type: value
+confidence: bedrock
+title: "Resolve, don't require — layered chain for near-constant values"
+content: |
+  Any value the tool needs that is near-constant for a given user,
+  credential, or environment is reached through a layered resolution
+  chain — not required as a per-call flag. The chain shape:
+
+      flag > env > config > derivation > error
+
+  - **Flag** — explicit per-call override
+  - **Env** — per-shell or per-process default
+  - **Config** — persisted per-machine, set at install/login or via
+    `config set`
+  - **Derivation** — token introspection, sibling-record join, adjacent
+    tool's config — only if the upstream actually exposes it; never
+    guess
+  - **Error** — actionable message naming all four sources that failed
+    and one concrete next step for each
+
+  The resolved source is recorded in the audit trail as
+  `<param>_source` (e.g., `auth_source`, `path_params_source.owner`)
+  so the F3 mining surface can separate constant defaults from
+  per-call intent.
+
+  **Same chain for every field that meets the test.** Not one chain
+  per parameter. Not one chain per layer. One pattern, repeatedly
+  applied wherever the four-box Abusive Argument test triggers (see
+  finding-002 and `.claude/rules/cli-philosophy.md`).
+
+  ## Sidestep instances of this pattern
+
+  1. **`auth_token` (elem-auth-three-layer, B5):** the canonical case.
+     env → keyring → config → error. `auth_source` recorded. Promoted
+     from F4.
+  2. **`owner` + `customer` (`aae-orc-y7lq`):** discovered session-045
+     when the v0.1 `--owner` flag was found to be abusive on every
+     list/get/search call. Same chain shape; persisted at `auth login`
+     time; `path_params_source.owner` recorded.
+  3. **(future)** Any v0.2 path parameter that passes the four-box
+     test. Run the test before adding the flag.
+
+  ## Why "abusive arguments" is the right framing
+
+  Three callers, three taxes:
+
+  - Humans pay in keystrokes (every recipe step).
+  - LLMs pay in tokens (input + output, every step).
+  - The audit-mining surface (F3) pays in noise: constant-valued
+    fields on every line drown per-call intent. Murat's
+    sugar-design threshold becomes harder to cross.
+
+  Each tax is small. They compound. The rule moves the test in front
+  of the keystroke (`required = true`) so we never ship the cost.
+
+  ## Cousin to val-evidence-driven-design
+
+  Both values are about *not paying ergonomic costs that data could
+  bear*. Evidence-driven-design says: don't bake premature opinions;
+  ship the rawest workable surface and let usage data design v2.
+  Resolution-chain says: don't bake constant configuration into
+  per-call argv; let the chain absorb it.
+
+  One says "don't decide too early"; the other says "don't ask too
+  often." Together they shape sidestep's CLI ergonomics axis.
+edges:
+  - target: elem-auth-three-layer
+    type: instantiates
+    note: "B5 is the canonical instance of this value"
+  - target: val-evidence-driven-design
+    type: cousin
+    note: "Both refuse ergonomic costs that infrastructure could bear"
+provenance:
+  created_by: human
+  created_at: 2026-05-03
+  session: 045

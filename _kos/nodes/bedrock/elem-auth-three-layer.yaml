@@ -36,6 +36,9 @@ edges:
   - target: elem-sdk-backed-cli
     type: implements
     note: "Auth lives in the SDK; this realizes the SDK-first design value"
+  - target: val-resolution-chain
+    type: instantiates
+    note: "B5 is the canonical instance — chain pattern generalized session-045"
 provenance:
   created_by: human
   created_at: 2026-04-30
