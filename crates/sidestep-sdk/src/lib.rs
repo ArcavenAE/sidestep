@@ -21,7 +21,7 @@ pub mod redact;
 pub mod spec;
 pub mod stream;
 
-pub use auth::{ResolvedToken, TokenSource};
+pub use auth::{ParamSource, ResolvedParam, ResolvedToken, TokenSource};
 pub use client::{CallOptions, Client};
 pub use error::{Result, SidestepError};
 pub use kinds::{KindSpec, all_kinds, extract_items, kind_spec};
