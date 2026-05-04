@@ -2,6 +2,7 @@
 
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeMap;
 use std::io::{BufReader, IsTerminal, Read, Write};
 use std::process::ExitCode;
 
@@ -9,8 +10,8 @@ use anyhow::{Context, anyhow};
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value, json};
 use sidestep_sdk::{
-    CallOptions, Client, Record, SourceRef, audit, auth, cel, enrich, kind_spec, kinds,
-    read_stream, registry, write_record,
+    CallOptions, Client, ParamSource, Record, SourceRef, audit, auth, cel, enrich, kind_spec,
+    kinds, read_stream, registry, write_record,
 };
 
 #[derive(Parser, Debug)]
@@ -45,17 +46,26 @@ enum Cmd {
     Filter(FilterArgs),
     /// Attach computed/joined fields per a named recipe.
     Enrich(EnrichArgs),
+    /// Inspect or modify the persisted config.
+    Config(ConfigArgs),
 }
 
 #[derive(clap::Args, Debug)]
-#[command(long_about = "Manage credentials for sidestep.\n\n\
-                  sidestep resolves tokens in this order:\n  \
+#[command(
+    long_about = "Manage credentials and persisted defaults for sidestep.\n\n\
+                  Token resolution chain:\n  \
                   1. SIDESTEP_API_TOKEN environment variable\n  \
                   2. Platform keyring (macOS Keychain, Linux Secret Service)\n  \
                   3. Config file at ~/.config/sidestep/config.toml \
                      (override with SIDESTEP_CONFIG)\n     \
                      [auth] token = \"<value>\"\n\n\
-                  Use `sidestep auth login` to store a token in the keyring.")]
+                  Path-parameter resolution chain (`owner`, `customer`):\n  \
+                  1. --owner / --customer flag (per-call override)\n  \
+                  2. SIDESTEP_OWNER / SIDESTEP_CUSTOMER environment variable\n  \
+                  3. [default] owner / customer in the config file\n\n\
+                  Use `sidestep auth login` to persist a token, owner, or customer.\n\
+                  Use `sidestep config show` to see what's persisted."
+)]
 struct AuthArgs {
     #[command(subcommand)]
     cmd: AuthCmd,
@@ -63,9 +73,9 @@ struct AuthArgs {
 
 #[derive(Subcommand, Debug)]
 enum AuthCmd {
-    /// Store a bearer token in the platform keyring.
+    /// Persist a bearer token (keyring) and/or default owner/customer (config file).
     Login(AuthLoginArgs),
-    /// Show whether a token is configured and where it came from.
+    /// Show resolved token, owner, and customer with their resolution sources.
     Status,
     /// Remove the token from the platform keyring.
     Logout,
@@ -73,12 +83,19 @@ enum AuthCmd {
 
 #[derive(clap::Args, Debug)]
 #[command(
-    long_about = "Store a StepSecurity API bearer token in the platform keyring.\n\n\
-                  Sources, in priority order:\n  \
+    long_about = "Persist credentials and per-machine defaults for sidestep.\n\n\
+                  Token sources (any one is enough; --token wins over --stdin):\n  \
                   --token <value>      explicit, useful for scripts\n  \
                   --stdin              read whole stdin (so `echo $T | sidestep auth login --stdin`)\n\n\
-                  At least one source must be provided. Interactive prompting is not supported in v0.1.\n\
-                  An existing keyring entry is overwritten without prompt."
+                  Defaults written to ~/.config/sidestep/config.toml:\n  \
+                  --owner <slug>       persist [default] owner — used by every list/get/search\n                       \
+                                       when --owner / SIDESTEP_OWNER aren't set.\n  \
+                  --customer <slug>    persist [default] customer — same chain on the customer\n                       \
+                                       path parameter.\n\n\
+                  At least one of --token, --stdin, --owner, --customer must be provided.\n\
+                  Interactive prompting is not supported in v0.1.\n\
+                  An existing keyring entry is overwritten without prompt; existing\n\
+                  config values are replaced only by the flags you pass (others are kept)."
 )]
 struct AuthLoginArgs {
     /// Bearer token. Redacted from the audit-trail argv.
@@ -88,6 +105,16 @@ struct AuthLoginArgs {
     /// Read the token from stdin (entire stream, trimmed).
     #[arg(long, conflicts_with = "token")]
     stdin: bool,
+
+    /// Persist `[default] owner` in the config file. Resolved per call
+    /// when neither --owner nor SIDESTEP_OWNER is set.
+    #[arg(long, value_name = "SLUG")]
+    owner: Option<String>,
+
+    /// Persist `[default] customer` in the config file. Resolved per
+    /// call when neither --customer nor SIDESTEP_CUSTOMER is set.
+    #[arg(long, value_name = "SLUG")]
+    customer: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -133,9 +160,16 @@ struct ListArgs {
     #[arg(value_parser = kind_value_parser())]
     kind: String,
 
-    /// Convenience for the near-universal `owner` path parameter.
+    /// `owner` path parameter override. Resolves through
+    /// flag → SIDESTEP_OWNER env → [default] owner in config — set
+    /// once via `sidestep auth login --owner <slug>` and skip the flag.
     #[arg(long)]
     owner: Option<String>,
+
+    /// `customer` path parameter override. Same chain as --owner with
+    /// SIDESTEP_CUSTOMER + [default] customer.
+    #[arg(long)]
+    customer: Option<String>,
 
     /// Convenience for the `repo` path parameter (used by some kinds).
     #[arg(long)]
@@ -179,9 +213,14 @@ struct GetArgs {
     /// Identifier for the record. Maps to the kind's id path param.
     id: String,
 
-    /// `owner` path parameter (required by every v0.1 get endpoint).
+    /// `owner` path parameter override. Resolves through
+    /// flag → SIDESTEP_OWNER env → [default] owner in config.
     #[arg(long)]
     owner: Option<String>,
+
+    /// `customer` path parameter override. Same chain as --owner.
+    #[arg(long)]
+    customer: Option<String>,
 
     /// `repo` path parameter (required by run + check).
     #[arg(long)]
@@ -215,9 +254,14 @@ struct SearchArgs {
     /// Substring to match (case-insensitive).
     query: String,
 
-    /// `owner` path parameter for the underlying `list` call.
+    /// `owner` path parameter override for the underlying `list` call.
+    /// Resolves through flag → SIDESTEP_OWNER env → [default] owner.
     #[arg(long)]
     owner: Option<String>,
+
+    /// `customer` path parameter override. Same chain as --owner.
+    #[arg(long)]
+    customer: Option<String>,
 
     /// `repo` path parameter (used by some kinds).
     #[arg(long)]
@@ -319,6 +363,42 @@ struct EnrichArgs {
 }
 
 #[derive(clap::Args, Debug)]
+#[command(long_about = "Inspect or modify the persisted config at \
+                  ~/.config/sidestep/config.toml (override SIDESTEP_CONFIG).\n\n\
+                  Subcommands:\n  \
+                  show              print the current config, redacting [auth].token\n  \
+                  path              print the resolved config path\n  \
+                  set <key> <val>   set one of: owner, customer, auth.token (use auth.token\n                    \
+                                    sparingly — `sidestep auth login` stores tokens in the\n                    \
+                                    keyring, which is preferred over plain-file storage)\n  \
+                  unset <key>       clear one of the same keys\n\n\
+                  Set values are persisted to the config file, preserving any unrelated sections.")]
+struct ConfigArgs {
+    #[command(subcommand)]
+    cmd: ConfigCmd,
+}
+
+#[derive(Subcommand, Debug)]
+enum ConfigCmd {
+    /// Print the current config (token redacted).
+    Show,
+    /// Print the resolved config file path.
+    Path,
+    /// Set one of: `owner`, `customer`, `auth.token`.
+    Set {
+        /// Key to set. Accepts `owner`, `customer`, `auth.token`.
+        key: String,
+        /// Value to write.
+        value: String,
+    },
+    /// Clear one of: `owner`, `customer`, `auth.token`.
+    Unset {
+        /// Key to clear.
+        key: String,
+    },
+}
+
+#[derive(clap::Args, Debug)]
 struct OpsArgs {
     #[command(subcommand)]
     cmd: OpsCmd,
@@ -370,6 +450,7 @@ fn main() -> ExitCode {
         Cmd::Emit(args) => run_emit(args),
         Cmd::Filter(args) => run_filter(args),
         Cmd::Enrich(args) => run_enrich(args),
+        Cmd::Config(args) => run_config(args),
     };
 
     match result {
@@ -446,8 +527,14 @@ fn run_api(args: ApiArgs) -> anyhow::Result<()> {
     }
     let params_value = Value::Object(params);
 
-    let response =
-        call_op_blocking_for_verb(&args.operation_id, params_value, args.no_audit, "api", &[])?;
+    let response = call_op_blocking_for_verb(
+        &args.operation_id,
+        params_value,
+        BTreeMap::new(),
+        args.no_audit,
+        "api",
+        &[],
+    )?;
 
     let pretty = serde_json::to_string_pretty(&response).context("serialize response as JSON")?;
     println!("{pretty}");
@@ -463,49 +550,202 @@ fn run_auth(args: AuthArgs) -> anyhow::Result<()> {
 }
 
 fn auth_login(args: AuthLoginArgs) -> anyhow::Result<()> {
-    let token = if let Some(t) = args.token {
-        t
-    } else if args.stdin {
-        let mut buf = String::new();
-        std::io::stdin()
-            .read_to_string(&mut buf)
-            .context("read --stdin")?;
-        buf
-    } else {
+    let token_source_provided = args.token.is_some() || args.stdin;
+    let owner = args
+        .owner
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let customer = args
+        .customer
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
+    if !token_source_provided && owner.is_none() && customer.is_none() {
         return Err(anyhow!(
-            "no token source. Pass `--token <value>` or `--stdin`. \
-             See `sidestep auth login --help`."
+            "no source. Pass `--token <value>`, `--stdin`, `--owner <slug>`, \
+             or `--customer <slug>`. See `sidestep auth login --help`."
         ));
-    };
-    let token = token.trim();
-    if token.is_empty() {
-        return Err(anyhow!("token must not be empty"));
     }
-    auth::store_keyring(token).map_err(|e| anyhow!("{e}"))?;
-    let target = match auth::read_keyring() {
-        Some(_) => "stored in keyring",
-        None => "stored — but immediate read-back failed (keyring backend may be unavailable)",
-    };
-    eprintln!("sidestep auth: {target}");
+
+    if token_source_provided {
+        let token = if let Some(t) = args.token.as_deref() {
+            t.to_string()
+        } else {
+            let mut buf = String::new();
+            std::io::stdin()
+                .read_to_string(&mut buf)
+                .context("read --stdin")?;
+            buf
+        };
+        let token = token.trim();
+        if token.is_empty() {
+            return Err(anyhow!("token must not be empty"));
+        }
+        auth::store_keyring(token).map_err(|e| anyhow!("{e}"))?;
+        let target = match auth::read_keyring() {
+            Some(_) => "stored in keyring",
+            None => "stored — but immediate read-back failed (keyring backend may be unavailable)",
+        };
+        eprintln!("sidestep auth: token {target}");
+    }
+
+    if owner.is_some() || customer.is_some() {
+        let owner_owned = owner.map(str::to_string);
+        let customer_owned = customer.map(str::to_string);
+        let path = auth::write_config(|cfg| {
+            if let Some(o) = owner_owned {
+                cfg.default.owner = Some(o);
+            }
+            if let Some(c) = customer_owned {
+                cfg.default.customer = Some(c);
+            }
+        })
+        .map_err(|e| anyhow!("{e}"))?;
+        let mut updated: Vec<&str> = Vec::new();
+        if owner.is_some() {
+            updated.push("owner");
+        }
+        if customer.is_some() {
+            updated.push("customer");
+        }
+        eprintln!(
+            "sidestep auth: persisted {} to {}",
+            updated.join(" + "),
+            path.display()
+        );
+    }
+
     Ok(())
 }
 
 fn auth_status() -> anyhow::Result<()> {
+    let mut authenticated = false;
+    let mut stdout = std::io::stdout().lock();
     match auth::resolve() {
         Ok(resolved) => {
+            authenticated = true;
             // Never print the token. Length + source is the contract.
-            println!(
-                "authenticated\n  source: {}\n  length: {} bytes",
+            writeln!(
+                stdout,
+                "token:    authenticated (source: {}, length: {} bytes)",
                 resolved.source.as_str(),
                 resolved.token.len()
-            );
-            Ok(())
+            )?;
         }
         Err(e) => {
-            eprintln!("not authenticated: {e}");
-            std::process::exit(1);
+            writeln!(stdout, "token:    not authenticated ({e})")?;
         }
     }
+
+    let owner_line = match auth::resolve_owner(None) {
+        Ok(Some(r)) => format!("owner:    {} (source: {})", r.value, r.source.as_str()),
+        Ok(None) => "owner:    unset (set via `sidestep auth login --owner <slug>`, \
+                     SIDESTEP_OWNER, or `sidestep config set owner <slug>`)"
+            .to_string(),
+        Err(e) => format!("owner:    error ({e})"),
+    };
+    writeln!(stdout, "{owner_line}")?;
+
+    let customer_line = match auth::resolve_customer(None) {
+        Ok(Some(r)) => format!("customer: {} (source: {})", r.value, r.source.as_str()),
+        Ok(None) => "customer: unset".to_string(),
+        Err(e) => format!("customer: error ({e})"),
+    };
+    writeln!(stdout, "{customer_line}")?;
+
+    drop(stdout);
+    if !authenticated {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+fn run_config(args: ConfigArgs) -> anyhow::Result<()> {
+    match args.cmd {
+        ConfigCmd::Show => config_show(),
+        ConfigCmd::Path => config_path_cmd(),
+        ConfigCmd::Set { key, value } => config_set(&key, &value),
+        ConfigCmd::Unset { key } => config_unset(&key),
+    }
+}
+
+fn config_show() -> anyhow::Result<()> {
+    let path = auth::config_path()
+        .ok_or_else(|| anyhow!("no discoverable config path (set $XDG_CONFIG_HOME or HOME)"))?;
+    let cfg = auth::read_config().map_err(|e| anyhow!("{e}"))?;
+    let mut stdout = std::io::stdout().lock();
+    writeln!(stdout, "# {}", path.display())?;
+    match cfg {
+        None => {
+            writeln!(stdout, "(file does not exist yet)")?;
+        }
+        Some(cfg) => {
+            match cfg.auth.token.as_deref() {
+                Some(t) => writeln!(stdout, "[auth]\ntoken = \"<redacted, length={}>\"", t.len())?,
+                None => writeln!(stdout, "[auth]\n# token: (unset)")?,
+            }
+            writeln!(stdout, "\n[default]")?;
+            match cfg.default.owner.as_deref() {
+                Some(v) => writeln!(stdout, "owner = \"{v}\"")?,
+                None => writeln!(stdout, "# owner: (unset)")?,
+            }
+            match cfg.default.customer.as_deref() {
+                Some(v) => writeln!(stdout, "customer = \"{v}\"")?,
+                None => writeln!(stdout, "# customer: (unset)")?,
+            }
+        }
+    }
+    Ok(())
+}
+
+fn config_path_cmd() -> anyhow::Result<()> {
+    let path = auth::config_path()
+        .ok_or_else(|| anyhow!("no discoverable config path (set $XDG_CONFIG_HOME or HOME)"))?;
+    println!("{}", path.display());
+    Ok(())
+}
+
+fn config_set(key: &str, value: &str) -> anyhow::Result<()> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err(anyhow!(
+            "value must not be empty — use `sidestep config unset {key}` to clear"
+        ));
+    }
+    let owned = trimmed.to_string();
+    let path = match key {
+        "owner" => auth::write_config(|cfg| cfg.default.owner = Some(owned)),
+        "customer" => auth::write_config(|cfg| cfg.default.customer = Some(owned)),
+        "auth.token" => auth::write_config(|cfg| cfg.auth.token = Some(owned)),
+        other => {
+            return Err(anyhow!(
+                "unknown key '{other}'. Known keys: owner, customer, auth.token. \
+                 (Tokens belong in the platform keyring — prefer \
+                 `sidestep auth login --token <value>` over `auth.token` in config.)"
+            ));
+        }
+    }
+    .map_err(|e| anyhow!("{e}"))?;
+    eprintln!("sidestep config: set {key} in {}", path.display());
+    Ok(())
+}
+
+fn config_unset(key: &str) -> anyhow::Result<()> {
+    let path = match key {
+        "owner" => auth::write_config(|cfg| cfg.default.owner = None),
+        "customer" => auth::write_config(|cfg| cfg.default.customer = None),
+        "auth.token" => auth::write_config(|cfg| cfg.auth.token = None),
+        other => {
+            return Err(anyhow!(
+                "unknown key '{other}'. Known keys: owner, customer, auth.token."
+            ));
+        }
+    }
+    .map_err(|e| anyhow!("{e}"))?;
+    eprintln!("sidestep config: cleared {key} in {}", path.display());
+    Ok(())
 }
 
 fn auth_logout() -> anyhow::Result<()> {
@@ -536,14 +776,21 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
     // burn an API request (or a YubiKey tap, for tokens routed through
     // hardware-backed keychains).
     let since_program = build_since_program(spec, args.since.as_deref())?;
-    let params = build_params(
+    let resolved = build_params(
         &args.params,
         args.owner.as_deref(),
+        args.customer.as_deref(),
         args.repo.as_deref(),
         &[],
     )?;
-    let response =
-        call_op_blocking_for_verb(op_id, params, args.no_audit, "list", &[spec.id_field])?;
+    let response = call_op_blocking_for_verb(
+        op_id,
+        resolved.params,
+        resolved.sources,
+        args.no_audit,
+        "list",
+        &[spec.id_field],
+    )?;
     let items_owned: Vec<Value> = match kinds::extract_items(&response) {
         Some(items) => items.to_vec(),
         None => vec![response],
@@ -596,15 +843,22 @@ fn run_get(args: GetArgs) -> anyhow::Result<()> {
     })?;
 
     let extra = vec![(id_param.to_string(), Value::String(args.id.clone()))];
-    let params = build_params(
+    let resolved = build_params(
         &args.params,
         args.owner.as_deref(),
+        args.customer.as_deref(),
         args.repo.as_deref(),
         &extra,
     )?;
 
-    let response =
-        call_op_blocking_for_verb(op_id, params, args.no_audit, "get", &[spec.id_field])?;
+    let response = call_op_blocking_for_verb(
+        op_id,
+        resolved.params,
+        resolved.sources,
+        args.no_audit,
+        "get",
+        &[spec.id_field],
+    )?;
     let record = Record::wrap(spec.name, SourceRef::now(op_id, 0), response);
 
     let stdout = std::io::stdout();
@@ -633,14 +887,21 @@ fn run_search(args: SearchArgs) -> anyhow::Result<()> {
         )
     })?;
 
-    let params = build_params(
+    let resolved = build_params(
         &args.params,
         args.owner.as_deref(),
+        args.customer.as_deref(),
         args.repo.as_deref(),
         &[],
     )?;
-    let response =
-        call_op_blocking_for_verb(op_id, params, args.no_audit, "search", &[spec.id_field])?;
+    let response = call_op_blocking_for_verb(
+        op_id,
+        resolved.params,
+        resolved.sources,
+        args.no_audit,
+        "search",
+        &[spec.id_field],
+    )?;
     let items_owned: Vec<Value> = match kinds::extract_items(&response) {
         Some(items) => items.to_vec(),
         None => vec![response],
@@ -672,28 +933,54 @@ fn run_search(args: SearchArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Resolved owner + customer + the bag of explicit `--param k=v` raw
+/// values, plus a source map for chain-tracked params (audit input).
+struct ResolvedParams {
+    params: Value,
+    sources: BTreeMap<String, ParamSource>,
+}
+
+/// Walk the `owner` / `customer` resolution chains and merge with
+/// `--repo` and explicit `--param k=v` values into a single params
+/// object. The source map records `flag` / `env` / `config` for every
+/// chain-tracked param that resolved (per-call intent vs constant
+/// default — see `.claude/rules/cli-philosophy.md`). `--repo` is
+/// intentionally not chain-resolved (it varies per question; see the
+/// y7lq scope note).
 fn build_params(
     raw: &[String],
-    owner: Option<&str>,
-    repo: Option<&str>,
+    owner_flag: Option<&str>,
+    customer_flag: Option<&str>,
+    repo_flag: Option<&str>,
     extras: &[(String, Value)],
-) -> anyhow::Result<Value> {
+) -> anyhow::Result<ResolvedParams> {
     let mut params = parse_params(raw)?;
-    if let Some(o) = owner {
-        params.insert("owner".to_string(), Value::String(o.to_string()));
+    let mut sources = BTreeMap::new();
+
+    if let Some(r) = auth::resolve_owner(owner_flag).map_err(|e| anyhow!("{e}"))? {
+        params.insert("owner".to_string(), Value::String(r.value));
+        sources.insert("owner".to_string(), r.source);
     }
-    if let Some(r) = repo {
+    if let Some(r) = auth::resolve_customer(customer_flag).map_err(|e| anyhow!("{e}"))? {
+        params.insert("customer".to_string(), Value::String(r.value));
+        sources.insert("customer".to_string(), r.source);
+    }
+    if let Some(r) = repo_flag {
         params.insert("repo".to_string(), Value::String(r.to_string()));
     }
     for (k, v) in extras {
         params.insert(k.clone(), v.clone());
     }
-    Ok(Value::Object(params))
+    Ok(ResolvedParams {
+        params: Value::Object(params),
+        sources,
+    })
 }
 
 fn call_op_blocking_for_verb(
     op_id: &str,
     params: Value,
+    path_params_source: BTreeMap<String, ParamSource>,
     no_audit: bool,
     verb_phase: &'static str,
     synthesis_keys: &[&str],
@@ -703,6 +990,7 @@ fn call_op_blocking_for_verb(
         no_audit,
         verb_phase: Some(verb_phase),
         synthesis_keys: synthesis_keys.iter().map(|s| s.to_string()).collect(),
+        path_params_source,
         ..Default::default()
     };
     let runtime = tokio::runtime::Builder::new_current_thread()

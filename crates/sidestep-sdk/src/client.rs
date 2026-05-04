@@ -1,5 +1,6 @@
 //! SDK client. Spec-aware HTTP execution against the StepSecurity API.
 
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use reqwest::header::{HeaderMap, HeaderValue};
@@ -7,7 +8,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::audit::{AuditOp, Outcome, Outcomes, Span, shape_hash};
-use crate::auth::{self, TokenSource};
+use crate::auth::{self, ParamSource, TokenSource};
 use crate::error::{Result, SidestepError};
 use crate::spec::{OperationMeta, registry};
 
@@ -34,6 +35,12 @@ pub struct CallOptions {
     /// Per-record synthesis keys for the v2 audit. Typically the
     /// kind's primary key field, e.g. `["id"]`.
     pub synthesis_keys: Vec<String>,
+    /// Provenance of each path parameter the caller resolved through
+    /// the val-resolution-chain (flag → env → config). Used by the CLI
+    /// for `owner` / `customer`. Recorded in the audit emission as the
+    /// `path_params_source` sibling of `operation`. Params not present
+    /// here are treated as flag/explicit and produce no source entry.
+    pub path_params_source: BTreeMap<String, ParamSource>,
 }
 
 impl Client {
@@ -101,6 +108,9 @@ impl Client {
         }
         if !opts.synthesis_keys.is_empty() {
             span = span.with_synthesis_keys(opts.synthesis_keys.clone());
+        }
+        if !opts.path_params_source.is_empty() {
+            span = span.with_path_params_source(opts.path_params_source.clone());
         }
 
         if opts.no_audit {

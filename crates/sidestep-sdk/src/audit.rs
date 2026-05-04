@@ -4,6 +4,7 @@
 //! schema_version=1 with the documented fields and a header-only
 //! redaction policy (see `redact.rs`).
 
+use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
@@ -13,7 +14,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use crate::auth::TokenSource;
+use crate::auth::{ParamSource, TokenSource};
 use crate::error::Result;
 use crate::redact;
 
@@ -83,6 +84,15 @@ pub struct Span {
     /// `id`. Surfaced in the v2 audit so miners can join records
     /// across runs without re-deriving the kind's primary key.
     pub synthesis_keys: Vec<String>,
+
+    /// Provenance of each path parameter resolved through the val-
+    /// resolution-chain. Surfaced in the v2 audit as the
+    /// `path_params_source` sibling of `operation`. The mining surface
+    /// needs `flag` recorded too — it is the per-call-intent signal
+    /// that distinguishes overrides from constant defaults — so
+    /// callers should populate this for every chain-tracked param,
+    /// `Flag` included.
+    pub path_params_source: BTreeMap<String, ParamSource>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -129,6 +139,7 @@ impl Span {
             op: None,
             verb_phase: None,
             synthesis_keys: Vec::new(),
+            path_params_source: BTreeMap::new(),
         }
     }
 
@@ -148,6 +159,11 @@ impl Span {
         S: Into<String>,
     {
         self.synthesis_keys = keys.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_path_params_source(mut self, sources: BTreeMap<String, ParamSource>) -> Self {
+        self.path_params_source = sources;
         self
     }
 
@@ -210,9 +226,11 @@ impl Span {
     }
 
     /// Common header shared by API and verb emissions. v2 schema:
-    /// adds `verb_phase` and `synthesis_keys` when present, leaves
-    /// outcome/response detail to the caller.
-    fn base_record(&self, duration_ms: u64) -> Value {
+    /// adds `verb_phase`, `synthesis_keys`, and `path_params_source`
+    /// when present, leaves outcome/response detail to the caller.
+    /// `pub(crate)` so SDK tests can assert the shape directly without
+    /// touching the filesystem.
+    pub(crate) fn base_record(&self, duration_ms: u64) -> Value {
         let mut record = json!({
             "schema_version": 2,
             "trace_id": self.trace_id.to_string(),
@@ -234,6 +252,13 @@ impl Span {
         }
         if !self.synthesis_keys.is_empty() {
             record["synthesis_keys"] = json!(self.synthesis_keys);
+        }
+        if !self.path_params_source.is_empty() {
+            let mut obj = serde_json::Map::new();
+            for (k, v) in &self.path_params_source {
+                obj.insert(k.clone(), json!(v.as_str()));
+            }
+            record["path_params_source"] = Value::Object(obj);
         }
         record
     }
@@ -336,5 +361,43 @@ mod tests {
         let a = json!({"id": "1"});
         let b = json!({"id": 1});
         assert_ne!(shape_hash(&a), shape_hash(&b));
+    }
+
+    #[test]
+    fn base_record_omits_path_params_source_when_empty() {
+        let span = Span::start_fresh();
+        let record = span.base_record(0);
+        assert!(
+            record.get("path_params_source").is_none(),
+            "absent map should not produce a key — got {record:?}"
+        );
+    }
+
+    #[test]
+    fn base_record_emits_path_params_source_with_string_values() {
+        let mut sources = BTreeMap::new();
+        sources.insert("owner".to_string(), ParamSource::Config);
+        sources.insert("customer".to_string(), ParamSource::Env);
+        let span = Span::start_fresh().with_path_params_source(sources);
+        let record = span.base_record(0);
+        let pps = record
+            .get("path_params_source")
+            .expect("path_params_source emitted");
+        assert_eq!(pps.get("owner").and_then(|v| v.as_str()), Some("config"));
+        assert_eq!(pps.get("customer").and_then(|v| v.as_str()), Some("env"));
+        assert_eq!(pps.as_object().map(|o| o.len()), Some(2));
+    }
+
+    #[test]
+    fn base_record_path_params_source_records_flag_too() {
+        // The mining surface needs to distinguish per-call intent
+        // (`flag`) from constant defaults (`env`/`config`). All three
+        // sources must round-trip — `flag` is not pruned.
+        let mut sources = BTreeMap::new();
+        sources.insert("owner".to_string(), ParamSource::Flag);
+        let span = Span::start_fresh().with_path_params_source(sources);
+        let record = span.base_record(0);
+        let pps = record.get("path_params_source").expect("emitted");
+        assert_eq!(pps.get("owner").and_then(|v| v.as_str()), Some("flag"));
     }
 }
