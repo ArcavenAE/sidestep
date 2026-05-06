@@ -783,6 +783,7 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
         args.repo.as_deref(),
         &[],
     )?;
+    check_required_chain_params(op_id, &resolved.sources)?;
     let response = call_op_blocking_for_verb(
         op_id,
         resolved.params,
@@ -850,6 +851,7 @@ fn run_get(args: GetArgs) -> anyhow::Result<()> {
         args.repo.as_deref(),
         &extra,
     )?;
+    check_required_chain_params(op_id, &resolved.sources)?;
 
     let response = call_op_blocking_for_verb(
         op_id,
@@ -894,6 +896,7 @@ fn run_search(args: SearchArgs) -> anyhow::Result<()> {
         args.repo.as_deref(),
         &[],
     )?;
+    check_required_chain_params(op_id, &resolved.sources)?;
     let response = call_op_blocking_for_verb(
         op_id,
         resolved.params,
@@ -975,6 +978,58 @@ fn build_params(
         params: Value::Object(params),
         sources,
     })
+}
+
+/// The set of path parameters that resolve through the
+/// val-resolution-chain (flag → env → config). When one of these is
+/// declared on the operation's path template AND not present in the
+/// resolved source map, fail at the CLI layer with a chain-naming
+/// message rather than letting `MissingParam` fire from the SDK.
+///
+/// Per cli-philosophy.md "The fix — Argument Resolution Chain":
+/// > Error, with a message naming all four sources that failed and
+/// > one concrete next step for each.
+const CHAIN_PARAMS: &[&str] = &["owner", "customer"];
+
+/// Verify every chain-tracked path parameter required by `op_id` was
+/// resolved through some layer of the chain. The caller has already
+/// run `build_params`; we just check membership in its source map
+/// against the op's `path_params`. Returns `Ok(())` for non-chain
+/// missing params (they fall through to the SDK's `MissingParam`
+/// error, which is correct for things like `runid` / `repo` /
+/// `head_sha` that don't have a chain).
+fn check_required_chain_params(
+    op_id: &str,
+    sources: &BTreeMap<String, ParamSource>,
+) -> anyhow::Result<()> {
+    let op = registry().find(op_id).map_err(|e| anyhow!("{e}"))?;
+    for &chain_param in CHAIN_PARAMS {
+        let required = op.path_params.iter().any(|p| p == chain_param);
+        if required && !sources.contains_key(chain_param) {
+            return Err(anyhow!(format_chain_error(chain_param)));
+        }
+    }
+    Ok(())
+}
+
+fn format_chain_error(param: &str) -> String {
+    let env_var = match param {
+        "owner" => auth::OWNER_ENV,
+        "customer" => auth::CUSTOMER_ENV,
+        // CHAIN_PARAMS is the closed set; any other value here is a
+        // programmer bug.
+        other => panic!("format_chain_error: '{other}' is not a chain-tracked param"),
+    };
+    let config_path = auth::config_path()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| "~/.config/sidestep/config.toml".into());
+    format!(
+        "no {param} resolved through any layer of the chain. Set one of:\n  \
+         - --{param} <slug>  (per-call override)\n  \
+         - {env_var}=<slug>  (per-shell default)\n  \
+         - `sidestep auth login --{param} <slug>`  (persisted in {config_path})\n  \
+         - `sidestep config set {param} <slug>`  (same persistence, no token write)"
+    )
 }
 
 fn call_op_blocking_for_verb(

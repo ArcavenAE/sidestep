@@ -304,3 +304,101 @@ fn config_set_unknown_key_errors_with_known_keys_listed() {
     assert!(err.contains("customer"), "{err}");
     assert!(err.contains("auth.token"), "{err}");
 }
+
+#[test]
+fn list_without_owner_errors_with_chain_naming_message() {
+    // The aae-orc-1mgo / cli-philosophy.md "The fix" rule: when a
+    // chain-tracked path param is required but unresolved, the error
+    // names every layer of the chain plus a concrete next step for
+    // each. Bare "missing required parameter 'owner'" is the bad shape
+    // we replaced.
+    let dir = tempdir();
+    let cfg = dir.join("nonexistent.toml");
+
+    let out = cmd()
+        .args(["list", "rule"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_CONFIG", &cfg)
+        .env_remove("SIDESTEP_OWNER")
+        .env_remove("SIDESTEP_CUSTOMER")
+        .output()
+        .unwrap();
+
+    assert!(!out.status.success(), "expected failure: {out:?}");
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("no owner resolved"),
+        "should name what's missing: {err}"
+    );
+    // Every layer of the chain must be reachable from the message.
+    assert!(err.contains("--owner"), "missing flag layer: {err}");
+    assert!(err.contains("SIDESTEP_OWNER"), "missing env layer: {err}");
+    assert!(
+        err.contains("sidestep auth login --owner"),
+        "missing auth-login persistence layer: {err}"
+    );
+    assert!(
+        err.contains("sidestep config set owner"),
+        "missing config-set persistence layer: {err}"
+    );
+    // The bare SDK error should NOT leak through any more.
+    assert!(
+        !err.contains("missing required parameter"),
+        "SDK MissingParam leaked through, CLI guard didn't fire first: {err}"
+    );
+}
+
+#[test]
+fn list_audit_log_without_customer_errors_with_chain_naming_message() {
+    // audit_log uses get_customer_audit_logs which has {customer} as
+    // its only path param (owner is a query filter). Verify the
+    // chain-naming guard fires for customer too, not just owner.
+    let dir = tempdir();
+    let cfg = dir.join("nonexistent.toml");
+
+    let out = cmd()
+        .args(["list", "audit_log"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_CONFIG", &cfg)
+        .env_remove("SIDESTEP_OWNER")
+        .env_remove("SIDESTEP_CUSTOMER")
+        .output()
+        .unwrap();
+
+    assert!(!out.status.success(), "expected failure: {out:?}");
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("no customer resolved"),
+        "should name customer specifically: {err}"
+    );
+    assert!(err.contains("--customer"), "{err}");
+    assert!(err.contains("SIDESTEP_CUSTOMER"), "{err}");
+    assert!(err.contains("sidestep auth login --customer"), "{err}");
+    assert!(err.contains("sidestep config set customer"), "{err}");
+}
+
+#[test]
+fn list_with_owner_flag_skips_chain_error() {
+    // Sanity: providing the flag short-circuits the chain check; we
+    // fall through to whatever happens next (here, network failure
+    // to a closed port). Chain message must NOT appear.
+    let out = cmd()
+        .args(["list", "rule", "--owner", "arcaven"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", "http://127.0.0.1:1")
+        .env_remove("SIDESTEP_OWNER")
+        .env_remove("SIDESTEP_CUSTOMER")
+        .env_remove("SIDESTEP_CONFIG")
+        .output()
+        .unwrap();
+
+    assert!(
+        !out.status.success(),
+        "expected network failure (port 1 is closed): {out:?}"
+    );
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        !err.contains("no owner resolved"),
+        "chain error must not fire when --owner is provided: {err}"
+    );
+}
