@@ -22,7 +22,7 @@ pub mod spec;
 pub mod stream;
 
 pub use auth::{ParamSource, ResolvedParam, ResolvedToken, TokenSource};
-pub use client::{CallOptions, Client};
+pub use client::{BASE_URL_ENV, CallOptions, Client};
 pub use error::{Result, SidestepError};
 pub use kinds::{KindSpec, all_kinds, extract_items, kind_spec};
 pub use spec::{HttpMethod, OperationMeta, Registry, registry};

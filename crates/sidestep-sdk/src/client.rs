@@ -12,6 +12,23 @@ use crate::auth::{self, ParamSource, TokenSource};
 use crate::error::{Result, SidestepError};
 use crate::spec::{OperationMeta, registry};
 
+/// Override the base URL the Client builds requests against. Intended
+/// for testing (wiremock, integration harnesses) and dev work — not
+/// a supported production knob. When unset, the Client uses the
+/// vendored OpenAPI spec's first server URL (today
+/// `https://agent.api.stepsecurity.io/v1`).
+pub const BASE_URL_ENV: &str = "SIDESTEP_BASE_URL";
+
+/// Read `SIDESTEP_BASE_URL`; treat empty string as unset so a stray
+/// `export SIDESTEP_BASE_URL=` in a shell doesn't silently break
+/// production calls.
+fn base_url_from_env() -> Option<String> {
+    std::env::var(BASE_URL_ENV)
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
 #[derive(Clone)]
 pub struct Client {
     http: reqwest::Client,
@@ -44,19 +61,37 @@ pub struct CallOptions {
 }
 
 impl Client {
-    /// Resolve a token via env → keyring and construct a Client.
+    /// Resolve a token via env → keyring → config and construct a
+    /// Client. Honors `SIDESTEP_BASE_URL` when set (testing
+    /// convenience); falls back to the spec's default base URL.
     pub fn from_env() -> Result<Self> {
         let resolved = auth::resolve()?;
-        Self::build(&resolved.token, Some(resolved.source))
+        Self::build(&resolved.token, Some(resolved.source), base_url_from_env())
     }
 
     /// Construct with an explicit token (skips the resolver chain). The
     /// audit trail records `auth_source` as `None` for this path.
+    /// Honors `SIDESTEP_BASE_URL` when set; otherwise uses the spec's
+    /// default base URL.
     pub fn with_token(token: &str) -> Result<Self> {
-        Self::build(token, None)
+        Self::build(token, None, base_url_from_env())
     }
 
-    fn build(token: &str, auth_source: Option<TokenSource>) -> Result<Self> {
+    /// Construct with an explicit token and an explicit base URL.
+    /// Bypasses both the auth resolver chain and `SIDESTEP_BASE_URL`.
+    /// Intended for tests (wiremock, recorded fixtures) and library
+    /// callers that need to point at a non-production endpoint
+    /// deterministically. The audit trail records `auth_source` as
+    /// `None`.
+    pub fn with_base_url(token: &str, base_url: impl Into<String>) -> Result<Self> {
+        Self::build(token, None, Some(base_url.into()))
+    }
+
+    fn build(
+        token: &str,
+        auth_source: Option<TokenSource>,
+        base_url_override: Option<String>,
+    ) -> Result<Self> {
         let mut headers = HeaderMap::new();
         let auth = format!("Bearer {token}");
         let mut auth_value = HeaderValue::from_str(&auth)
@@ -74,7 +109,9 @@ impl Client {
             .build()
             .map_err(|e| SidestepError::Network(e.to_string()))?;
 
-        let base_url = registry().base_url.clone();
+        let base_url = base_url_override
+            .map(|s| s.trim_end_matches('/').to_string())
+            .unwrap_or_else(|| registry().base_url.clone());
         Ok(Self {
             http,
             base_url,
@@ -328,4 +365,37 @@ fn extract_cursor(v: &Value) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn with_base_url_replaces_spec_default() {
+        let client =
+            Client::with_base_url("fake-token", "http://127.0.0.1:9999/v1").expect("client built");
+        assert_eq!(client.base_url(), "http://127.0.0.1:9999/v1");
+        assert_ne!(client.base_url(), registry().base_url);
+    }
+
+    #[test]
+    fn with_base_url_trims_trailing_slash() {
+        // The spec stores its base_url without a trailing slash and
+        // build_url joins with a leading-`/` path template; mismatching
+        // here would produce `//foo`. Override trims to match.
+        let client =
+            Client::with_base_url("fake-token", "http://127.0.0.1:9999/v1/").expect("client built");
+        assert_eq!(client.base_url(), "http://127.0.0.1:9999/v1");
+    }
+
+    #[test]
+    fn with_base_url_records_no_auth_source() {
+        // Explicit-token paths intentionally omit `auth_source` from
+        // the audit so `with_token` and `with_base_url` look identical
+        // to a miner — they're both "I provided the token directly".
+        let client =
+            Client::with_base_url("fake-token", "http://127.0.0.1:9999").expect("client built");
+        assert!(client.auth_source().is_none());
+    }
 }
