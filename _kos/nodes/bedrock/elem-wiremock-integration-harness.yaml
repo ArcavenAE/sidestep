@@ -1,0 +1,48 @@
+id: elem-wiremock-integration-harness
+type: element
+confidence: bedrock
+title: "wiremock integration harness — SIDESTEP_BASE_URL override + assert_cmd-driven end-to-end tests"
+content: |
+  End-to-end coverage of the Client's HTTP layer via the
+  `SIDESTEP_BASE_URL` env override (paired with
+  `Client::with_base_url` and the env-var respected by
+  `from_env`/`with_token`). Tests live in
+  `crates/sidestep-cli/tests/wiremock_endpoint.rs`.
+
+  Pattern: `#[tokio::test]` spins up a `wiremock::MockServer`, mounts a
+  `Mock` with explicit method/path/query/header expectations, then runs
+  the `sidestep` binary synchronously via `assert_cmd` with the
+  override env set. Mock expectations are verified on
+  `MockServer::drop` — failure raises a panic naming the actual
+  requests received.
+
+  Six tests pin nine layers of the request path in place at once:
+  CLI parse → `auth::resolve_*` chain → `build_params` source map →
+  `CallOptions.path_params_source` → `Span::with_path_params_source` →
+  HTTP request construction → response parse → kind extraction →
+  audit JSONL emission. The y7lq `path_params_source` audit signal is
+  now integration-tested across all three sources (flag / env /
+  config), closing the loop noted in finding-003.
+
+  ADR: none — the base-URL override is testing infrastructure, not a
+  contract change. Charter B7 slice 5's "Live-API integration tests
+  pending" note retired by this harness.
+
+  Evidence: `aae-orc-if85` closed; finding-004 documents the harness;
+  124 tests green at close (was 115).
+edges:
+  - target: val-evidence-driven-design
+    type: implements
+  - target: val-resolution-chain
+    type: supports
+  - target: elem-auth-three-layer
+    type: supports
+  - target: question-audit-mining
+    type: related
+provenance:
+  created_by: human
+  session: session-047
+  created_at: "2026-05-06"
+  extracted_session: session-049
+  extracted_at: "2026-05-13"
+  extracted_from: charter.md B8 prose (filed under Frontier section but labeled bedrock)
