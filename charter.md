@@ -209,50 +209,18 @@ See `_kos/findings/finding-001-primitives-over-composites.md` and
 ### B7: v0.1 Primitive Layer Shipped
 
 The v0.1 verb surface from B6 is implemented and on `main`. Five
-slices, each its own commit, each green at all gates (clippy +
-deny + 98 tests + Track B shell asserts):
+slices (`da6d220`, `b8d62fe`, `d0f4db1`, `0e7c6d8`, `332d420`),
+each its own commit, each green at all gates (clippy + deny + 98
+tests + Track B shell asserts). The stream contract + 9-kind
+table, filter/get/search/--since, enrich with three recipes, and
+audit `schema_version` 1 → 2 all shipped.
 
-- Slice 1 (`da6d220`) — stream contract + 9-kind table + `list` +
-  `emit` (jsonl, md). End-to-end: `cat fixture | sidestep emit
-  --format jsonl` round-trips byte-identically.
-- Slice 2 (`b8d62fe`) — `filter --where '<CEL>'` + `--explain`,
-  raw CEL via `cel-interpreter` 0.10 with the canonical adapter
-  from finding-001. Track C's `triage.sh` predicate runs verbatim.
-- Slice 3 (`d0f4db1`) — `get`, `search`, `--limit`, `--since`.
-  `--since` is a CEL post-filter (`<ts_field> > now -
-  duration("...")`) with hand-rolled Go-duration validator that
-  fail-fasts before any network call.
-- Slice 4 (`0e7c6d8`) — `enrich --with <recipe>`. Three recipes:
-  `policy-context` (rule → parent policy join), `severity-roll-up`
-  (max(rule, parent) when both present, else copy-rename),
-  `repo-owner` (hoist `repo.owner` to top-level for filter
-  convenience). Auxiliary records via `--policies <FILE>`;
-  API-fetched aux is follow-up (`aae-orc-if85`).
-- Slice 5 (`332d420`) — audit `schema_version` 1 → 2. Adds
-  `verb_phase`, `synthesis_keys`, `recipe_id`, `predicate_text`,
-  `predicate_ast_shape` (literal-stripped sha256 of parsed
-  Program), `predicate_outcome`. Stream-transform verbs (filter,
-  enrich) emit verb-shape audit lines via
-  `Span::finish_as_verb`; API-shape lines (list/get/search/api)
-  ride along with `verb_phase` + `synthesis_keys`.
+Ship trace per slice, caveats (`aae-orc-qvk9`, paste 1.0.15
+advisory), and v0.2-deferred items (each ticketed with reason):
+`_kos/findings/finding-006-v01-primitive-layer-shipped.md`.
 
-Caveats captured: cel-interpreter 0.10's antlr4rust parser
-panics on some malformed predicates rather than returning Err
-(`aae-orc-qvk9`); `paste 1.0.15` advisory ignored in deny.toml
-(unmaintained per RUSTSEC-2024-0436, no known vulnerability).
-
-Deferred to v0.2 per finding-001 + this slice's notes:
-field_paths_referenced + literal_values_by_path audit fields
-(`aae-orc-deux`, AST-walk work); rank, replay, act primitives
-(aae-orc-emap/jsai/7nhb); diff primitive (aae-orc-08gd); CEL
-sugar layer (vjc6); 5 deferred kinds + 2 deferred enrichments
-(t3mc); SDK base-URL override + wiremock integration tests
-(`aae-orc-if85`).
-
-Evidence: bd `aae-orc-lyeh` closed with full slice provenance
-(2026-05-02). 98 tests green at close (45 SDK unit + 33 CLI
-integration + 14 sub-test groups + 3 MCP + Track B shell
-asserts + 3 doc tests).
+Evidence: bd `aae-orc-lyeh` closed 2026-05-02; 98 tests green at
+close.
 
 ---
 
