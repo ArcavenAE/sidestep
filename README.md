@@ -48,6 +48,40 @@ brew uninstall arcavenae/tap/sidestep
 brew untap arcavenae/tap                      # optional, removes the tap
 ```
 
+### Install with mise
+
+[mise](https://mise.jdx.dev/) is a polyglot version manager. It reads a per-project `mise.toml`, pulls the exact signed binary from GitHub Releases, and verifies GitHub Artifact Attestations natively — no Homebrew tap required.
+
+**Stable:**
+
+```bash
+mise use github:ArcavenAE/sidestep@latest
+sidestep --version
+```
+
+*(First stable `v*` release pending — until it's cut, `latest` resolves to the current alpha even without the prerelease opt-in below.)*
+
+**Alpha channel** (prereleases from `main`) — add `prerelease = true` to opt in per-tool. sidestep uses a single-channel release model (kos pattern — one binary, one formula), so the alpha shim is `sidestep`, the same name as stable; they replace each other rather than coexisting:
+
+```toml
+# mise.toml
+[tools]
+"github:ArcavenAE/sidestep" = { version = "latest", prerelease = true }
+```
+
+```bash
+mise install
+sidestep --version
+```
+
+**macOS troubleshooting** — mise downloads over HTTP libraries that do not set `com.apple.quarantine`, so notarized binaries launch without a Gatekeeper prompt in the common case. If a quarantine-aware host (some IDEs, launchers, or file-manager copies) propagates the xattr into the mise install, clear it once:
+
+```bash
+xattr -d com.apple.quarantine "$(mise which sidestep)"
+```
+
+macOS arm64 only for now, matching the Homebrew formula.
+
 ### Build from source
 
 ```sh

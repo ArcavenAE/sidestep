@@ -270,3 +270,42 @@ jobs:
           git add Formula/sidestep.rb
           git diff --cached --quiet || git commit -m "Update sidestep to $TAG"
           git push
+
+  attest:
+    name: Attest Alpha Provenance
+    needs: [build, sign-and-notarize, create-prerelease]
+    # Run after create-prerelease (the last asset mutation) so attestations
+    # cover the bytes that ship — the signed + notarized binary uploaded to
+    # the GitHub prerelease — not the pre-sign artifact.
+    if: |
+      !cancelled() &&
+      needs.build.result == 'success' &&
+      needs.create-prerelease.result == 'success' &&
+      (needs.sign-and-notarize.result == 'success' || needs.sign-and-notarize.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@6c3c2f2c1c457b00c10c4848d6f5491db3b629df # v2.18.0
+        with:
+          egress-policy: audit
+
+      - name: Download final release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p release-assets
+          # Pull everything currently attached to the prerelease.
+          gh release download "${{ needs.build.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --dir release-assets
+          echo "Assets to be attested:"
+          ls -la release-assets/
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: 'release-assets/*'
