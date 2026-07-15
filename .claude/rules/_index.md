@@ -5,3 +5,4 @@
 @bash.md
 @rust.md
 @cli-philosophy.md
+@data-hygiene.md

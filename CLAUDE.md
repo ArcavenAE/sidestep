@@ -4,6 +4,13 @@ Rust CLI for the StepSecurity API. Codegen from a vendored OpenAPI spec,
 audit-trail-as-feature, agent-first ergonomics. Backed by an SDK that also
 serves a future MCP surface.
 
+> **⚠ Org data hygiene (load-bearing).** sidestep is a PUBLIC repo
+> operating against a real StepSecurity org. NEVER put the org/customer
+> name, real internal repo names, PII, org security posture,
+> credentials, or raw audit-trail lines into git commits, `gh`
+> issues/PRs, or shared logs. Sanitize to synthetic values first.
+> Full rule: `.claude/rules/data-hygiene.md`.
+
 @charter.md
 @.claude/rules/_index.md
 

@@ -15,3 +15,6 @@
 
 # Beads (orc-shared)
 .beads
+
+# tenant/org leak-scan local patterns (never commit)
+.leak-patterns.local

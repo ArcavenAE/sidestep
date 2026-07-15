@@ -1,6 +1,8 @@
 pre-commit:
   parallel: true
   commands:
+    org-leaks:
+      run: scripts/check-org-leaks.sh --staged
     fmt:
       run: cargo +nightly fmt --all -- --check
     clippy:

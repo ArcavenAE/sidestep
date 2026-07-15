@@ -21,6 +21,33 @@ In-scope examples:
 - Audit-trail redaction failures (sensitive fields not stripped)
 - Supply-chain issues in sidestep's dependency graph
 
+## Org Data Hygiene
+
+sidestep is a PUBLIC repo operating against a real StepSecurity org.
+Payloads and metadata identify it. Treat ALL of the following as
+confidential — never paste into issues, PRs, commits, discussions, or
+public logs:
+
+- **Org / customer identity** — the real GitHub org or customer slug,
+  internal team names.
+- **Internal repo names** — they map the product and infrastructure.
+- **PII** — user names, emails, team memberships from audit actors.
+- **Org security posture** — which repos carry which detections /
+  policies / suppressions / threat-intel incidents.
+- **Credentials** — API tokens, bearer/key material.
+- **Raw audit-trail lines** — real path/query params (owner, customer,
+  repo), local hostname/username, predicate text.
+
+Defenses in this repo:
+
+- `scripts/check-org-leaks.sh` — pre-commit (lefthook) + CI. Generic
+  patterns in-repo; org literals in a gitignored `.leak-patterns.local`.
+- GitHub secret scanning + push protection enabled on the repo.
+- Fixtures are synthetic by policy (see `examples/`).
+
+Full behavior rule: `.claude/rules/data-hygiene.md`. Report a leaking
+field via the security advisory channel above.
+
 ## Audit Trail Privacy
 
 sidestep writes a local JSONL audit trail of every API call. By design
