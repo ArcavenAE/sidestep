@@ -1,209 +1,241 @@
 # Audit-stream sharing as a first-class action
 
-Status: idea (pre-hypothesis). Raised 2026-07-25 while the qkb9
-verb-evidence corpus ask was being drafted — teammates need to hand us
-their audit streams, and today the instructions are manual ("tar up
-`~/.sidestep/audit/`"), which ships raw lines that violate the
-data-hygiene forbidden classes (org slug, repo names, usernames,
-hostnames, predicate literals).
+Status: idea (pre-hypothesis), v2 — restructured 2026-07-25 after five
+same-session design rounds (history at bottom). Raised while drafting
+the qkb9 verb-evidence corpus ask: teammates need to hand over audit
+streams, and manual instructions ("tar up `~/.sidestep/audit/`") ship
+raw lines violating every data-hygiene forbidden class.
 
-## The shape
+**Scope note:** v2 spans sidestep, bloomctl, jira-cli, and future
+vendor CLIs — outgrowing sidestep. Candidate for promotion to
+`aae-orc/_kos/ideas/` (cross-cutting knowledge belongs at the
+composition layer). Kept here until an orc session promotes it.
 
-`sidestep audit share` (or `audit export --shareable`): a verb that
-produces a **whitelist projection** of the local trail and delivers it
-over a private, authenticated channel. Safe by construction — the
-teammate runs one command instead of following redaction instructions.
+## Threat model (governs everything below)
 
-### Whitelist, never blacklist
-
-The v2 line already separates shape from values by design: `shape_hash`
-(keys+types, no payloads), `predicate_ast_shape` (sha256), field
-*sources* (`path_params_source`), `field_paths_referenced`. The
-dangerous residue is enumerable: `argv`, `path_params`/`query_params`
-values, `literal_values_by_path` (predicate literals = real repo/org
-names), `host`, `user`, `next_cursor`.
-
-Projection emits ONLY declared-safe fields: schema_version, bucketed
-timestamp, duration_ms, verb_phase, operation.id/method, outcome,
-status, items_returned, shape_hash, predicate_ast_shape,
-field_paths_referenced, param sources, synthesis_keys, build_id
-(stamped as of aae-orc-c714 — corpus stratification by channel).
-
-### Pseudonymization where joins matter
-
-Values that must correlate across lines (owner, repo, customer) get
-deterministic pseudonyms: HMAC-SHA256 with a per-corpus random salt →
-`org_1`, `repo_3`. Joins survive, identities don't, and the salt never
-leaves the contributor's machine. `literal_values_by_path` keeps paths
-+ pseudonymized values (or counts only, strictest profile).
-
-### Gates before the bundle leaves
-
-- `scripts/check-org-leaks.sh` + `.leak-patterns.local` run over the
-  bundle (reuse of the existing pre-commit backstop).
-- Manifest: date range, line count, redaction-profile version,
-  build_id set, TLP marking (TLP:AMBER default).
-- Show the human the bundle (or a sample) before send — Homebrew
-  `brew analytics` / ubuntu-report precedent: display what leaves.
-
-### Transport candidates
-
-CORRECTED 2026-07-25 (same session): the repo-first framing assumed
-senders have (1) a GitHub account, (2) signing set up if the repo
-enforces required_signatures, (3) write access someone must grant and
-manage. Wrong baseline. The load-bearing security lives in bundle
-construction (whitelist + pseudonymization + gate + manifest), which
-is transport-agnostic; **age-encrypt the bundle to the collector's
-public key** (a 62-char string embeddable in the ask itself) and the
-transport needs zero trust properties — requirement becomes "can
-deliver an opaque file."
-
-- **Tier 0 — any channel the sender already has.** Slack DM (the
-  qkb9 ask is already a Slack message), email. No GitHub, no
-  signing, no access grants. Debian popcon precedent (HTTP *or
-  email* submission).
-- **Tier 1 — HTTPS collector.** Cloudflare Worker + R2 accepting
-  POSTs — the dl.betterdials.com pattern pointed inbound. Upload
-  tokens optional (payloads encrypted, size-capped).
-- **Tier 2 — private GitHub repo drop-box** for contributors who
-  already have access and want history/review semantics. A
-  convenience, not the baseline. (mss-status pattern.)
-- Authenticity without ceremony, if ever needed: `ssh-keygen -Y
-  sign` with the SSH key every GitHub user already has, verified
-  against `github.com/<user>.keys`. Optional — never the price of
-  admission; manifest-claimed contributor ID suffices for a mining
-  corpus.
-- GitHub private vulnerability reporting / draft advisories:
-  investigated, **off-label** — right shape (private channel +
-  temporary private forks), wrong scope (vulnerabilities, not data
-  streams). Prior art only; do not abuse.
-- Actions artifacts on a private repo — viable, clunkier than the
-  above.
-
-## Prior art surveyed
-
-- **Mozilla Glean** — strongest governance: every metric declared in
-  metrics.yaml with a data-sensitivity category (1 technical → 4
-  highly sensitive), mandatory data review, expiry. "Whitelist by
-  declaration" is the stance our projection copies.
-- **Homebrew analytics** — opt-out, anonymous UUID, event names only
-  (never argv), public aggregate dashboards; moved off Google
-  Analytics to self-hosted for privacy.
-- **.NET SDK telemetry** — publishes the collected corpus itself
-  (sanitized, delayed) — precedent for sharing data, not just
-  aggregates.
-- **Debian popcon / ubuntu-report** — opt-in, random ID, show-before-
-  send.
-- **Sentry** — beforeSend client-side scrub hooks + server scrubbers;
-  org-scoped private sharing.
-- **OpenTelemetry Collector** — redaction/attributes processors:
-  "emit rich locally, redact at the export boundary." Our trail is
-  already OTel-shaped (trace_id/span_id); an OTLP export path with a
-  collector-side redaction profile is a plausible alternative
-  architecture.
-- **Threat-intel sharing** — MISP sharing groups, STIX/TAXII, CISA
-  AIS (submitter identity stripped by default), TLP markings. The
-  "private community + explicit sensitivity marking" pattern.
-- **HIBP k-anonymity range queries** — share an indicator without
-  revealing it; relevant if we ever share detection indicators.
-- **Apple local DP / Google RAPPOR** — differential privacy for
-  aggregates; heavy machinery, overkill for v1, the canonical answer
-  if corpus contributors ever exceed a trusted circle.
-- **rustup telemetry (canceled)** — cautionary: consent posture
-  decides adoption.
-
-## Mail-slot inbox design (session addendum 2)
-
-User direction: combine expiry/encryption with a write-only drop-box —
-uploads swept out of the inbox to an undisclosed location; attackers
-can read sidestep's code so they know where data is *sent*, but not
-where it *went*; perms in the spirit of `rw-----w-`. Prior art: Unix
-spool dirs (mode 733 — droppers need traverse `-wx`, no list) and
-SecureDrop (source-facing server ASSUMED compromised, never holds
-keys, submissions encrypted on arrival, swept to an airgapped
-station).
-
-Cloud rendering of the mail slot:
-- **IAM as mode bits** — inbox bucket exposes PutObject only (no
-  Get/List). Object-store policy is the honest modern spelling.
-- **Content-addressed, unguessable names** — upload path = hash of
-  ciphertext; without List, objects are undiscoverable even if Get
-  leaks (128-bit-URL entropy as read-permission).
-- **Sweep** — scheduled Worker moves objects to a second bucket whose
-  binding exists only server-side, in no client-visible code (the
-  user's core mechanic). dl.betterdials.com stack, pointed inbound.
-- **TTL on inbox residue** — lifecycle expiry (~72h) bounds exposure
-  and garbage accumulation for unswept objects.
-
-Additions beyond the sweep:
-1. **Quarantine, not just relocation** — a world-writable slot
-   accepts attacker writes; the inbox is untrusted input. Sweep =
-   validation: manifest shape, size caps, redaction-profile version,
-   server-side re-run of the leak-gate (never trust the client's
-   gate). Rejects → review hold, not corpus. (MISP/AIS submission-
-   validation precedent.)
-2. **Collector age key on YubiKey** (`age-plugin-yubikey`) — bulk
-   decryption of the corpus requires a physical touch per bundle;
-   total infra compromise yields ciphertext only. SecureDrop's
-   airgap, worn on a keychain. Fits the existing hardware posture.
-3. **Per-campaign recipient keys** — the qkb9-style ask embeds a
-   campaign key; window closes, key retires; blast radius of key
-   compromise = one campaign.
-
-Protection ranking (each cheap — stack all, but don't let the sweep
-substitute for the first two): whitelist projection (data never
-collected) > age-to-YubiKey (unreadable anywhere) > quarantine
-validation > sweep-to-unknown > inbox TTL.
-
-CORRECTED (addendum 3, below): this ranking treated encryption as
-durable. Under harvest-now-decrypt-later it is time-boxed, and
-ciphertext non-availability promotes to co-primary.
-
-## Threat model correction — harvest-now-decrypt-later (addendum 3)
-
-User pushback, accepted: "compromise yields only ciphertext" is a
-time-boxed claim, not durable. HNDL is standing doctrine (NIST PQ
-migration rationale; CISA/NSA store-now-decrypt-later advisories),
-and the exposure is concrete in the proposed tooling: **age recipient
-encryption is X25519** — broken by Shor on a cryptographically
-relevant quantum computer. TLS key exchange likewise. Bulk ciphertext
-collection is rational for attackers with no immediate monetization
-path (AI-enabled attack scaling accelerates the implementation/key-
-management failure routes even where the math holds; AES-256/SHA-256
-survive known quantum attacks — Grover only halves effective
-strength). Design assumption: **the corpus eventually becomes
+**Harvest-now-decrypt-later is the design assumption.** Standing
+doctrine (NIST PQ-migration rationale; CISA/NSA store-now-decrypt-
+later advisories), concrete in our tooling: age recipient encryption
+is X25519 → broken by Shor; TLS key exchange likewise. AI-scaled
+attack economics make bulk ciphertext collection rational with no
+immediate monetization path. AES-256/SHA-256 survive known quantum
+attack (Grover halves effective strength), so symmetric constructions
+outlive the envelopes. **Design as if the corpus eventually becomes
 plaintext.**
 
-Re-ranked layers, by what survives:
+Layer ranking, by what survives:
 
-1. **Minimization is the only durable protection.** The whitelist
-   projection is the sole layer surviving every future. Strictest
-   profile (path+cardinality, no pseudonymized literals) becomes the
-   DEFAULT, not an option — design the corpus so eventual decryption
-   is an acceptable event.
-2. **Pseudonymization outlives the envelope.** HMAC-SHA256 with
-   per-machine salts that never leave contributors is symmetric-
-   strength; a future-decrypted bundle still doesn't map org_1 back
-   without per-contributor salts. Load-bearing, not cosmetic.
-3. **Ciphertext non-availability = co-primary.** Sweep-to-unknown,
-   inbox TTL, and never letting ciphertext rest anywhere publicly
-   reachable (kills the secret-gist tier-0 variant). What was never
-   collected, no future break unlocks.
-4. **Deletion as scheduled act.** Retention policy: raw bundles
-   destroyed after mining; only derived aggregates persist (Glean
-   expiry made mandatory).
-5. **Encryption = time-boxed confidentiality, hardened where cheap:**
+1. **Minimization** (whitelist projection) — the only durable layer.
+   Strictest profile is the DEFAULT: shapes, hashes, sources,
+   timings; path+cardinality, no literals.
+2. **Pseudonymization** — HMAC-SHA256, per-machine salts that never
+   leave contributors. Symmetric-strength: survives envelope breaks.
+   A future-decrypted bundle still doesn't map `org_1` to anyone.
+3. **Ciphertext non-availability** — write-only inboxes, sweep to
+   undisclosed storage, TTL, never publicly-reachable ciphertext
+   (rules out pastebin-class and secret-gist transports). What was
+   never collected, no future break unlocks.
+4. **Scheduled deletion** — raw bundles destroyed after mining; only
+   derived aggregates persist (Glean expiry made mandatory).
+5. **Encryption** — time-boxed confidentiality. Harden cheaply:
    PQ-hybrid age plugin (sntrup761x25519) or scrypt-passphrase age
-   (symmetric, PQ-resistant) with out-of-band passphrase in the ask.
+   (symmetric, PQ-resistant), passphrase out-of-band.
+
+## The bundle contract (transport-agnostic core)
+
+A **whitelist projection** of the local trail — only declared-safe
+fields: schema_version, bucketed timestamp, duration_ms, verb_phase,
+operation id/method, outcome, status, items_returned, shape_hash,
+predicate_ast_shape, field_paths_referenced, param *sources*,
+synthesis_keys, build_id (aae-orc-c714 — corpus stratification by
+channel). Dangerous residue is enumerable and excluded: argv, param
+values, literal_values_by_path, host, user, cursors.
+
+Plus: manifest (date range, line count, redaction-profile version,
+build_id set, claimed contributor id, TLP marking), leak-gate pass
+(`check-org-leaks.sh` + `.leak-patterns.local`), show-a-sample-
+before-send (brew/ubuntu-report precedent), then age-encrypt to the
+campaign recipient set. After encryption the transport needs zero
+trust properties.
+
+**Redaction profiles are versioned declarations** (the Glean
+metrics.yaml stance: whitelist by declaration, never blacklist by
+scrubbing). Manifest pins the profile version; miners declare which
+versions they accept; contributors' config records the version they
+consented to and the tool refuses to share under a newer one without
+re-consent.
+
+## Cross-tool architecture: sharing as a TOOL, not a feature
+
+sidestep, bloomctl (iru/Kandji), jr/jira-cli, and future vendor CLIs
+are all "CLI against a SaaS API with a local audit trail" — and they
+span languages (Rust, Go). So the share machinery must not be a
+per-tool reimplementation:
+
+- **Spec-first:** the bundle format + profile schema is the contract
+  (like `docs/audit-trail-format.md`), owned at platform level.
+- **A standalone `dropbundle`-style CLI** does projection-by-profile,
+  pseudonymization, gating, sealing, sending. Tools compose by
+  stream: `sidestep audit export | dropbundle seal --campaign X |
+  dropbundle send`. A Go tool adopts by shelling out — no port
+  needed. Fits SOUL composability; each tool only needs (a) an audit
+  trail, (b) a published redaction profile.
+- Per-tool sugar (`sidestep audit share`) wraps the composition.
+
+**Casual build path (gradual elaboration):** v0 lives inside sidestep
+(qkb9 campaign, manual transport). Extract the standalone CLI when
+the second tool (bloomctl is nearest — tenant-data-hygiene sibling
+rule already exists) wants it — the fleet's second-instance rule.
+Profiles registry and transport plugins evolve behind the stable
+bundle contract.
+
+## SecureDrop, transferred
+
+SecureDrop's stance: the submission server is ASSUMED compromised —
+it never holds decryption keys; submissions are encrypted on arrival;
+plaintext exists only on an airgapped Secure Viewing Station.
+
+Transfers to us:
+- **Two-plane separation**: submission surface (write-only, publicly
+  reachable, holds no secrets) vs retrieval plane (authenticated,
+  different infrastructure entirely).
+- **Encrypt-on-arrival as backstop**: sweep re-wraps objects to the
+  current escrow set — a stale-campaign-key or misconfigured-client
+  bundle still ends up sealed to the roster.
+- **The SVS maps to hardware keys**: decryption only ever on operator
+  machines with YubiKey-resident age identities
+  (age-plugin-yubikey) — touch-per-decrypt; infra compromise yields
+  ciphertext only (time-boxed per threat model, still the best
+  available). "The airgap, worn on a keychain."
+- **Codenames map to stable contributor pseudonyms**: longitudinal
+  joins across campaigns without identity.
+- **Reply channel maps to receipts**: content-hash receipt so a
+  contributor can verify inclusion; team context = Slack ack.
+
+Does NOT transfer: Tor/anonymity (contributors are known teammates),
+Tails/dedicated-hardware operational burden.
+
+## Mail-slot inbox (write-only drop)
+
+Prior art: Unix spool dirs (mode 733 — droppers get write+traverse,
+no list). Cloud rendering:
+
+- **IAM as mode bits** — inbox bucket exposes PutObject only (no
+  Get/List). Presigned PUT URLs add time-bounding per upload.
+- **Content-addressed unguessable names** — path = hash of
+  ciphertext; without List, objects are undiscoverable even if Get
+  leaks.
+- **Sweep = quarantine + relocation** — scheduled function validates
+  (manifest shape, size caps, profile version, server-side leak-gate
+  re-run — never trust the client's gate; MISP/AIS precedent), then
+  moves survivors to a second bucket whose binding exists only
+  server-side, in no client-visible code. Attackers reading tool
+  source know where data is SENT, not where it WENT. Rejects → review
+  hold, never corpus.
+- **Inbox TTL** (~72h lifecycle) — unswept residue vanishes; bounds
+  exposure and garbage-fill.
+- Rate limits + size caps on the submission surface.
+
+## Storage/transport suitability survey
+
+| Option | Verdict | Notes |
+|---|---|---|
+| **R2 + Workers** | Best default | Presigned PUT, lifecycle TTL, sweep Worker, no egress fees; dl.betterdials.com stack pointed inbound |
+| **S3 + Lambda** | Best for AWS-native teams | Same shape + IAM maturity, Object Lock for retention; natural where team infra is AWS (1898 case) |
+| B2 / GCS / any S3-compatible | Fine | Contract is presigned-PUT + lifecycle + sweep fn |
+| **Pastebin-class / gists** | REJECTED | Publicly-reachable ciphertext violates layer 3; no deletion control, no write-only semantics |
+| **Magic Wormhole / croc** | Strong tier-0 | PAKE-encrypted direct transfer, NO at-rest ciphertext anywhere — maximal HNDL resistance for transit; synchronous/human-paced |
+| **Taildrop** | Good if shared tailnet | Machine-to-machine, no cloud at rest |
+| Slack DM / email | v0 baseline | Bundle is sealed; channel needs only delivery. popcon precedent (HTTP or email) |
+| GitHub private repo | Convenience tier | Only for contributors already having access; never the baseline (assumes account + access + possibly signing) |
+| GitHub PVR/advisories | Off-label, rejected | Right shape, wrong scope; prior art only |
+
+## Deployment modes
+
+- **Solo-maintainer mode (default posture):** an individual supporting
+  a tool locks data to themselves — recipient set = their own key(s)
+  only; bundles may never leave their machines (local corpus dir).
+  The drop infrastructure is optional; the projection/profile
+  discipline is not.
+- **Team mode:** a named collection campaign — recipient roster,
+  campaign window, drop endpoint, retention schedule — announced in
+  the ask (Slack), everything needed embedded (campaign key, upload
+  URL or "DM me").
+
+## Multi-maintainer escrow (the "PGP approach", modernized)
+
+age natively encrypts to N recipients — any single roster key
+decrypts. With age-plugin-yubikey each maintainer's identity is
+hardware-resident: "any of the team members might decrypt" is the
+default behavior of a recipient list, no PGP needed.
+
+What PGP's web-of-trust actually provided — **how contributors know
+the recipient set is legitimate** — is rebuilt as a signed roster:
+
+- **Recipient roster file**: age recipients + owner identities,
+  versioned, in the campaign/tool repo.
+- **Enrollment ceremony**: new maintainer generates a YubiKey age
+  recipient → roster PR → **M existing members countersign**
+  (`ssh-keygen -Y sign` with keys verifiable at
+  `github.com/<user>.keys` — zero new key material; or minisign;
+  or cosign + GitHub attestation, matching F24 practice).
+- **Clients verify the signature chain** against pinned genesis keys
+  (pinned in the tool/profile at first install).
+- **True escrow (recovery)**: optionally an offline org recovery
+  recipient — key split Shamir-style among officers or held in a
+  safe — so the corpus survives all YubiKeys lost.
+- **HNDL tension, stated:** every added recipient widens the
+  future-decryption surface, and one compromised roster key opens
+  everything sealed to that roster. Bounds: per-campaign rosters
+  (small, operational-need-only), campaign key retirement, and layer
+  4 deletion. Roster size is a security parameter, not a convenience.
+
+OpenPGP proper (YubiKey OpenPGP applet) remains possible for teams
+with existing PGP infra; age+plugins is the fewer-footguns default.
+
+## Evolution path
+
+- **v0 (qkb9, now):** sidestep-only export + strictest profile +
+  scrypt-passphrase age + Slack DM. Manual collection, manual
+  deletion promise in the ask.
+- **v1:** extract `dropbundle` CLI; campaign keys; R2/S3 mail-slot +
+  quarantine sweep; receipts.
+- **v2:** signed recipient rosters + enrollment ceremony; retention
+  automation; bloomctl + jr adopt via profiles.
+- **v3:** profile registry at platform level; aggregate-stats
+  reciprocity to contributors (Homebrew-style dashboards); possible
+  standing `--follow` streams; possible MCP surface.
+- Every stage: bundle contract stable, additive-only within major;
+  profile versions pinned in manifests.
 
 ## Open questions
 
-- Is the projection a redaction *profile* (versioned, declared in the
-  manifest) so the mining side knows exactly what it can rely on?
-- Does `literal_values_by_path` survive pseudonymization usefully, or
-  do verb-evidence miners only need path+cardinality?
-- Where does the corpus repo live and who holds read access?
-- Opt-in UX: one-shot share vs. standing `audit share --follow`?
-- Relationship to F3 (mining surface) and F5 (permissions): a
-  `share` verb is a new privilege class — never allowlisted for
-  agents without the human-gated review step?
+- Where does the bundle/profile spec live once promoted — orc docs,
+  spectacle template, or the dropbundle repo?
+- Pseudonym stability across campaigns: per-campaign salts (max
+  privacy) vs per-machine salts (longitudinal joins)? Likely
+  per-tool default with campaign override.
+- Quarantine review UX: who clears the hold queue, with what view?
+- Does the sweep re-wrap (encrypt-on-arrival backstop) require the
+  roster public keys at the edge — and is that acceptable exposure?
+- F5 tie-in: `share`/`send` is a privilege class never allowlisted
+  for agents without the human review step. How does the permission
+  doc encode "may build bundle, may never send"?
+- Consent versioning UX: what does re-consent look like when a
+  profile version bumps?
+- Escrow recovery drill: how is the Shamir/safe path tested without
+  exposing it?
+
+## Design history (same-session arc, 2026-07-25)
+
+1. v1: private-repo drop-box first → corrected: assumed GitHub +
+   signing + repo access; encrypted bundle became the contract,
+   transport tiers (Slack/HTTPS/repo).
+2. Mail-slot addendum: write-only inbox, sweep-to-unknown, quarantine,
+   YubiKey-resident collector key (user direction).
+3. HNDL correction (user pushback, accepted): encryption is
+   time-boxed; minimization + non-availability + deletion are the
+   durable layers.
+4. v2 (this rewrite): cross-tool architecture, SecureDrop transfer
+   analysis, deployment modes, storage survey, escrow rosters,
+   evolution path.
