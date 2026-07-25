@@ -1,46 +1,52 @@
 id: question-distribution
 type: question
 confidence: frontier
-title: "Distribution — single Homebrew formula, alpha-on-main + stable-on-tag"
+title: "Distribution — gitflow, three Homebrew channels (a / rc / stable)"
 content: |
-  Single-channel Homebrew distribution, kos pattern. One formula
-  `Formula/sidestep.rb` published on every push to main (alpha
-  versions) and on `v*` tags (stable versions, when first cut). Two
-  workflows write to the same formula; only one fires per push event:
+  Three-channel distribution under gitflow (adopted 2026-07-25,
+  user-ratified; supersedes the 2026-04-30 single-channel ruling —
+  see grv-single-channel-distribution):
 
-  - `.github/workflows/alpha.yml` — push to main. Tag format
-    `alpha-YYYYMMDD-HHMMSS-<sha7>`; GitHub prerelease; old prereleases
-    pruned to last 30. **Active.**
-  - `.github/workflows/release.yml` — `v*` tag push. Stable release.
-    **Dormant** until first tag.
+  - `.github/workflows/alpha.yml` — push to `develop`. Tag
+    `alpha-YYYYMMDD-HHMMSS-<sha7>`; GitHub prerelease pruned to last
+    30 (filtered to `alpha-*` so it never eats rc releases);
+    `Formula/sidestep-a.rb`, installs `sidestep-a`.
+  - `.github/workflows/rc.yml` — push (merge) to `main`. Computes
+    `v<Cargo-version>-rc.N` (N via `git ls-remote --tags`, serialized
+    by non-cancelling concurrency); GitHub prerelease, kept forever;
+    `Formula/sidestep-rc.rb`, installs `sidestep-rc`. Tags are created
+    with GITHUB_TOKEN so they do not re-trigger workflows; release.yml
+    additionally guards out any tag containing `-`.
+  - `.github/workflows/release.yml` — exact-semver `v*` tag. Stable
+    `Formula/sidestep.rb`, installs `sidestep`. The ONLY writer of the
+    stable formula.
 
-  Both: mac-arm64 only, gated by `vars.SIGNING_ENABLED`. Apple
-  Developer ID signing + notarytool zip submission. Raw signed binary
-  consumed via URL + sha256 — no `.pkg`/`.dmg`/`.app`.
+  All three: mac-arm64 only, gated by `vars.SIGNING_ENABLED`, Apple
+  Developer ID signing + notarytool zip submission + GitHub artifact
+  attestation. Raw signed binary via URL + sha256.
 
-  First end-to-end alpha shipped 2026-04-30 as
-  `alpha-20260430-215941-40b3708`. Signed, notarized, in the tap.
-  `brew install ArcavenAE/tap/sidestep` works.
+  The `release` environment carries no branch restrictions (verified
+  2026-07-25), so develop-triggered signing works unchanged.
+
+  Fleet context: alpha-from-develop + stable-from-tag is the standard
+  (forestage/ThreeDoors/switchboard/wirerust). A push-triggered rc
+  channel is NEW to the fleet; nearest precedent is jr-d (tag-based
+  third channel). If another repo wants the pattern, this node is the
+  reference implementation.
+
+  mise caveat: `prerelease = true` cannot distinguish alpha from rc —
+  it resolves the newest prerelease of either kind. Homebrew is the
+  channel-accurate path.
 
   Open:
   - Restore `.pkg` build path if non-Homebrew installs become
-    important. The fleet (kos, forestage, marvel) builds
-    `.pkg`/`.dmg` alongside the binary; sidestep dropped them.
-    Would need the 3 `APPLE_INSTALLER_*` secrets added to
-    sidestep's allowlist.
+    important (needs the 3 `APPLE_INSTALLER_*` secrets).
   - Linux + x86_64-darwin builds, if real demand emerges.
-  - cosign + Sigstore Rekor attestation
-    (per orc F24's frozen-composition lessons).
-  - First `v*` tag once curated verbs are ready.
-edges:
-  - target: elem-sdk-backed-cli
-    type: supports
-    note: "Distribution is what makes the CLI reachable"
-provenance:
-  created_by: human
-  created_at: 2026-04-30
-  session: alpha-on-main
-
+  - cosign + Sigstore Rekor attestation (per orc F24's
+    frozen-composition lessons) — lower urgency since GitHub artifact
+    attestation ships on all channels.
+  - First `v*` stable tag: gated on aae-orc-qkb9 (verb-evidence
+    corpus), not on distribution mechanics.
 edges:
   - target: elem-sdk-backed-cli
     type: supports

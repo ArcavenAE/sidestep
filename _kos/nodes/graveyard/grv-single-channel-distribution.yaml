@@ -1,0 +1,31 @@
+id: grv-single-channel-distribution
+type: element
+confidence: graveyard
+title: "Single Homebrew formula (alpha-on-main + stable-on-tag share sidestep.rb)"
+content: |
+  Ruled out 2026-07-25 (user decision), superseding the 2026-04-30
+  user ruling that ADOPTED it (session "Single-channel revert + first
+  publish", where a separate sidestep-a channel was reverted in favor
+  of the kos one-formula pattern).
+
+  Why it was right then: no stable release existed, so "the formula
+  tracks the latest artifact" had no victim.
+
+  Why it is wrong now: the moment a stable `v*` tag exists, alpha.yml
+  on push-to-main OVERWRITES the stable formula with an untagged
+  build — `brew upgrade sidestep` delivers the last main push wearing
+  the stable name. Stable users must move tag-to-tag only.
+
+  Replaced by: gitflow + three channels (sidestep-a from develop,
+  sidestep-rc auto-cut per merge to main as v<ver>-rc.N, sidestep from
+  exact-semver tags). See question-distribution.
+
+  Reopen only if sidestep returns to a no-stable-release posture.
+edges:
+  - target: question-distribution
+    type: superseded_by
+    note: "Three-channel gitflow replaces the single formula"
+provenance:
+  created_by: human
+  created_at: 2026-07-25
+  session: gitflow-three-channels

@@ -308,46 +308,26 @@ ADR: none — the override is testing infrastructure, not a
 contract change.
 Finding: `_kos/findings/finding-004-base-url-override-and-wiremock-harness.md`.
 
-### F6: Distribution [partially resolved]
+### F6: Distribution [restructured 2026-07-25 — gitflow, three channels]
 
-Single-channel Homebrew distribution, kos pattern. One formula
-`Formula/sidestep.rb` published on every push to main (alpha versions)
-and on `v*` tags (stable versions, when first cut). Two workflows
-write to the same formula; only one fires per push event:
+Gitflow + three Homebrew channels, superseding the 2026-04-30
+single-formula ruling (user decision; the single formula meant
+`brew upgrade sidestep` delivered the latest main push — an untagged
+build wearing the stable name — once any stable tag existed):
 
-- `.github/workflows/alpha.yml` — push to main. Tag format
-  `alpha-YYYYMMDD-HHMMSS-<sha7>`; GitHub prerelease; old prereleases
-  pruned to last 30. **Active.**
-- `.github/workflows/release.yml` — `v*` tag push. Stable release.
-  **Dormant** until first tag.
+- push → `develop` cuts `sidestep-a` (alpha.yml, timestamp versions)
+- merge → `main` auto-cuts `v<ver>-rc.N` → `sidestep-rc` (rc.yml)
+- exact-semver `v*` tag cuts stable `sidestep` (release.yml, guarded
+  against prerelease tags — the only writer of the stable formula)
 
-Both mac-arm64 only, gated by `vars.SIGNING_ENABLED`. Apple Developer
-ID signing + notarytool zip submission (no `.pkg`/`.dmg`/`.app` — the
-raw signed binary is consumed via URL + sha256). The `release`
-environment is set on the repo.
+All channels signed + notarized + attested, mac-arm64, org-level
+secrets (`visibility: selected`, fleet mechanism). Push-triggered rc
+is new to the fleet; nearest precedent jr-d (tag-based third channel).
 
-First end-to-end alpha shipped 2026-04-30 as
-`alpha-20260430-215941-40b3708`. `Formula/sidestep.rb` lives in
-`ArcavenAE/homebrew-tap`; `brew install ArcavenAE/tap/sidestep`
-works.
-
-Org-level signing/notary/tap secrets (`APPLE_CERTIFICATE_*`,
-`APPLE_SIGNING_IDENTITY`, `APPLE_NOTARIZATION_*`,
-`HOMEBREW_TAP_TOKEN`) are `visibility: selected`; sidestep is now
-on each allowlist. Empirically the fleet uses the same org-level
-mechanism (no env-scoped or repo-scoped secrets on
-kos/forestage/sideshow/marvel/switchboard/BetterDials).
-
-Open follow-ons:
-- **Restore `.pkg` build path** if non-Homebrew installs become
-  important. The fleet (kos, forestage, marvel) builds .pkg/.dmg
-  alongside the binary; sidestep dropped them to keep the alpha
-  pipeline minimal. Would need the 3 `APPLE_INSTALLER_*` secrets
-  added to sidestep's allowlist.
-- Linux + x86_64-darwin builds, if real demand emerges.
-- cosign + Sigstore Rekor attestation for the binary (per orc F24's
-  frozen-composition lessons).
-- First `v*` tag once curated verbs are ready.
+Full mechanics + open follow-ons (.pkg path, Linux builds, cosign):
+`_kos/nodes/frontier/question-distribution.yaml`. Superseded shape:
+`_kos/nodes/graveyard/grv-single-channel-distribution.yaml`. First
+stable tag gated on `aae-orc-qkb9` (verb evidence), not mechanics.
 
 ---
 
