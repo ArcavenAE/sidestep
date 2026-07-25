@@ -34,6 +34,11 @@ pub struct OperationMeta {
     pub path_params: Vec<String>,
     /// Query parameter names.
     pub query_params: Vec<String>,
+    /// Closed value sets for query parameters whose spec schema is a
+    /// string enum (e.g. detections `status`: new/suppressed/resolved).
+    /// Lets callers reject invalid values client-side with the full
+    /// expected set, instead of burning a round-trip on an HTTP 400.
+    pub query_param_enums: std::collections::BTreeMap<String, Vec<String>>,
     /// Required path + query parameter names. Used to validate input.
     pub required_params: Vec<String>,
     /// True if the operation accepts a request body (POST/PUT/PATCH/DELETE
@@ -161,6 +166,7 @@ fn build_meta(id: String, method: HttpMethod, path: &str, op: &Operation) -> Ope
     let mut path_params = Vec::new();
     let mut query_params = Vec::new();
     let mut required_params = Vec::new();
+    let mut query_param_enums = std::collections::BTreeMap::new();
 
     for p in &op.parameters {
         let ReferenceOr::Item(p) = p else { continue };
@@ -175,6 +181,9 @@ fn build_meta(id: String, method: HttpMethod, path: &str, op: &Operation) -> Ope
                 query_params.push(parameter_data.name.clone());
                 if parameter_data.required {
                     required_params.push(parameter_data.name.clone());
+                }
+                if let Some(values) = string_enum_values(parameter_data) {
+                    query_param_enums.insert(parameter_data.name.clone(), values);
                 }
             }
             // Header / Cookie parameters intentionally not surfaced in v0.1.
@@ -194,15 +203,54 @@ fn build_meta(id: String, method: HttpMethod, path: &str, op: &Operation) -> Ope
         path_template: path.to_string(),
         path_params,
         query_params,
+        query_param_enums,
         required_params,
         has_body,
         summary: op.summary.clone(),
     }
 }
 
+/// Extract the enum values from a parameter whose schema is a string
+/// enum, if any. Non-string, referenced, or enum-less schemas yield
+/// `None`.
+fn string_enum_values(parameter_data: &openapiv3::ParameterData) -> Option<Vec<String>> {
+    use openapiv3::{ParameterSchemaOrContent, SchemaKind, Type};
+    let ParameterSchemaOrContent::Schema(ReferenceOr::Item(schema)) = &parameter_data.format else {
+        return None;
+    };
+    let SchemaKind::Type(Type::String(s)) = &schema.schema_kind else {
+        return None;
+    };
+    let values: Vec<String> = s.enumeration.iter().flatten().cloned().collect();
+    if values.is_empty() {
+        None
+    } else {
+        Some(values)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detections_query_enums_are_captured() {
+        let op = registry()
+            .find("get_github_owner_actions_detections")
+            .expect("detections op");
+        let status = op.query_param_enums.get("status").expect("status enum");
+        assert_eq!(status, &vec!["new", "suppressed", "resolved"]);
+        let types = op
+            .query_param_enums
+            .get("detection_id")
+            .expect("detection_id enum");
+        assert!(
+            types.iter().any(|t| t == "Domain-Blocked"),
+            "detection_id enum should carry the type values: {types:?}"
+        );
+        // Un-enumerated params must not appear.
+        assert!(!op.query_param_enums.contains_key("next_token"));
+    }
 
     #[test]
     fn registry_loads_with_expected_op_count() {

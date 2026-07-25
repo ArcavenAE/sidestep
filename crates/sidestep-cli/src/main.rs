@@ -175,6 +175,20 @@ struct ListArgs {
     #[arg(long)]
     repo: Option<String>,
 
+    /// Server-side detection-type filter (maps to the `detection_id`
+    /// query parameter, e.g. Domain-Blocked). Validated against the
+    /// spec's enum before any network call. Kinds without the
+    /// parameter reject the flag.
+    #[arg(long = "type", value_name = "DETECTION_TYPE")]
+    r#type: Option<String>,
+
+    /// Server-side status filter (e.g. new / suppressed / resolved for
+    /// detections). Validated against the spec's enum before any
+    /// network call. Kinds without a `status` query parameter reject
+    /// the flag.
+    #[arg(long, value_name = "STATUS")]
+    status: Option<String>,
+
     /// Path or query parameter as `key=value`. Repeatable. Use this for
     /// any parameter beyond `--owner` and `--repo`.
     #[arg(long = "param", short = 'p', value_name = "KEY=VALUE")]
@@ -808,12 +822,26 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
     // burn an API request (or a YubiKey tap, for tokens routed through
     // hardware-backed keychains).
     let since_program = build_since_program(spec, args.since.as_deref())?;
+    // --type/--status: same fail-before-network rule, with the spec's
+    // enum in the diagnostic. The corpus showed 32% of detection list
+    // calls 400ing on server-side param rejection (aae-orc-onef).
+    let mut filter_extras: Vec<(String, Value)> = Vec::new();
+    for (flag, query_param, value) in [
+        ("--type", "detection_id", args.r#type.as_deref()),
+        ("--status", "status", args.status.as_deref()),
+    ] {
+        let Some(value) = value else { continue };
+        filter_extras.push((
+            query_param.to_string(),
+            Value::String(validate_enum_query_param(op_id, flag, query_param, value)?),
+        ));
+    }
     let resolved = build_params(
         &args.params,
         args.owner.as_deref(),
         args.customer.as_deref(),
         args.repo.as_deref(),
-        &[],
+        &filter_extras,
     )?;
     check_required_chain_params(op_id, &resolved.sources)?;
 
@@ -860,6 +888,37 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+/// Validate a first-class filter flag against the operation's spec:
+/// the query parameter must exist on the operation, and when the spec
+/// declares a string enum for it, the value must be a member — with
+/// the full expected set in the error (finding-005 shape). Returns the
+/// value to send.
+fn validate_enum_query_param(
+    op_id: &str,
+    flag: &str,
+    query_param: &str,
+    value: &str,
+) -> anyhow::Result<String> {
+    let op = registry().find(op_id).map_err(|e| anyhow!("{e}"))?;
+    if !op.query_params.iter().any(|q| q == query_param) {
+        return Err(anyhow!(
+            "{flag} is not applicable here: operation `{op_id}` declares no \
+             `{query_param}` query parameter. Use `--param k=v` for other \
+             parameters, or `sidestep ops show {op_id}` to see what this \
+             operation accepts."
+        ));
+    }
+    if let Some(allowed) = op.query_param_enums.get(query_param)
+        && !allowed.iter().any(|a| a == value)
+    {
+        return Err(anyhow!(
+            "{flag}: invalid value {value:?} — expected one of: {}",
+            allowed.join(", ")
+        ));
+    }
+    Ok(value.to_string())
 }
 
 /// Transparent pagination over `next_token`-style list endpoints.

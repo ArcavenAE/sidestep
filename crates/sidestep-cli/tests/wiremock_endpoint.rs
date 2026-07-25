@@ -699,3 +699,91 @@ fn api_passthrough_without_owner_names_the_chain() {
         );
     }
 }
+
+// ---------------------------------------------------------------------
+// First-class --type/--status filters (aae-orc-onef).
+// ---------------------------------------------------------------------
+
+#[tokio::test]
+async fn list_detections_status_flag_maps_to_query_param() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/detections"))
+        .and(query_param("status", "new"))
+        .and(query_param("detection_id", "Domain-Blocked"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(detection_response_body()))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args([
+            "list",
+            "detection",
+            "--owner",
+            "arcaven",
+            "--status",
+            "new",
+            "--type",
+            "Domain-Blocked",
+        ])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+#[test]
+fn list_detections_invalid_status_fails_before_network_with_enum() {
+    // No mock server at all — an invalid enum value must never reach
+    // the network. The error names the full expected set.
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args([
+            "list",
+            "detection",
+            "--owner",
+            "arcaven",
+            "--status",
+            "open",
+        ])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .output()
+        .unwrap();
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    for needle in ["--status", "new", "suppressed", "resolved"] {
+        assert!(stderr.contains(needle), "missing `{needle}` in: {stderr}");
+    }
+}
+
+#[test]
+fn list_rule_rejects_status_flag_as_not_applicable() {
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["list", "rule", "--owner", "arcaven", "--status", "new"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .output()
+        .unwrap();
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("--status is not applicable"),
+        "got: {stderr}"
+    );
+    assert!(
+        stderr.contains("ops show"),
+        "should point at discovery: {stderr}"
+    );
+}
