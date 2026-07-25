@@ -12,4 +12,4 @@ description = "MCP server backed by sidestep-sdk. Placeholder — wired in a fol
 path = "src/lib.rs"
 
 [dependencies]
-sidestep-sdk = { path = "../sidestep-sdk", version = "0.0.1" }
+sidestep-sdk = { path = "../sidestep-sdk", version = "0.1.0" }

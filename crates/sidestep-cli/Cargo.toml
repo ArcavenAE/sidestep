@@ -13,7 +13,7 @@ name = "sidestep"
 path = "src/main.rs"
 
 [dependencies]
-sidestep-sdk = { path = "../sidestep-sdk", version = "0.0.1" }
+sidestep-sdk = { path = "../sidestep-sdk", version = "0.1.0" }
 
 clap.workspace = true
 clap_complete.workspace = true

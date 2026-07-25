@@ -12,7 +12,7 @@ description = "SDK over sidestep-api: auth, retry, pagination, audit trail, reda
 path = "src/lib.rs"
 
 [dependencies]
-sidestep-api = { path = "../sidestep-api", version = "0.0.1" }
+sidestep-api = { path = "../sidestep-api", version = "0.1.0" }
 
 serde.workspace = true
 serde_json.workspace = true
