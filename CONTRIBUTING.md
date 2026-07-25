@@ -10,7 +10,10 @@ just check           # mirror CI quality gates locally
 
 ## Workflow
 
-- Branch from `main`. Trunk-based until distribution lands.
+- Gitflow: branch from `develop` and PR into `develop` (the default
+  branch). Merges to `main` auto-cut a `v<version>-rc.N` release
+  candidate; exact-semver `v*` tags on `main` cut stable. Only cut from
+  `main` when releasing.
 - Commits follow Conventional Commits. See `.claude/rules/git-commits.md`.
 - All commits SSH-signed. CI rejects unsigned commits.
 - Open a PR; CI runs fmt, clippy, build, test, cargo-deny, and dependency
