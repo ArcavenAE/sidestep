@@ -155,6 +155,47 @@ substitute for the first two): whitelist projection (data never
 collected) > age-to-YubiKey (unreadable anywhere) > quarantine
 validation > sweep-to-unknown > inbox TTL.
 
+CORRECTED (addendum 3, below): this ranking treated encryption as
+durable. Under harvest-now-decrypt-later it is time-boxed, and
+ciphertext non-availability promotes to co-primary.
+
+## Threat model correction — harvest-now-decrypt-later (addendum 3)
+
+User pushback, accepted: "compromise yields only ciphertext" is a
+time-boxed claim, not durable. HNDL is standing doctrine (NIST PQ
+migration rationale; CISA/NSA store-now-decrypt-later advisories),
+and the exposure is concrete in the proposed tooling: **age recipient
+encryption is X25519** — broken by Shor on a cryptographically
+relevant quantum computer. TLS key exchange likewise. Bulk ciphertext
+collection is rational for attackers with no immediate monetization
+path (AI-enabled attack scaling accelerates the implementation/key-
+management failure routes even where the math holds; AES-256/SHA-256
+survive known quantum attacks — Grover only halves effective
+strength). Design assumption: **the corpus eventually becomes
+plaintext.**
+
+Re-ranked layers, by what survives:
+
+1. **Minimization is the only durable protection.** The whitelist
+   projection is the sole layer surviving every future. Strictest
+   profile (path+cardinality, no pseudonymized literals) becomes the
+   DEFAULT, not an option — design the corpus so eventual decryption
+   is an acceptable event.
+2. **Pseudonymization outlives the envelope.** HMAC-SHA256 with
+   per-machine salts that never leave contributors is symmetric-
+   strength; a future-decrypted bundle still doesn't map org_1 back
+   without per-contributor salts. Load-bearing, not cosmetic.
+3. **Ciphertext non-availability = co-primary.** Sweep-to-unknown,
+   inbox TTL, and never letting ciphertext rest anywhere publicly
+   reachable (kills the secret-gist tier-0 variant). What was never
+   collected, no future break unlocks.
+4. **Deletion as scheduled act.** Retention policy: raw bundles
+   destroyed after mining; only derived aggregates persist (Glean
+   expiry made mandatory).
+5. **Encryption = time-boxed confidentiality, hardened where cheap:**
+   PQ-hybrid age plugin (sntrup761x25519) or scrypt-passphrase age
+   (symmetric, PQ-resistant) with out-of-band passphrase in the ask.
+
 ## Open questions
 
 - Is the projection a redaction *profile* (versioned, declared in the
