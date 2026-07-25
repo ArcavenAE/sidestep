@@ -42,6 +42,11 @@ audit-trail evidence.
   against the spec's enums before any network call (invalid values get
   the full expected set in the error).
 - Agent-harness permission guidance in `docs/permissions.md`.
+- Build identity stamping: `--version` prints the invoked binary name
+  (`sidestep` / `sidestep-rc` / `sidestep-a`) plus the channel build id
+  (`v0.1.0-rc.1+g337e358`, `alpha-…`, `dev+g<sha7>[-dirty]`); the same
+  id lands on every audit line as `invocation.build_id` so mining can
+  stratify by channel and commit.
 - Distribution: signed + notarized macOS arm64 binaries via Homebrew
   and mise, with GitHub artifact attestation — on three channels:
   `sidestep` (tagged stable), `sidestep-rc` (automatic `-rc.N` per

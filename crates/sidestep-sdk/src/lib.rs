@@ -29,3 +29,16 @@ pub use spec::{HttpMethod, OperationMeta, Registry, registry};
 pub use stream::{Record, SourceRef, read_stream, write_record};
 
 pub const SDK_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Build identity stamped by `build.rs`: the CI channel tag
+/// (`alpha-…`, `v<ver>-rc.N+g<sha7>`, `v<ver>+g<sha7>`), or
+/// `dev+g<sha7>[-dirty]` for local builds, or `unknown`.
+pub const BUILD_ID: &str = env!("SIDESTEP_BUILD_ID");
+
+/// Full version string for `--version`: semver plus build identity.
+pub const FULL_VERSION: &str = concat!(
+    env!("CARGO_PKG_VERSION"),
+    " (",
+    env!("SIDESTEP_BUILD_ID"),
+    ")"
+);

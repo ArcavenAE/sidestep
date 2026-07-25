@@ -85,6 +85,8 @@ fn filter_emits_v2_verb_event_with_predicate_fields() {
 
     assert_eq!(line["schema_version"], 2);
     assert_eq!(line["verb_phase"], "filter");
+    let build_id = line["invocation"]["build_id"].as_str().unwrap();
+    assert!(!build_id.is_empty(), "build_id stamped on every line");
     assert_eq!(line["predicate_text"], r#"severity == "critical""#);
     assert!(
         line["predicate_ast_shape"]

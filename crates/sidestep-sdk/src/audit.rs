@@ -69,6 +69,7 @@ pub struct Span {
     pub started_at: DateTime<Utc>,
     pub argv_redacted: Vec<String>,
     pub binary_version: &'static str,
+    pub build_id: &'static str,
     pub host: String,
     pub user: String,
     pub tty: bool,
@@ -132,6 +133,7 @@ impl Span {
             started_at: Utc::now(),
             argv_redacted,
             binary_version: env!("CARGO_PKG_VERSION"),
+            build_id: crate::BUILD_ID,
             host: hostname(),
             user: std::env::var("USER").unwrap_or_default(),
             tty: std::io::IsTerminal::is_terminal(&std::io::stdout()),
@@ -241,6 +243,7 @@ impl Span {
             "invocation": {
                 "argv": self.argv_redacted,
                 "binary_version": self.binary_version,
+                "build_id": self.build_id,
                 "host": self.host,
                 "user": self.user,
                 "tty": self.tty,

@@ -43,8 +43,9 @@ optional.
   "invocation": {
     "argv": ["sidestep", "runs", "list", "--owner", "acme-corp", "--all"],
     "binary_version": "0.1.0",
-    "host": "kinu",
-    "user": "mike",
+    "build_id": "v0.1.0-rc.1+g337e358",
+    "host": "buildbox",
+    "user": "user",
     "tty": false,
     "auth_source": "keyring"
   },
@@ -79,6 +80,7 @@ optional.
 | `duration_ms` | Integer milliseconds, request-send to response-fully-read. |
 | `invocation.argv` | Full argv with secret values redacted (e.g. `--token=...` → `--token=***`). |
 | `invocation.binary_version` | `CARGO_PKG_VERSION` of the running sidestep. |
+| `invocation.build_id` | Build identity stamped at compile time (additive, v2): the CI channel tag — `alpha-YYYYMMDD-HHMMSS-<sha7>`, `v<ver>-rc.N+g<sha7>`, or `v<ver>+g<sha7>` — or `dev+g<sha7>[-dirty]` for local builds, or `unknown` (no env, no `.git`). Distinguishes channels that share one `binary_version`; lets miners stratify lines by channel/commit. |
 | `invocation.host` | `gethostname`. |
 | `invocation.user` | `$USER` (best-effort). |
 | `invocation.tty` | `true` if stdout is a tty. |

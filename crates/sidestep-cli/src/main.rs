@@ -7,7 +7,7 @@ use std::io::{BufReader, IsTerminal, Read, Write};
 use std::process::ExitCode;
 
 use anyhow::{Context, anyhow};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value, json};
 use sidestep_sdk::{
     CallOptions, Client, ParamSource, Record, SourceRef, audit, auth, cel, enrich, kind_spec,
@@ -17,7 +17,7 @@ use sidestep_sdk::{
 #[derive(Parser, Debug)]
 #[command(
     name = "sidestep",
-    version,
+    version = sidestep_sdk::FULL_VERSION,
     about = "Rust CLI for the StepSecurity API",
     long_about = "Agent-first CLI over the StepSecurity API. Codegen from OpenAPI, audit-trail-as-feature.\n\nSet SIDESTEP_API_TOKEN to authenticate. Use `sidestep ops list` to discover operations and `sidestep api <operationId> --param k=v` to invoke any of them."
 )]
@@ -453,13 +453,32 @@ fn main() -> ExitCode {
         .with_writer(std::io::stderr)
         .init();
 
-    let cli = Cli::parse();
+    // Display the name the binary was installed under (sidestep /
+    // sidestep-rc / sidestep-a) so each channel identifies itself in
+    // --version, help, and errors. The stamped build id remains the
+    // authoritative identity either way.
+    // Leaked once at startup — clap wants &'static str without its
+    // `string` feature, and the name lives for the process anyway.
+    let argv0: &'static str = std::env::args()
+        .next()
+        .as_deref()
+        .map(std::path::Path::new)
+        .and_then(|p| p.file_name())
+        .and_then(|n| n.to_str())
+        .filter(|n| !n.is_empty())
+        .map(|n| &*Box::leak::<'static>(n.to_string().into_boxed_str()))
+        .unwrap_or("sidestep");
+    let matches = Cli::command().name(argv0).get_matches();
+    let cli = match Cli::from_arg_matches(&matches) {
+        Ok(cli) => cli,
+        Err(e) => e.exit(),
+    };
     let cmd = match cli.cmd {
         Some(c) => c,
         None => {
             println!(
-                "sidestep {}\n\nUse `sidestep --help` for usage.",
-                env!("CARGO_PKG_VERSION")
+                "{argv0} {}\n\nUse `{argv0} --help` for usage.",
+                sidestep_sdk::FULL_VERSION
             );
             return ExitCode::SUCCESS;
         }

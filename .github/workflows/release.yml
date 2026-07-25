@@ -90,6 +90,7 @@ jobs:
 
       - name: Build binary
         run: |
+          export SIDESTEP_BUILD_ID="${GITHUB_REF_NAME}+g${GITHUB_SHA:0:7}"
           cargo build --release --target aarch64-apple-darwin --bin sidestep
           cp target/aarch64-apple-darwin/release/sidestep sidestep-darwin-arm64
 

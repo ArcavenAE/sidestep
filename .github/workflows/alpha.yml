@@ -71,6 +71,9 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build alpha binary
+        env:
+          # Alpha tags already embed the sha7.
+          SIDESTEP_BUILD_ID: ${{ steps.version.outputs.tag }}
         run: |
           cargo build --release --target aarch64-apple-darwin --bin sidestep
           cp target/aarch64-apple-darwin/release/sidestep sidestep-darwin-arm64
