@@ -178,6 +178,199 @@ pub fn evaluate(
     }
 }
 
+/// Mining-oriented static analysis of a predicate (aae-orc-deux).
+///
+/// The audit v2 schema (finding-001) reserves two fields that complete
+/// Murat's sugar-design dataset: `field_paths_referenced` (which
+/// record fields a predicate touches) and `literal_values_by_path`
+/// (which constants it compares them against). `predicate_ast_shape`
+/// clusters structurally-identical predicates; these two say what the
+/// cluster is *about*.
+///
+/// The predicate text is re-parsed with `cel-parser` (the same parser
+/// generation cel-interpreter embeds) because `Program`'s AST is
+/// private. Parse failures — including upstream panics — yield `None`
+/// and the audit fields are simply omitted; mining fields must never
+/// fail an invocation that the execution path accepted.
+#[derive(Debug, Default, PartialEq)]
+pub struct PredicateRefs {
+    /// Sorted, deduped dotted field paths. `record.`-prefixed access
+    /// is folded onto the bare path so `severity` and
+    /// `record.severity` cluster together; the `now` binding and
+    /// comprehension internals (`__result__`, iteration variables)
+    /// are excluded.
+    pub field_paths: Vec<String>,
+    /// Path → sorted literal values it is compared against, collected
+    /// from calls in which the path and the literal are sibling
+    /// arguments (`severity == "critical"`, `severity in ["a", "b"]`).
+    pub literals_by_path: std::collections::BTreeMap<String, Vec<String>>,
+}
+
+pub fn analyze_predicate(expression: &str) -> Option<PredicateRefs> {
+    use std::collections::{BTreeMap, BTreeSet};
+    let parsed = with_panic_suppressed(|| cel_parser::Parser::new().parse(expression))
+        .ok()?
+        .ok()?;
+    let mut paths: BTreeSet<String> = BTreeSet::new();
+    let mut lits: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut internals: BTreeSet<String> = BTreeSet::new();
+    walk_expr(&parsed, &mut paths, &mut lits, &mut internals);
+    let is_internal = |p: &String| {
+        internals
+            .iter()
+            .any(|v| p == v || p.starts_with(&format!("{v}.")))
+    };
+    Some(PredicateRefs {
+        field_paths: paths.iter().filter(|p| !is_internal(p)).cloned().collect(),
+        literals_by_path: lits
+            .into_iter()
+            .filter(|(p, _)| !is_internal(p))
+            .map(|(p, vs)| (p, vs.into_iter().collect()))
+            .collect(),
+    })
+}
+
+/// Render a maximal `Ident`/`Select` chain as a dotted path, or `None`
+/// when the expression is not a plain field access.
+fn path_of(e: &cel_parser::Expression) -> Option<String> {
+    use cel_parser::ast::Expr;
+    match &e.expr {
+        Expr::Ident(name) => Some(name.clone()),
+        Expr::Select(sel) => path_of(&sel.operand).map(|p| format!("{p}.{}", sel.field)),
+        _ => None,
+    }
+}
+
+/// Fold the `record.` view onto bare paths and drop non-field bindings.
+fn normalize_path(path: String) -> Option<String> {
+    let path = match path.strip_prefix("record.") {
+        Some(rest) => rest.to_string(),
+        None => path,
+    };
+    if path == "now" || path == "record" || path.starts_with("__") {
+        None
+    } else {
+        Some(path)
+    }
+}
+
+fn literal_repr(v: &cel_parser::reference::Val) -> String {
+    use cel_parser::reference::Val;
+    match v {
+        Val::String(s) => s.clone(),
+        Val::Boolean(b) => b.to_string(),
+        Val::Int(i) => i.to_string(),
+        Val::UInt(u) => u.to_string(),
+        Val::Double(d) => d.to_string(),
+        Val::Bytes(_) => "<bytes>".to_string(),
+        Val::Null => "null".to_string(),
+    }
+}
+
+fn walk_expr(
+    e: &cel_parser::Expression,
+    paths: &mut std::collections::BTreeSet<String>,
+    lits: &mut std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
+    internals: &mut std::collections::BTreeSet<String>,
+) {
+    use cel_parser::ast::{EntryExpr, Expr};
+    match &e.expr {
+        Expr::Ident(_) | Expr::Select(_) => {
+            if let Some(p) = path_of(e).and_then(normalize_path) {
+                paths.insert(p);
+            } else if let Expr::Select(sel) = &e.expr {
+                // Selection off a non-path operand (call result, list
+                // index, …) — the operand still references fields.
+                walk_expr(&sel.operand, paths, lits, internals);
+            }
+        }
+        Expr::Call(call) => {
+            let sub: Vec<&cel_parser::Expression> = call
+                .target
+                .iter()
+                .map(|b| b.as_ref())
+                .chain(call.args.iter())
+                .collect();
+            // Pair sibling path/literal arguments: `severity == "high"`,
+            // `severity in ["a", "b"]`. Literals with no sibling path
+            // (`duration("24h")`) map to nothing.
+            let call_paths: Vec<String> = sub
+                .iter()
+                .filter_map(|a| path_of(a).and_then(normalize_path))
+                .collect();
+            let mut call_lits: Vec<String> = Vec::new();
+            for a in &sub {
+                match &a.expr {
+                    Expr::Literal(v) => call_lits.push(literal_repr(v)),
+                    Expr::List(list) => {
+                        for el in &list.elements {
+                            if let Expr::Literal(v) = &el.expr {
+                                call_lits.push(literal_repr(v));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            for p in &call_paths {
+                for l in &call_lits {
+                    lits.entry(p.clone()).or_default().insert(l.clone());
+                }
+            }
+            for a in sub {
+                walk_expr(a, paths, lits, internals);
+            }
+        }
+        Expr::Comprehension(c) => {
+            // Macro-generated internals (`exists`, `all`, `has` on
+            // maps): the iteration/accumulator variables are not
+            // record fields.
+            internals.insert(c.iter_var.clone());
+            if let Some(v2) = &c.iter_var2 {
+                internals.insert(v2.clone());
+            }
+            internals.insert(c.accu_var.clone());
+            for sub in [
+                &c.iter_range,
+                &c.accu_init,
+                &c.loop_cond,
+                &c.loop_step,
+                &c.result,
+            ] {
+                walk_expr(sub, paths, lits, internals);
+            }
+        }
+        Expr::List(l) => {
+            for el in &l.elements {
+                walk_expr(el, paths, lits, internals);
+            }
+        }
+        Expr::Map(m) => {
+            for entry in &m.entries {
+                match &entry.expr {
+                    EntryExpr::MapEntry(me) => {
+                        walk_expr(&me.key, paths, lits, internals);
+                        walk_expr(&me.value, paths, lits, internals);
+                    }
+                    EntryExpr::StructField(sf) => walk_expr(&sf.value, paths, lits, internals),
+                }
+            }
+        }
+        Expr::Struct(s) => {
+            for entry in &s.entries {
+                match &entry.expr {
+                    EntryExpr::MapEntry(me) => {
+                        walk_expr(&me.key, paths, lits, internals);
+                        walk_expr(&me.value, paths, lits, internals);
+                    }
+                    EntryExpr::StructField(sf) => walk_expr(&sf.value, paths, lits, internals),
+                }
+            }
+        }
+        Expr::Literal(_) | Expr::Unspecified => {}
+    }
+}
+
 /// True when the field name should be promoted to a timestamp by the
 /// canonical adapter. Currently: any field ending in `_at`, plus the
 /// audit-log `ts` field.
@@ -213,6 +406,72 @@ mod tests {
             },
             body,
         )
+    }
+
+    #[test]
+    fn analyze_simple_equality() {
+        let refs = analyze_predicate(r#"severity == "critical""#).unwrap();
+        assert_eq!(refs.field_paths, vec!["severity"]);
+        assert_eq!(
+            refs.literals_by_path.get("severity").unwrap(),
+            &vec!["critical".to_string()]
+        );
+    }
+
+    #[test]
+    fn analyze_in_list_and_conjunction() {
+        let refs =
+            analyze_predicate(r#"severity in ["critical", "high"] && status == "open""#).unwrap();
+        assert_eq!(refs.field_paths, vec!["severity", "status"]);
+        assert_eq!(
+            refs.literals_by_path.get("severity").unwrap(),
+            &vec!["critical".to_string(), "high".to_string()]
+        );
+        assert_eq!(
+            refs.literals_by_path.get("status").unwrap(),
+            &vec!["open".to_string()]
+        );
+    }
+
+    #[test]
+    fn analyze_folds_record_prefix_and_skips_now() {
+        // record.severity and severity must cluster as one path; the
+        // `now` binding and duration literal map to nothing.
+        let refs =
+            analyze_predicate(r#"record.severity == "high" && created_at > now - duration("24h")"#)
+                .unwrap();
+        assert_eq!(refs.field_paths, vec!["created_at", "severity"]);
+        assert!(!refs.literals_by_path.contains_key("now"));
+        assert!(!refs.literals_by_path.contains_key("created_at"));
+    }
+
+    #[test]
+    fn analyze_has_macro_references_the_field() {
+        let refs = analyze_predicate("has(record.suppressed_by)").unwrap();
+        assert_eq!(refs.field_paths, vec!["suppressed_by"]);
+    }
+
+    #[test]
+    fn analyze_nested_path_and_numeric_literal() {
+        let refs = analyze_predicate(r#"repo.owner == "acme-corp" && count > 3"#).unwrap();
+        assert_eq!(refs.field_paths, vec!["count", "repo.owner"]);
+        assert_eq!(
+            refs.literals_by_path.get("count").unwrap(),
+            &vec!["3".to_string()]
+        );
+    }
+
+    #[test]
+    fn analyze_comprehension_excludes_iteration_vars() {
+        let refs = analyze_predicate(r#"labels.exists(l, l == "urgent")"#).unwrap();
+        assert!(refs.field_paths.contains(&"labels".to_string()));
+        assert!(!refs.field_paths.contains(&"l".to_string()));
+        assert!(!refs.field_paths.iter().any(|p| p.starts_with("__")));
+    }
+
+    #[test]
+    fn analyze_malformed_predicate_is_none() {
+        assert!(analyze_predicate("severity ==").is_none());
     }
 
     #[test]

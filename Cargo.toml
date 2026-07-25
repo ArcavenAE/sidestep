@@ -54,6 +54,7 @@ urlencoding = "2"
 
 # Predicate language for `sidestep filter --where '<CEL>'`
 cel-interpreter = { version = "0.10", default-features = false, features = ["chrono", "json"] }
+cel-parser = "0.10"
 
 # Tests
 wiremock = "0.6"

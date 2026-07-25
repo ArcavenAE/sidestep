@@ -2175,6 +2175,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cel-interpreter",
+ "cel-parser",
  "chrono",
  "dirs",
  "figment",

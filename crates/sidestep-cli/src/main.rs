@@ -1290,6 +1290,16 @@ fn run_filter(args: FilterArgs) -> anyhow::Result<()> {
     let mut extra = serde_json::Map::new();
     extra.insert("predicate_text".into(), json!(predicate));
     extra.insert("predicate_ast_shape".into(), json!(ast_shape));
+    // Mining fields completing the v2 sugar-design set (aae-orc-deux).
+    // Additive within schema_version 2; omitted when the analysis
+    // parse fails (mining must never fail an accepted invocation).
+    if let Some(refs) = cel::analyze_predicate(predicate) {
+        extra.insert("field_paths_referenced".into(), json!(refs.field_paths));
+        extra.insert(
+            "literal_values_by_path".into(),
+            json!(refs.literals_by_path),
+        );
+    }
     extra.insert(
         "predicate_outcome".into(),
         json!({

@@ -96,6 +96,15 @@ fn filter_emits_v2_verb_event_with_predicate_fields() {
     assert_eq!(line["predicate_outcome"]["kept_count"], 1);
     assert_eq!(line["predicate_outcome"]["dropped_count"], 4);
     assert_eq!(line["predicate_outcome"]["error_count"], 0);
+    // Mining fields (aae-orc-deux): what the predicate is about.
+    assert_eq!(
+        line["field_paths_referenced"],
+        serde_json::json!(["severity"])
+    );
+    assert_eq!(
+        line["literal_values_by_path"],
+        serde_json::json!({"severity": ["critical"]})
+    );
     // No operation/response on a verb-shape line.
     assert!(line.get("operation").is_none());
     assert!(line.get("response").is_none());

@@ -32,6 +32,7 @@ openapiv3.workspace = true
 sha2.workspace = true
 urlencoding.workspace = true
 cel-interpreter.workspace = true
+cel-parser.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true
