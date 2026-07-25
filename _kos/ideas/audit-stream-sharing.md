@@ -112,6 +112,49 @@ deliver an opaque file."
 - **rustup telemetry (canceled)** — cautionary: consent posture
   decides adoption.
 
+## Mail-slot inbox design (session addendum 2)
+
+User direction: combine expiry/encryption with a write-only drop-box —
+uploads swept out of the inbox to an undisclosed location; attackers
+can read sidestep's code so they know where data is *sent*, but not
+where it *went*; perms in the spirit of `rw-----w-`. Prior art: Unix
+spool dirs (mode 733 — droppers need traverse `-wx`, no list) and
+SecureDrop (source-facing server ASSUMED compromised, never holds
+keys, submissions encrypted on arrival, swept to an airgapped
+station).
+
+Cloud rendering of the mail slot:
+- **IAM as mode bits** — inbox bucket exposes PutObject only (no
+  Get/List). Object-store policy is the honest modern spelling.
+- **Content-addressed, unguessable names** — upload path = hash of
+  ciphertext; without List, objects are undiscoverable even if Get
+  leaks (128-bit-URL entropy as read-permission).
+- **Sweep** — scheduled Worker moves objects to a second bucket whose
+  binding exists only server-side, in no client-visible code (the
+  user's core mechanic). dl.betterdials.com stack, pointed inbound.
+- **TTL on inbox residue** — lifecycle expiry (~72h) bounds exposure
+  and garbage accumulation for unswept objects.
+
+Additions beyond the sweep:
+1. **Quarantine, not just relocation** — a world-writable slot
+   accepts attacker writes; the inbox is untrusted input. Sweep =
+   validation: manifest shape, size caps, redaction-profile version,
+   server-side re-run of the leak-gate (never trust the client's
+   gate). Rejects → review hold, not corpus. (MISP/AIS submission-
+   validation precedent.)
+2. **Collector age key on YubiKey** (`age-plugin-yubikey`) — bulk
+   decryption of the corpus requires a physical touch per bundle;
+   total infra compromise yields ciphertext only. SecureDrop's
+   airgap, worn on a keychain. Fits the existing hardware posture.
+3. **Per-campaign recipient keys** — the qkb9-style ask embeds a
+   campaign key; window closes, key retires; blast radius of key
+   compromise = one campaign.
+
+Protection ranking (each cheap — stack all, but don't let the sweep
+substitute for the first two): whitelist projection (data never
+collected) > age-to-YubiKey (unreadable anywhere) > quarantine
+validation > sweep-to-unknown > inbox TTL.
+
 ## Open questions
 
 - Is the projection a redaction *profile* (versioned, declared in the
