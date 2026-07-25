@@ -359,9 +359,19 @@ fn count_items(v: &Value) -> Option<usize> {
 }
 
 fn extract_cursor(v: &Value) -> Option<String> {
-    for key in ["next_cursor", "next", "cursor", "next_page"] {
-        if let Some(s) = v.get(key).and_then(|x| x.as_str()) {
-            return Some(s.to_string());
+    // `next_token` is StepSecurity's actual cursor key (runs at the top
+    // level, detections nested under the `data` object); the generic
+    // names predate the first real corpus. Empty string = no more pages.
+    for scope in [Some(v), v.get("data").filter(|d| d.is_object())]
+        .into_iter()
+        .flatten()
+    {
+        for key in ["next_cursor", "next", "cursor", "next_page", "next_token"] {
+            if let Some(s) = scope.get(key).and_then(|x| x.as_str())
+                && !s.is_empty()
+            {
+                return Some(s.to_string());
+            }
         }
     }
     None

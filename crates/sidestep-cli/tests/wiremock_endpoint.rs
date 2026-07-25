@@ -420,3 +420,282 @@ async fn get_run_routes_id_path_param() {
     assert_eq!(rec.get("_kind").and_then(Value::as_str), Some("run"));
     assert_eq!(rec.get("id").and_then(Value::as_str), Some("run_alpha"));
 }
+
+// ---------------------------------------------------------------------
+// Pagination (aae-orc-u7hy): list follows next_token to exhaustion.
+// ---------------------------------------------------------------------
+
+#[tokio::test]
+async fn list_runs_follows_next_token_across_pages() {
+    let server = MockServer::start().await;
+
+    // Page 2 — only matches when the continuation token is echoed back.
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/runs"))
+        .and(query_param("next_token", "t1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "total_workflow_runs": 3,
+            "workflow_runs": [{"id": "r3"}],
+            "next_token": "",
+            "has_more": false,
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    // Page 1 — first request carries no token.
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/runs"))
+        .and(wiremock::matchers::query_param_is_missing("next_token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "total_workflow_runs": 3,
+            "workflow_runs": [{"id": "r1"}, {"id": "r2"}],
+            "next_token": "t1",
+            "has_more": true,
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["list", "run", "--owner", "arcaven"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let stdout = std::str::from_utf8(&out.stdout).unwrap();
+    let ids: Vec<&str> = stdout
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(|l| {
+            serde_json::from_str::<Value>(l)
+                .unwrap()
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap()
+                .to_string()
+        })
+        .map(|s| Box::leak(s.into_boxed_str()) as &str)
+        .collect();
+    assert_eq!(ids, vec!["r1", "r2", "r3"], "all pages emitted in order");
+
+    // Each page is a real API call: two audit lines, both audited.
+    let api_lines = api_audit_lines(&audit_dir);
+    assert_eq!(api_lines.len(), 2, "one audit line per page");
+}
+
+#[tokio::test]
+async fn list_limit_stops_pagination_early() {
+    let server = MockServer::start().await;
+
+    // Page 1 returns a token, but --limit 2 is satisfied by page 1 —
+    // page 2 must never be requested (expect(0) enforced on drop).
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/runs"))
+        .and(query_param("next_token", "t1"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "workflow_runs": [{"id": "r3"}],
+            "next_token": "",
+        })))
+        .expect(0)
+        .mount(&server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/runs"))
+        .and(wiremock::matchers::query_param_is_missing("next_token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "workflow_runs": [{"id": "r1"}, {"id": "r2"}],
+            "next_token": "t1",
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["list", "run", "--owner", "arcaven", "--limit", "2"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        std::str::from_utf8(&out.stdout)
+            .unwrap()
+            .lines()
+            .filter(|l| !l.is_empty())
+            .count(),
+        2
+    );
+}
+
+#[tokio::test]
+async fn list_detections_unwraps_nested_data_envelope() {
+    // detections wrap the collection inside a `data` OBJECT
+    // (`{"data": {"detections": [...], "next_token": ""}}`) — the shape
+    // extract_items missed before finding-007's release-prep pass.
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/detections"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": {
+                "detections": [
+                    {"id": "d1", "severity": "critical"},
+                    {"id": "d2", "severity": "low"},
+                ],
+                "has_more": false,
+                "next_token": "",
+                "count": 2,
+            }
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["list", "detection", "--owner", "arcaven"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = std::str::from_utf8(&out.stdout).unwrap();
+    let lines: Vec<&str> = stdout.lines().filter(|l| !l.is_empty()).collect();
+    assert_eq!(lines.len(), 2, "records unwrapped from nested data object");
+    let first: Value = serde_json::from_str(lines[0]).unwrap();
+    assert_eq!(first.get("id").and_then(Value::as_str), Some("d1"));
+}
+
+// ---------------------------------------------------------------------
+// Resolution chain on the `api` passthrough (F3 mining proposal #1).
+// ---------------------------------------------------------------------
+
+#[tokio::test]
+async fn api_passthrough_resolves_owner_from_env() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/security-summary"))
+        .and(header("authorization", "Bearer fake-tok"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"score": 7})))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["api", "getSecuritySummary"])
+        .env("SIDESTEP_OWNER", "arcaven")
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "api passthrough with env owner failed: stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let api_lines = api_audit_lines(&audit_dir);
+    assert_eq!(api_lines.len(), 1);
+    assert_eq!(
+        api_lines[0]
+            .get("path_params_source")
+            .and_then(|s| s.get("owner"))
+            .and_then(Value::as_str),
+        Some("env"),
+        "audit records the chain source for the api verb"
+    );
+}
+
+#[tokio::test]
+async fn api_passthrough_explicit_param_beats_chain() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/explicit-org/actions/security-summary"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"score": 3})))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["api", "getSecuritySummary", "--param", "owner=explicit-org"])
+        .env("SIDESTEP_OWNER", "env-org-must-lose")
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let api_lines = api_audit_lines(&audit_dir);
+    assert_eq!(
+        api_lines[0]
+            .get("path_params_source")
+            .and_then(|s| s.get("owner"))
+            .and_then(Value::as_str),
+        Some("flag"),
+        "explicit --param records as flag source"
+    );
+}
+
+#[test]
+fn api_passthrough_without_owner_names_the_chain() {
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    // Point config at an empty tempdir so no [default] owner leaks in.
+    let cfg = tempdir("cfg").join("config.toml");
+    let out = c
+        .args(["api", "getSecuritySummary"])
+        .env("SIDESTEP_CONFIG", &cfg)
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .output()
+        .unwrap();
+    assert!(!out.status.success(), "must fail without owner");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    for needle in [
+        "--owner",
+        "SIDESTEP_OWNER",
+        "auth login --owner",
+        "config set owner",
+    ] {
+        assert!(
+            stderr.contains(needle),
+            "chain error must name `{needle}`; got: {stderr}"
+        );
+    }
+}

@@ -525,12 +525,44 @@ fn run_api(args: ApiArgs) -> anyhow::Result<()> {
         let body_value: Value = serde_json::from_str(&body).context("--body must be valid JSON")?;
         params.insert("body".to_string(), body_value);
     }
+
+    // The owner/customer resolution chain shipped through the curated
+    // verbs (y7lq) but never reached the `api` passthrough — the F3
+    // mining pass measured owner typed as a literal in 17% of all audit
+    // lines, almost entirely on this path. When the operation declares a
+    // chain-tracked path param and no explicit `--param` provides it,
+    // fall back through env → config exactly like `list/get/search`.
+    // An unknown operationId skips the chain and surfaces the SDK's
+    // normal unknown-operation error on the call itself.
+    let mut sources = BTreeMap::new();
+    if let Ok(op) = registry().find(&args.operation_id) {
+        for &chain_param in CHAIN_PARAMS {
+            if !op.path_params.iter().any(|p| p == chain_param) {
+                continue;
+            }
+            if params.contains_key(chain_param) {
+                sources.insert(chain_param.to_string(), ParamSource::Flag);
+                continue;
+            }
+            let resolved = match chain_param {
+                "owner" => auth::resolve_owner(None),
+                "customer" => auth::resolve_customer(None),
+                other => panic!("unhandled chain param '{other}'"),
+            }
+            .map_err(|e| anyhow!("{e}"))?;
+            if let Some(r) = resolved {
+                params.insert(chain_param.to_string(), Value::String(r.value));
+                sources.insert(chain_param.to_string(), r.source);
+            }
+        }
+        check_required_chain_params(&args.operation_id, &sources)?;
+    }
     let params_value = Value::Object(params);
 
     let response = call_op_blocking_for_verb(
         &args.operation_id,
         params_value,
-        BTreeMap::new(),
+        sources,
         args.no_audit,
         "api",
         &[],
@@ -784,42 +816,99 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
         &[],
     )?;
     check_required_chain_params(op_id, &resolved.sources)?;
-    let response = call_op_blocking_for_verb(
-        op_id,
-        resolved.params,
-        resolved.sources,
-        args.no_audit,
-        "list",
-        &[spec.id_field],
-    )?;
-    let items_owned: Vec<Value> = match kinds::extract_items(&response) {
-        Some(items) => items.to_vec(),
-        None => vec![response],
-    };
 
     let now = chrono_now();
-
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
     let mut emitted = 0usize;
-    for (idx, item) in items_owned.into_iter().enumerate() {
-        let record = Record::wrap(spec.name, SourceRef::now(op_id, idx), item);
-        if let Some(prog) = &since_program {
-            if !cel::evaluate(prog, &record, now, "<--since predicate>")
-                .map_err(|e| anyhow!("{e}"))?
+    let mut abs_idx = 0usize;
+    let mut params = resolved.params;
+    let mut pager = Pager::for_op(op_id);
+    'pages: loop {
+        let response = call_op_blocking_for_verb(
+            op_id,
+            params.clone(),
+            resolved.sources.clone(),
+            args.no_audit,
+            "list",
+            &[spec.id_field],
+        )?;
+        let items_owned: Vec<Value> = match kinds::extract_items(&response) {
+            Some(items) => items.to_vec(),
+            None => vec![response.clone()],
+        };
+        for item in items_owned {
+            let record = Record::wrap(spec.name, SourceRef::now(op_id, abs_idx), item);
+            abs_idx += 1;
+            if let Some(prog) = &since_program {
+                if !cel::evaluate(prog, &record, now, "<--since predicate>")
+                    .map_err(|e| anyhow!("{e}"))?
+                {
+                    continue;
+                }
+            }
+            write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+            emitted += 1;
+            if let Some(limit) = args.limit
+                && emitted >= limit
             {
-                continue;
+                break 'pages;
             }
         }
-        write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
-        emitted += 1;
-        if let Some(limit) = args.limit
-            && emitted >= limit
-        {
+        if !pager.advance(&response, &mut params) {
             break;
         }
     }
     Ok(())
+}
+
+/// Transparent pagination over `next_token`-style list endpoints.
+///
+/// v0.1's `list` returned only the first page — silent truncation, the
+/// worst failure mode for a stream that feeds triage decisions
+/// (aae-orc-u7hy). Endpoints that declare a `next_token` query
+/// parameter in the spec are followed to exhaustion (or `--limit`);
+/// endpoints without one are single-shot exactly as before. Repeated
+/// tokens and a hard page cap guard against a server that never
+/// terminates the cursor chain.
+struct Pager {
+    paginates: bool,
+    seen: std::collections::HashSet<String>,
+}
+
+impl Pager {
+    const MAX_PAGES: usize = 500;
+
+    fn for_op(op_id: &str) -> Self {
+        let paginates = registry()
+            .find(op_id)
+            .map(|op| op.query_params.iter().any(|q| q == "next_token"))
+            .unwrap_or(false);
+        Pager {
+            paginates,
+            seen: std::collections::HashSet::new(),
+        }
+    }
+
+    /// Inspect `response` for a continuation token; when present and
+    /// fresh, write it into `params` and return true (fetch another
+    /// page).
+    fn advance(&mut self, response: &Value, params: &mut Value) -> bool {
+        if !self.paginates || self.seen.len() >= Self::MAX_PAGES {
+            return false;
+        }
+        match kinds::extract_next_token(response) {
+            Some(token) if self.seen.insert(token.clone()) => {
+                if let Some(obj) = params.as_object_mut() {
+                    obj.insert("next_token".to_string(), Value::String(token));
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
 }
 
 fn run_get(args: GetArgs) -> anyhow::Result<()> {
@@ -897,39 +986,48 @@ fn run_search(args: SearchArgs) -> anyhow::Result<()> {
         &[],
     )?;
     check_required_chain_params(op_id, &resolved.sources)?;
-    let response = call_op_blocking_for_verb(
-        op_id,
-        resolved.params,
-        resolved.sources,
-        args.no_audit,
-        "search",
-        &[spec.id_field],
-    )?;
-    let items_owned: Vec<Value> = match kinds::extract_items(&response) {
-        Some(items) => items.to_vec(),
-        None => vec![response],
-    };
 
     let needle = args.query.to_lowercase();
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
     let mut emitted = 0usize;
-    for (idx, item) in items_owned.into_iter().enumerate() {
-        let record = Record::wrap(spec.name, SourceRef::now(op_id, idx), item);
-        let Some(field_value) = record.get(search_field) else {
-            continue;
+    let mut abs_idx = 0usize;
+    let mut params = resolved.params;
+    let mut pager = Pager::for_op(op_id);
+    'pages: loop {
+        let response = call_op_blocking_for_verb(
+            op_id,
+            params.clone(),
+            resolved.sources.clone(),
+            args.no_audit,
+            "search",
+            &[spec.id_field],
+        )?;
+        let items_owned: Vec<Value> = match kinds::extract_items(&response) {
+            Some(items) => items.to_vec(),
+            None => vec![response.clone()],
         };
-        let Some(haystack) = field_value.as_str() else {
-            continue;
-        };
-        if !haystack.to_lowercase().contains(&needle) {
-            continue;
+        for item in items_owned {
+            let record = Record::wrap(spec.name, SourceRef::now(op_id, abs_idx), item);
+            abs_idx += 1;
+            let Some(field_value) = record.get(search_field) else {
+                continue;
+            };
+            let Some(haystack) = field_value.as_str() else {
+                continue;
+            };
+            if !haystack.to_lowercase().contains(&needle) {
+                continue;
+            }
+            write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+            emitted += 1;
+            if let Some(limit) = args.limit
+                && emitted >= limit
+            {
+                break 'pages;
+            }
         }
-        write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
-        emitted += 1;
-        if let Some(limit) = args.limit
-            && emitted >= limit
-        {
+        if !pager.advance(&response, &mut params) {
             break;
         }
     }

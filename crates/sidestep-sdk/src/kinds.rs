@@ -192,24 +192,54 @@ const KIND_TABLE: &[KindSpec] = &[
 /// Extract the array of items from an API response body. Mirrors the
 /// detection logic in `audit::count_items` so the audit-emitted
 /// `items_returned` matches what the primitive actually streams.
+/// Collection keys observed across the spec's list-response envelopes.
+const ITEM_KEYS: [&str; 11] = [
+    "items",
+    "data",
+    "results",
+    "runs",
+    "workflow_runs",
+    "detections",
+    "checks",
+    "policies",
+    "rules",
+    "incidents",
+    "audit_logs",
+];
+
 pub fn extract_items(response: &Value) -> Option<&[Value]> {
     if let Some(arr) = response.as_array() {
         return Some(arr);
     }
-    for key in [
-        "items",
-        "data",
-        "results",
-        "runs",
-        "detections",
-        "checks",
-        "policies",
-        "rules",
-        "incidents",
-        "audit_logs",
-    ] {
+    for key in ITEM_KEYS {
         if let Some(arr) = response.get(key).and_then(|v| v.as_array()) {
             return Some(arr);
+        }
+    }
+    // Some endpoints wrap the collection one level deeper in a `data`
+    // object rather than a `data` array — e.g. detections:
+    // `{"data": {"detections": [...], "next_token": ..., "count": N}}`.
+    if let Some(inner) = response.get("data").filter(|v| v.is_object()) {
+        for key in ITEM_KEYS {
+            if let Some(arr) = inner.get(key).and_then(|v| v.as_array()) {
+                return Some(arr);
+            }
+        }
+    }
+    None
+}
+
+/// Extract the pagination continuation token from a list-response
+/// envelope. The spec exposes `next_token` either at the top level
+/// (runs: `{workflow_runs, next_token, has_more}`) or nested under the
+/// `data` object (detections). An empty-string token means "no more
+/// pages" and returns `None`.
+pub fn extract_next_token(response: &Value) -> Option<String> {
+    for scope in [Some(response), response.get("data")].into_iter().flatten() {
+        if let Some(t) = scope.get("next_token").and_then(|v| v.as_str())
+            && !t.is_empty()
+        {
+            return Some(t.to_string());
         }
     }
     None
@@ -278,5 +308,48 @@ mod tests {
     fn extract_items_returns_none_when_no_array() {
         let body = json!({"id": "single", "severity": "high"});
         assert!(extract_items(&body).is_none());
+    }
+
+    #[test]
+    fn extract_items_handles_runs_envelope() {
+        // getRunsDetails per spec: workflow_runs + next_token + has_more.
+        let body = json!({
+            "total_workflow_runs": 2,
+            "workflow_runs": [{"id": "r1"}, {"id": "r2"}],
+            "next_token": "t1",
+            "has_more": true,
+        });
+        assert_eq!(extract_items(&body).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn extract_items_handles_nested_data_object() {
+        // detections per spec: collection one level down inside `data`.
+        let body = json!({
+            "data": {
+                "detections": [{"id": "d1"}, {"id": "d2"}, {"id": "d3"}],
+                "has_more": false,
+                "next_token": "",
+                "count": 3,
+            }
+        });
+        assert_eq!(extract_items(&body).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn extract_next_token_top_level_and_nested() {
+        let runs = json!({"workflow_runs": [], "next_token": "abc"});
+        assert_eq!(extract_next_token(&runs).as_deref(), Some("abc"));
+
+        let detections = json!({"data": {"detections": [], "next_token": "xyz"}});
+        assert_eq!(extract_next_token(&detections).as_deref(), Some("xyz"));
+    }
+
+    #[test]
+    fn extract_next_token_empty_or_absent_is_none() {
+        assert!(extract_next_token(&json!({"next_token": ""})).is_none());
+        assert!(extract_next_token(&json!({"data": {"next_token": ""}})).is_none());
+        assert!(extract_next_token(&json!({"items": []})).is_none());
+        assert!(extract_next_token(&json!({"next_token": null})).is_none());
     }
 }
