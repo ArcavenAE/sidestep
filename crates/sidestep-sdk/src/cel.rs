@@ -30,11 +30,54 @@ use serde_json::Value as JsonValue;
 use crate::error::{Result, SidestepError};
 use crate::stream::Record;
 
+/// Run `f` with panics caught and the default panic hook suppressed
+/// for this thread. cel-interpreter 0.10's antlr4rust parser panics
+/// (rather than returning `Err`) on some malformed predicates, e.g.
+/// `severity ==` with a missing operand (aae-orc-qvk9). Without this
+/// guard a user typo aborts the CLI with a backtrace. The hook is
+/// installed once per process and consults a thread-local flag, so
+/// concurrent callers (tests) don't race on global hook swaps.
+fn with_panic_suppressed<T>(
+    f: impl FnOnce() -> T + std::panic::UnwindSafe,
+) -> std::thread::Result<T> {
+    use std::cell::Cell;
+    use std::sync::Once;
+    thread_local! {
+        static SUPPRESS: Cell<bool> = const { Cell::new(false) };
+    }
+    static HOOK_INIT: Once = Once::new();
+    HOOK_INIT.call_once(|| {
+        let prev = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            if !SUPPRESS.with(|s| s.get()) {
+                prev(info);
+            }
+        }));
+    });
+    SUPPRESS.with(|s| s.set(true));
+    let result = std::panic::catch_unwind(f);
+    SUPPRESS.with(|s| s.set(false));
+    result
+}
+
 /// Compile a CEL predicate. Caller-friendly wrapper that maps cel
-/// parse errors into [`SidestepError::InvalidParam`].
+/// parse errors into [`SidestepError::InvalidParam`] — including
+/// upstream parser panics, which are caught and surfaced as the same
+/// error shape (aae-orc-qvk9).
 pub fn compile(expression: &str) -> Result<Program> {
-    Program::compile(expression)
-        .map_err(|e| SidestepError::InvalidParam("--where".into(), format!("CEL parse error: {e}")))
+    match with_panic_suppressed(|| Program::compile(expression)) {
+        Ok(parsed) => parsed.map_err(|e| {
+            SidestepError::InvalidParam("--where".into(), format!("CEL parse error: {e}"))
+        }),
+        Err(_) => Err(SidestepError::InvalidParam(
+            "--where".into(),
+            format!(
+                "CEL parse error: malformed predicate `{expression}` \
+                 (the upstream cel parser could not recover — check for \
+                 incomplete operands, e.g. a trailing `==`)"
+            ),
+        )),
+    }
 }
 
 /// Build a CEL context for one record.
@@ -111,7 +154,16 @@ pub fn evaluate(
     predicate_text: &str,
 ) -> Result<bool> {
     let ctx = build_context(record, now)?;
-    let value = program.execute(&ctx).map_err(|e| {
+    let executed = with_panic_suppressed(std::panic::AssertUnwindSafe(|| program.execute(&ctx)))
+        .map_err(|_| {
+            SidestepError::InvalidParam(
+                "--where".into(),
+                format!(
+                    "CEL runtime panic in `{predicate_text}` (upstream cel bug — aae-orc-qvk9)"
+                ),
+            )
+        })?;
+    let value = executed.map_err(|e| {
         SidestepError::InvalidParam(
             "--where".into(),
             format!("CEL runtime error in `{predicate_text}`: {e}"),
@@ -161,6 +213,23 @@ mod tests {
             },
             body,
         )
+    }
+
+    #[test]
+    fn compile_survives_upstream_parser_panic() {
+        // `severity ==` (missing right operand) makes cel-interpreter
+        // 0.10's antlr4rust parser panic instead of returning Err
+        // (aae-orc-qvk9). The guard must convert it into the same
+        // InvalidParam a clean parse error produces.
+        let err = compile("severity ==").expect_err("must be Err, not a panic");
+        let msg = format!("{err}");
+        assert!(msg.contains("CEL parse error"), "got: {msg}");
+    }
+
+    #[test]
+    fn compile_still_reports_clean_parse_errors() {
+        let err = compile("severity === \"x\"").expect_err("invalid CEL");
+        assert!(format!("{err}").contains("CEL parse error"));
     }
 
     #[test]
