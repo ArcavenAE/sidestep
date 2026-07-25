@@ -1,14 +1,14 @@
 # Alpha Release
-# Triggers: push to main. Single-channel kos pattern — there is no
-# separate sidestep-a binary or formula. The same Formula/sidestep.rb
-# is updated by this workflow with an alpha-... version until the first
-# v* tag is cut, at which point release.yml takes over the same formula
-# with a stable version. macOS arm64 only.
+# Triggers: push to develop (gitflow). Cuts alpha-YYYYMMDD-HHMMSS-<sha7>
+# prereleases and updates Formula/sidestep-a.rb in the tap — the alpha
+# channel installs as `sidestep-a` and coexists with sidestep-rc (merges
+# to main, rc.yml) and stable sidestep (v* tags, release.yml).
+# macOS arm64 only.
 name: Alpha Release
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -207,7 +207,7 @@ jobs:
           **Signed:** ${{ needs.sign-and-notarize.result == 'success' && 'Yes (Apple Developer ID, notarized)' || 'No (unsigned)' }}
 
           Install via Homebrew:
-              brew install ArcavenAE/tap/sidestep
+              brew install ArcavenAE/tap/sidestep-a
           NOTES
           )" \
             dist/*
@@ -218,7 +218,7 @@ jobs:
         run: |
           gh release list --repo "${{ github.repository }}" \
             --json tagName,isPrerelease \
-            --jq '[.[] | select(.isPrerelease)] | sort_by(.tagName) | reverse | .[30:] | .[].tagName' \
+            --jq '[.[] | select(.isPrerelease and (.tagName | startswith("alpha-")))] | sort_by(.tagName) | reverse | .[30:] | .[].tagName' \
           | while read -r tag; do
               echo "Deleting old prerelease: $tag"
               gh release delete "$tag" --repo "${{ github.repository }}" --yes --cleanup-tag
@@ -259,16 +259,16 @@ jobs:
           cd homebrew-tap-repo
 
           mkdir -p Formula
-          cp ../Formula/sidestep.rb Formula/sidestep.rb
+          cp ../Formula/sidestep-a.rb Formula/sidestep-a.rb
 
-          sed -i "s|VERSION_PLACEHOLDER|$TAG|g" Formula/sidestep.rb
-          sed -i "s|TAG_PLACEHOLDER|$TAG|g" Formula/sidestep.rb
-          sed -i "s|SHA256_DARWIN_ARM64_PLACEHOLDER|$SHA256_DARWIN_ARM64|g" Formula/sidestep.rb
+          sed -i "s|VERSION_PLACEHOLDER|$TAG|g" Formula/sidestep-a.rb
+          sed -i "s|TAG_PLACEHOLDER|$TAG|g" Formula/sidestep-a.rb
+          sed -i "s|SHA256_DARWIN_ARM64_PLACEHOLDER|$SHA256_DARWIN_ARM64|g" Formula/sidestep-a.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/sidestep.rb
-          git diff --cached --quiet || git commit -m "Update sidestep to $TAG"
+          git add Formula/sidestep-a.rb
+          git diff --cached --quiet || git commit -m "Update sidestep-a to $TAG"
           git push
 
   attest:

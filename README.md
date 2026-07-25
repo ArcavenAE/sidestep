@@ -26,21 +26,30 @@ local audit trail intended to be mined for meta-action patterns.
 
 ## Install
 
-sidestep is published as a single Homebrew formula. CI updates it on
-every push to `main` (alpha versions like `alpha-20260430-…`); when the
-first stable tag is cut, the same formula switches to the stable
-version. No separate `-a` channel — kos's pattern.
+sidestep publishes three Homebrew channels. They install as different
+binary names and coexist side by side:
+
+| Formula | Binary | Moves on | Version shape |
+|---|---|---|---|
+| `sidestep` | `sidestep` | tagged releases only | `0.1.0` |
+| `sidestep-rc` | `sidestep-rc` | every merge to `main` | `0.1.0-rc.N` |
+| `sidestep-a` | `sidestep-a` | every push to `develop` | `alpha-20260725-…` |
+
+`brew upgrade sidestep` only ever takes you tag-to-tag; nothing lands on
+the stable channel from a branch push.
 
 ```sh
 brew tap arcavenae/tap                        # one-time
-brew install arcavenae/tap/sidestep
+brew install arcavenae/tap/sidestep           # stable
+brew install arcavenae/tap/sidestep-rc        # release candidates
+brew install arcavenae/tap/sidestep-a         # bleeding edge
 ```
 
 ### Upgrade
 
 ```sh
 brew update
-brew upgrade arcavenae/tap/sidestep
+brew upgrade arcavenae/tap/sidestep           # (or sidestep-rc / sidestep-a)
 ```
 
 ### Uninstall
@@ -63,7 +72,11 @@ sidestep --version
 
 *(First stable `v*` release pending — until it's cut, `latest` resolves to the current alpha even without the prerelease opt-in below.)*
 
-**Alpha channel** (prereleases from `main`) — add `prerelease = true` to opt in per-tool. sidestep uses a single-channel release model (kos pattern — one binary, one formula), so the alpha shim is `sidestep`, the same name as stable; they replace each other rather than coexisting:
+**Prerelease channels** — add `prerelease = true` to opt in per-tool.
+Caveat: mise cannot distinguish the alpha channel from the rc channel —
+`prerelease = true` resolves to the newest prerelease of either kind
+(`alpha-…` from develop or `v…-rc.N` from main). For channel-accurate
+installs use Homebrew; mise is best for stable-or-newest-prerelease:
 
 ```toml
 # mise.toml

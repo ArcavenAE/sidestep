@@ -42,9 +42,12 @@ audit-trail evidence.
   against the spec's enums before any network call (invalid values get
   the full expected set in the error).
 - Agent-harness permission guidance in `docs/permissions.md`.
-- Distribution: signed + notarized macOS arm64 binary via Homebrew
-  (`brew install arcavenae/tap/sidestep`) and mise, with GitHub
-  artifact attestation.
+- Distribution: signed + notarized macOS arm64 binaries via Homebrew
+  and mise, with GitHub artifact attestation — on three channels:
+  `sidestep` (tagged stable), `sidestep-rc` (automatic `-rc.N` per
+  merge to main), `sidestep-a` (per push to develop). Supersedes the
+  earlier single-formula model, under which `brew upgrade` delivered
+  the latest main push regardless of tags.
 
 ### Fixed
 

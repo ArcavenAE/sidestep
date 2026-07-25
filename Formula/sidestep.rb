@@ -1,7 +1,8 @@
-# Homebrew formula for sidestep
-# Single channel, kos pattern: updated by CI on every push to main
-# (alpha-... versions) and on v* tags (stable versions). The same
-# formula tracks the latest published artifact, alpha or stable.
+# Homebrew formula template for the sidestep STABLE channel.
+# Updated ONLY by .github/workflows/release.yml on exact-semver v* tags —
+# never by branch pushes. Alpha (sidestep-a, from develop) and release
+# candidates (sidestep-rc, from merges to main) live in sibling formulas
+# so `brew upgrade sidestep` moves tag-to-tag and nothing else.
 # macOS only (arm64). Linux support is a future option.
 
 class Sidestep < Formula
@@ -25,8 +26,9 @@ class Sidestep < Formula
 
   def caveats
     <<~EOS
-      sidestep updates on every push to main (alpha versions) until the
-      first stable tag is cut.
+      Stable channel: moves only on tagged releases. For the bleeding
+      edge install `sidestep-a` (develop) or `sidestep-rc` (release
+      candidates); all three coexist.
 
       Bootstrap a token (recommended — uses macOS Keychain):
 

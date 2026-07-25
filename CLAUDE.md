@@ -52,7 +52,12 @@ pagination, and redaction live in the SDK so both consumers inherit them.
 - **Audit trail:** every API call emits a JSONL line under
   `~/.local/state/sidestep/audit/`. See `docs/audit-trail-format.md`.
 - **No file deletion:** never delete user files. Overwrite only with explicit intent.
-- **Git workflow:** trunk-based on `main` until distribution channel exists.
+- **Git workflow:** gitflow (adopted 2026-07-25, orc B11 pattern).
+  `develop` is the default branch — branch from and PR/push into
+  `develop`. Merges to `main` auto-cut a `v<version>-rc.N` release
+  candidate (rc.yml); exact-semver `v*` tags on `main` cut stable.
+  Channels: push→develop = `sidestep-a`, merge→main = `sidestep-rc`,
+  tag = `sidestep`. Never let a branch push touch `Formula/sidestep.rb`.
 
 ## How to Work Here (kos Process)
 
