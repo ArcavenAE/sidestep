@@ -36,7 +36,11 @@ audit-trail evidence.
   `predicate_outcome`, `field_paths_referenced`,
   `literal_values_by_path`).
 - Enrichment recipes: `policy-context`, `repo-owner`,
-  `severity-roll-up`.
+  `severity-roll-up` — with `enrich --fetch-policies` to pull the
+  policy auxiliary from the API instead of a file.
+- First-class `--type` / `--status` filters on `list`, validated
+  against the spec's enums before any network call (invalid values get
+  the full expected set in the error).
 - Agent-harness permission guidance in `docs/permissions.md`.
 - Distribution: signed + notarized macOS arm64 binary via Homebrew
   (`brew install arcavenae/tap/sidestep`) and mise, with GitHub

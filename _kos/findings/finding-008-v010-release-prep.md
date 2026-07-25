@@ -59,6 +59,36 @@ finding-001 threshold. The tag waits for the verb evidence; everything
 else is done. Charter F6's "first v* tag once curated verbs are ready"
 stands as written.
 
+## Addendum — fold-in batch (same day, user-directed)
+
+Five more items folded in after the release-push survey
+(`30d991c..cf2637c`):
+
+1. **`aae-orc-deux` shipped** — `analyze_predicate` re-parses the
+   predicate via cel's public parser/AST; `field_paths_referenced` +
+   `literal_values_by_path` now emit from `filter`. Rationale: the
+   release gate is corpus growth, so the corpus must carry the mining
+   fields from now, not from v0.2.
+2. **`aae-orc-qvk9` closed by upgrade, not upstream filing** — the
+   panic class was already fixed upstream (cel-rust #191/#194 via
+   #215) in the renamed `cel` crate; 0.13 is a drop-in via package
+   alias `cel-interpreter = { package = "cel" }`. Bonus: `paste` left
+   the tree, deleting the RUSTSEC-2024-0436 deny ignore; the separate
+   cel-parser dep was dropped (analyzer uses cel 0.13's public AST).
+3. **CHANGELOG.md** created with the 0.1.0 entry (held release-ready).
+4. **`aae-orc-onef` shipped** — registry captures spec string-enums
+   (`OperationMeta.query_param_enums`); `--type`/`--status` on `list`
+   fail before network with the full expected set. The corpus's 32%
+   detection-list 400 rate now has a likely mechanism: `status` takes
+   `new/suppressed/resolved`, and "open" (which our own fixtures use
+   as a domain value) is not in it.
+5. **`aae-orc-8mq8` shipped** — `enrich --fetch-policies` (explicit
+   opt-in; bare enrich stays a pure local transform; fetch audited
+   with verb_phase enrich).
+
+Tests 139 → 152. Alpha `alpha-20260725-015811-8173720` restored the
+formula post-dry-run; this batch cuts the next one.
+
 ## Lessons
 
 - **Zero-usage features hide structural breakage.** The envelope
