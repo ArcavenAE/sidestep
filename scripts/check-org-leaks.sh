@@ -45,7 +45,6 @@ scan_list() {
 fail=0
 matches() {
   local pattern="$1"; shift
-  [ "$#" -eq 0 ] && return 0
   grep -nE "$pattern" -- "$@" 2>/dev/null || true
 }
 
