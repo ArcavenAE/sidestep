@@ -48,19 +48,37 @@ leaves the contributor's machine. `literal_values_by_path` keeps paths
 
 ### Transport candidates
 
-1. **Private GitHub repo as drop-box** (v1): `gh`-authenticated push
-   or PR to e.g. a private corpus repo. Signed, access-controlled,
-   audited, zero new infra. We already run this pattern (mss-status).
-2. **age-encryption to recipient keys** (v2): bundle encrypted to a
-   maintainer key published in the corpus repo — repo compromise no
-   longer exposes corpora. (sops/age pattern.)
-3. GitHub private vulnerability reporting / draft advisories:
-   investigated, **off-label** — the private reporter↔maintainer
-   channel + temporary private fork mechanic is the right *shape*,
-   but PVR is scoped to vulnerabilities, not data streams. Do not
-   abuse; noted as prior art only.
-4. Actions artifacts on a private repo (repository_dispatch +
-   upload) — viable, clunkier than 1.
+CORRECTED 2026-07-25 (same session): the repo-first framing assumed
+senders have (1) a GitHub account, (2) signing set up if the repo
+enforces required_signatures, (3) write access someone must grant and
+manage. Wrong baseline. The load-bearing security lives in bundle
+construction (whitelist + pseudonymization + gate + manifest), which
+is transport-agnostic; **age-encrypt the bundle to the collector's
+public key** (a 62-char string embeddable in the ask itself) and the
+transport needs zero trust properties — requirement becomes "can
+deliver an opaque file."
+
+- **Tier 0 — any channel the sender already has.** Slack DM (the
+  qkb9 ask is already a Slack message), email. No GitHub, no
+  signing, no access grants. Debian popcon precedent (HTTP *or
+  email* submission).
+- **Tier 1 — HTTPS collector.** Cloudflare Worker + R2 accepting
+  POSTs — the dl.betterdials.com pattern pointed inbound. Upload
+  tokens optional (payloads encrypted, size-capped).
+- **Tier 2 — private GitHub repo drop-box** for contributors who
+  already have access and want history/review semantics. A
+  convenience, not the baseline. (mss-status pattern.)
+- Authenticity without ceremony, if ever needed: `ssh-keygen -Y
+  sign` with the SSH key every GitHub user already has, verified
+  against `github.com/<user>.keys`. Optional — never the price of
+  admission; manifest-claimed contributor ID suffices for a mining
+  corpus.
+- GitHub private vulnerability reporting / draft advisories:
+  investigated, **off-label** — right shape (private channel +
+  temporary private forks), wrong scope (vulnerabilities, not data
+  streams). Prior art only; do not abuse.
+- Actions artifacts on a private repo — viable, clunkier than the
+  above.
 
 ## Prior art surveyed
 
