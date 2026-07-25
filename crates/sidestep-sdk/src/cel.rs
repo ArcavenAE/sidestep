@@ -31,10 +31,12 @@ use crate::error::{Result, SidestepError};
 use crate::stream::Record;
 
 /// Run `f` with panics caught and the default panic hook suppressed
-/// for this thread. cel-interpreter 0.10's antlr4rust parser panics
+/// for this thread. cel-interpreter 0.10's antlr4rust parser panicked
 /// (rather than returning `Err`) on some malformed predicates, e.g.
-/// `severity ==` with a missing operand (aae-orc-qvk9). Without this
-/// guard a user typo aborts the CLI with a backtrace. The hook is
+/// `severity ==` with a missing operand (aae-orc-qvk9). Upstream fixed
+/// the known cases (cel-rust #191/#194 via #215) and the cel 0.13
+/// upgrade picked that up; the guard is retained as defense in depth —
+/// a user typo must never abort the CLI with a backtrace. The hook is
 /// installed once per process and consults a thread-local flag, so
 /// concurrent callers (tests) don't race on global hook swaps.
 fn with_panic_suppressed<T>(
@@ -208,7 +210,7 @@ pub struct PredicateRefs {
 
 pub fn analyze_predicate(expression: &str) -> Option<PredicateRefs> {
     use std::collections::{BTreeMap, BTreeSet};
-    let parsed = with_panic_suppressed(|| cel_parser::Parser::new().parse(expression))
+    let parsed = with_panic_suppressed(|| cel_interpreter::parser::Parser::new().parse(expression))
         .ok()?
         .ok()?;
     let mut paths: BTreeSet<String> = BTreeSet::new();
@@ -232,8 +234,8 @@ pub fn analyze_predicate(expression: &str) -> Option<PredicateRefs> {
 
 /// Render a maximal `Ident`/`Select` chain as a dotted path, or `None`
 /// when the expression is not a plain field access.
-fn path_of(e: &cel_parser::Expression) -> Option<String> {
-    use cel_parser::ast::Expr;
+fn path_of(e: &cel_interpreter::parser::Expression) -> Option<String> {
+    use cel_interpreter::common::ast::Expr;
     match &e.expr {
         Expr::Ident(name) => Some(name.clone()),
         Expr::Select(sel) => path_of(&sel.operand).map(|p| format!("{p}.{}", sel.field)),
@@ -254,26 +256,26 @@ fn normalize_path(path: String) -> Option<String> {
     }
 }
 
-fn literal_repr(v: &cel_parser::reference::Val) -> String {
-    use cel_parser::reference::Val;
+fn literal_repr(v: &cel_interpreter::common::ast::LiteralValue) -> String {
+    use cel_interpreter::common::ast::LiteralValue as LV;
     match v {
-        Val::String(s) => s.clone(),
-        Val::Boolean(b) => b.to_string(),
-        Val::Int(i) => i.to_string(),
-        Val::UInt(u) => u.to_string(),
-        Val::Double(d) => d.to_string(),
-        Val::Bytes(_) => "<bytes>".to_string(),
-        Val::Null => "null".to_string(),
+        LV::String(s) => s.clone().into_inner(),
+        LV::Boolean(b) => (*b).into_inner().to_string(),
+        LV::Int(i) => (*i).into_inner().to_string(),
+        LV::UInt(u) => (*u).into_inner().to_string(),
+        LV::Double(d) => (*d).into_inner().to_string(),
+        LV::Bytes(_) => "<bytes>".to_string(),
+        LV::Null => "null".to_string(),
     }
 }
 
 fn walk_expr(
-    e: &cel_parser::Expression,
+    e: &cel_interpreter::parser::Expression,
     paths: &mut std::collections::BTreeSet<String>,
     lits: &mut std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
     internals: &mut std::collections::BTreeSet<String>,
 ) {
-    use cel_parser::ast::{EntryExpr, Expr};
+    use cel_interpreter::common::ast::{EntryExpr, Expr};
     match &e.expr {
         Expr::Ident(_) | Expr::Select(_) => {
             if let Some(p) = path_of(e).and_then(normalize_path) {
@@ -285,7 +287,7 @@ fn walk_expr(
             }
         }
         Expr::Call(call) => {
-            let sub: Vec<&cel_parser::Expression> = call
+            let sub: Vec<&cel_interpreter::parser::Expression> = call
                 .target
                 .iter()
                 .map(|b| b.as_ref())
