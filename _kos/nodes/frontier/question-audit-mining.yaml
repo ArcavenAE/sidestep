@@ -57,6 +57,18 @@ content: |
   (`aae-orc-qkb9`). Corpus caveats to fix before the next pass:
   curated-verb usage near zero (envelope bugs fixed in finding-008
   may have depressed it), fixture-sweep predicate noise.
+
+  **Session 2026-07-25 update:** two corpus-quality moves. (a)
+  `invocation.build_id` now stamps every line (finding-009,
+  aae-orc-c714, distribution-verified) — miners can stratify by
+  channel/commit, e.g. separate lines produced by an alpha with a
+  known envelope bug from stable lines. (b) The team-corpus
+  collection path (qkb9) has a design capture:
+  `_kos/ideas/audit-stream-sharing.md` — whitelist-projection
+  bundles under an HNDL threat model, cross-tool `dropbundle`
+  architecture. Mining consumes the strictest profile
+  (path+cardinality, no literals) for shared corpora; the local
+  operator corpus keeps full v2 fidelity.
 edges:
   - target: elem-audit-trail-schema
     type: derives

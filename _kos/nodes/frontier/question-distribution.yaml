@@ -38,6 +38,12 @@ content: |
   it resolves the newest prerelease of either kind. Homebrew is the
   channel-accurate path.
 
+  Build identity (2026-07-25, finding-009): each channel binary now
+  self-identifies — `--version` prints the argv0 basename + stamped
+  build id (channel tag from CI env, `dev+g<sha7>[-dirty]` locally),
+  and audit lines carry `invocation.build_id`. Closes the gap where
+  all three channels printed an identical bare CARGO_PKG_VERSION.
+
   Open:
   - Restore `.pkg` build path if non-Homebrew installs become
     important (needs the 3 `APPLE_INSTALLER_*` secrets).
