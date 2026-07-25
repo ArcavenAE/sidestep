@@ -132,6 +132,20 @@ fn regen() -> Result<()> {
         out_path.display(),
         content.len()
     );
+
+    // prettyplease output differs from nightly rustfmt style, and the
+    // fmt gate runs `cargo +nightly fmt --check` — format the generated
+    // crate here so regen leaves a gate-clean tree (finding-007 gotcha).
+    let fmt_status = std::process::Command::new("cargo")
+        .args(["+nightly", "fmt", "-p", "sidestep-api"])
+        .current_dir(&workspace_root)
+        .status();
+    match fmt_status {
+        Ok(s) if s.success() => eprintln!("xtask: formatted sidestep-api (cargo +nightly fmt)"),
+        _ => eprintln!(
+            "xtask: warning: `cargo +nightly fmt -p sidestep-api` failed — run it manually before committing"
+        ),
+    }
     Ok(())
 }
 
