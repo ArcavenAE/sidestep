@@ -787,3 +787,92 @@ fn list_rule_rejects_status_flag_as_not_applicable() {
         "should point at discovery: {stderr}"
     );
 }
+
+// ---------------------------------------------------------------------
+// enrich --fetch-policies: API-fetched auxiliary (aae-orc-8mq8).
+// ---------------------------------------------------------------------
+
+#[tokio::test]
+async fn enrich_fetch_policies_joins_api_auxiliary() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/policies"))
+        .and(header("authorization", "Bearer fake-tok"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "policies": [
+                {
+                    "id": "pol_001",
+                    "name": "baseline-egress-allowlist",
+                    "severity": "high",
+                    "attached_repos": ["acme-corp/web-api"],
+                },
+            ]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    c.args(["enrich", "--with", "policy-context", "--fetch-policies"])
+        .env("SIDESTEP_OWNER", "arcaven")
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped());
+    let mut child = c.spawn().unwrap();
+    use std::io::Write as _;
+    child
+        .stdin
+        .as_mut()
+        .unwrap()
+        .write_all(
+            concat!(
+                r#"{"_kind":"rule","_source":{"operation_id":"get_github_owner_actions_rules","response_index":0,"fetched_at":"2026-04-30T10:00:00Z"},"id":"rule_001","policy_id":"pol_001","severity":"high"}"#,
+                "\n"
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+    drop(child.stdin.take());
+    let out = child.wait_with_output().unwrap();
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let stdout = std::str::from_utf8(&out.stdout).unwrap();
+    let rec: Value = serde_json::from_str(stdout.lines().next().unwrap()).unwrap();
+    assert_eq!(
+        rec["policy"]["name"], "baseline-egress-allowlist",
+        "rule joined against the API-fetched policy: {rec}"
+    );
+
+    // The fetch is an audited API call inside the enrich flow.
+    let api_lines = api_audit_lines(&audit_dir);
+    assert_eq!(api_lines.len(), 1);
+    assert_eq!(api_lines[0]["verb_phase"], "enrich");
+    assert_eq!(
+        api_lines[0]["path_params_source"]["owner"], "env",
+        "chain source recorded on the fetch"
+    );
+}
+
+#[test]
+fn enrich_fetch_policies_without_owner_names_the_chain() {
+    let cfg = tempdir("cfg").join("config.toml");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["enrich", "--with", "policy-context", "--fetch-policies"])
+        .env("SIDESTEP_CONFIG", &cfg)
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .output()
+        .unwrap();
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("SIDESTEP_OWNER"), "chain error: {stderr}");
+}

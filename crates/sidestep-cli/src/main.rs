@@ -374,6 +374,17 @@ struct EnrichArgs {
     /// their parent policy's severity).
     #[arg(long, value_name = "FILE")]
     policies: Option<std::path::PathBuf>,
+
+    /// Fetch the policy auxiliary from the API instead of a file
+    /// (lists policies for the resolved owner). Explicit opt-in — an
+    /// enrich without it stays a pure local stream transform.
+    #[arg(long, conflicts_with = "policies")]
+    fetch_policies: bool,
+
+    /// `owner` for --fetch-policies. Resolves through
+    /// flag → SIDESTEP_OWNER env → [default] owner in config.
+    #[arg(long)]
+    owner: Option<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -1471,7 +1482,11 @@ fn run_enrich(args: EnrichArgs) -> anyhow::Result<()> {
         )
     })?;
 
-    let ctx = build_enrichment_context(args.policies.as_deref())?;
+    let ctx = if args.fetch_policies {
+        fetch_policies_context(args.owner.as_deref())?
+    } else {
+        build_enrichment_context(args.policies.as_deref())?
+    };
     ctx.validate_for(recipe).map_err(|e| anyhow!("{e}"))?;
 
     let span = audit::Span::start_fresh().with_verb_phase("enrich");
@@ -1543,6 +1558,38 @@ fn build_enrichment_context(
             path.display()
         ));
     }
+    Ok(enrich::EnrichmentContext::with_policies(policies))
+}
+
+/// Fetch the policy auxiliary from the API for `enrich --fetch-policies`
+/// (aae-orc-8mq8). Same owner chain, chain diagnostics, and audit
+/// emission as the curated verbs — the fetch is an API call inside an
+/// enrich flow, so its audit line carries verb_phase "enrich" and the
+/// mining surface sees the composition.
+fn fetch_policies_context(owner_flag: Option<&str>) -> anyhow::Result<enrich::EnrichmentContext> {
+    let spec = kind_spec("policy").expect("policy is a v0.1 kind");
+    let op_id = spec
+        .list_operation_id
+        .expect("policy kind has a list endpoint");
+    let resolved = build_params(&[], owner_flag, None, None, &[])?;
+    check_required_chain_params(op_id, &resolved.sources)?;
+    let response = call_op_blocking_for_verb(
+        op_id,
+        resolved.params,
+        resolved.sources,
+        false,
+        "enrich",
+        &[spec.id_field],
+    )?;
+    let items: Vec<Value> = match kinds::extract_items(&response) {
+        Some(items) => items.to_vec(),
+        None => vec![response],
+    };
+    let policies: Vec<Record> = items
+        .into_iter()
+        .enumerate()
+        .map(|(idx, item)| Record::wrap(spec.name, SourceRef::now(op_id, idx), item))
+        .collect();
     Ok(enrich::EnrichmentContext::with_policies(policies))
 }
 
