@@ -7,6 +7,14 @@ content: |
   permissions like `Sidestep(api:listWorkflowRuns)` or `Sidestep(api:*)`
   if the operationId is the addressable unit.
 
+  Status 2026-07-24 (finding-008): `docs/permissions.md` shipped —
+  read-only primitive allowlist, `api` deliberately gated (prefix rules
+  can't see HTTP methods), never-allowlist set (`api:*`, `auth login`),
+  optional deny-list on `api post_*/put_*/delete_*` via the synthesized
+  operationId convention. The recommended-patterns output exists; the
+  granularity questions below remain open and should be revisited if
+  v0.2 mutating verbs land.
+
   Open:
   - Is operationId the right granularity? Or should it be HTTP method
     (`Sidestep(api:get*)` for read-only)?

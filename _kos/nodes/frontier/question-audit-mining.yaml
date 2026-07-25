@@ -44,6 +44,19 @@ content: |
   `field_paths_referenced` for compound flag candidates. Murat's
   threshold for v0.2 sugar design: ~200 distinct `predicate_text`
   values × ≥10 invocation contexts (~8-12 weeks of dogfooding).
+
+  **First mining pass ran 2026-06-30**
+  (`docs/research/audit-mined-meta-command-candidates.md`): 251
+  records / 60 days / one operator — below threshold for general
+  sugar design, sufficient for 7 ranked proposals. Disposition
+  (2026-07-24, finding-008): #1 (chain on api passthrough) SHIPPED;
+  #6 (--type/--status filters) ticketed `aae-orc-onef`; composites
+  #2/#5 ticketed gated (`aae-orc-ervj`, `aae-orc-lj2h`); #7 (audit
+  query reader — this question's first candidate) ticketed
+  `aae-orc-gj2k`. v0.1.0 release held pending the team-wide corpus
+  (`aae-orc-qkb9`). Corpus caveats to fix before the next pass:
+  curated-verb usage near zero (envelope bugs fixed in finding-008
+  may have depressed it), fixture-sweep predicate noise.
 edges:
   - target: elem-audit-trail-schema
     type: derives
