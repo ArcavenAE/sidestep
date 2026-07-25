@@ -49,12 +49,11 @@ matches() {
   grep -nE "$pattern" -- "$@" 2>/dev/null || true
 }
 
-FILE_LIST="$(scan_list)"
-[ -z "$FILE_LIST" ] && exit 0
+mapfile -t FILE_LIST < <(scan_list)
+[ "${#FILE_LIST[@]}" -eq 0 ] && exit 0
 
-# shellcheck disable=SC2086
 for p in "${GENERIC_PATTERNS[@]}"; do
-  hits="$(matches "$p" $FILE_LIST)"
+  hits="$(matches "$p" "${FILE_LIST[@]}")"
   if [ -n "$hits" ]; then
     echo "org-leak check: pattern '$p' matched:" >&2
     echo "$hits" >&2
@@ -66,8 +65,7 @@ done
 if [ -f .leak-patterns.local ]; then
   while IFS= read -r needle; do
     case "$needle" in ''|'#'*) continue ;; esac
-    # shellcheck disable=SC2086
-    hits="$(grep -nF -- "$needle" $FILE_LIST 2>/dev/null || true)"
+    hits="$(grep -nF -- "$needle" "${FILE_LIST[@]}" 2>/dev/null || true)"
     if [ -n "$hits" ]; then
       echo "org-leak check: local pattern matched (value not echoed):" >&2
       echo "$hits" | cut -d: -f1,2 | sed 's/$/: <redacted match>/' >&2
