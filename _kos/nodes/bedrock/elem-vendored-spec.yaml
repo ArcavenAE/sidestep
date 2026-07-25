@@ -19,6 +19,13 @@ content: |
   Spec changes are reviewed in PR. `cargo xtask diff-spec` (forthcoming)
   will summarize added/removed/changed operations between the upstream
   and vendored copy.
+
+  Exercised for real 2026-07-24 (finding-007): first upstream update
+  (97 → 130 operations, purely additive) absorbed end-to-end —
+  sync-spec re-vendored + re-pinned + sanitized 2 secret-shaped
+  examples; regen + full gates green in one session. diff-spec is
+  still a stub; the operation-set diff was hand-rolled — its absence
+  is now a demonstrated gap with a bd ticket.
 edges:
   - target: elem-codegen-via-progenitor
     type: supports
