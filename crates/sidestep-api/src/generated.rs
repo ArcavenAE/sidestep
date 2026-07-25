@@ -416,6 +416,85 @@ pub mod types {
             }
         }
     }
+    ///`ApiKeyConfig`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "disable_key": {
+    ///      "description": "Whether this key is disabled",
+    ///      "type": "boolean"
+    ///    },
+    ///    "primary_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyDetails"
+    ///    },
+    ///    "secondary_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyDetails"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct ApiKeyConfig {
+        ///Whether this key is disabled
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub disable_key: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub primary_key: ::std::option::Option<ApiKeyDetails>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub secondary_key: ::std::option::Option<ApiKeyDetails>,
+    }
+    impl ::std::default::Default for ApiKeyConfig {
+        fn default() -> Self {
+            Self {
+                disable_key: Default::default(),
+                primary_key: Default::default(),
+                secondary_key: Default::default(),
+            }
+        }
+    }
+    ///`ApiKeyDetails`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "key": {
+    ///      "description": "The API key value",
+    ///      "type": "string"
+    ///    },
+    ///    "timestamp": {
+    ///      "description": "Unix timestamp (seconds) when the key was generated",
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct ApiKeyDetails {
+        ///The API key value
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub key: ::std::option::Option<::std::string::String>,
+        ///Unix timestamp (seconds) when the key was generated
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub timestamp: ::std::option::Option<i64>,
+    }
+    impl ::std::default::Default for ApiKeyDetails {
+        fn default() -> Self {
+            Self {
+                key: Default::default(),
+                timestamp: Default::default(),
+            }
+        }
+    }
     ///Filter configuration for applying issue/PR config across all repositories
     ///
     /// <details><summary>JSON schema</summary>
@@ -658,6 +737,18 @@ pub mod types {
     ///    "apply_issue_pr_config_for_all_repos_filter": {
     ///      "$ref": "#/components/schemas/ApplyIssuePRConfigForAllReposFilter"
     ///    },
+    ///    "custom_actions_to_replace": {
+    ///      "description": "Map of custom action replacement mappings",
+    ///      "examples": [
+    ///        {
+    ///          "my-org/old-action": "my-org/new-action"
+    ///        }
+    ///      ],
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "string"
+    ///      }
+    ///    },
     ///    "exempted_actions": {
     ///      "description": "List of GitHub Actions exempted from checks",
     ///      "type": "array",
@@ -741,6 +832,13 @@ pub mod types {
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub apply_issue_pr_config_for_all_repos_filter:
             ::std::option::Option<ApplyIssuePrConfigForAllReposFilter>,
+        ///Map of custom action replacement mappings
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub custom_actions_to_replace:
+            ::std::collections::HashMap<::std::string::String, ::std::string::String>,
         ///List of GitHub Actions exempted from checks
         #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
         pub exempted_actions: ::std::vec::Vec<::std::string::String>,
@@ -775,6 +873,7 @@ pub mod types {
                 add_workflows: Default::default(),
                 apply_issue_pr_config_for_all_repos: Default::default(),
                 apply_issue_pr_config_for_all_repos_filter: Default::default(),
+                custom_actions_to_replace: Default::default(),
                 exempted_actions: Default::default(),
                 exempted_images: Default::default(),
                 labels_to_replace: Default::default(),
@@ -820,6 +919,13 @@ pub mod types {
     ///    },
     ///    "apply_issue_pr_config_for_all_repos_filter": {
     ///      "$ref": "#/components/schemas/ApplyIssuePRConfigForAllReposFilter"
+    ///    },
+    ///    "custom_actions_to_replace": {
+    ///      "description": "Map of custom action replacement mappings",
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "string"
+    ///      }
     ///    },
     ///    "exempted_actions": {
     ///      "description": "List of GitHub Actions exempted from checks",
@@ -892,6 +998,13 @@ pub mod types {
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub apply_issue_pr_config_for_all_repos_filter:
             ::std::option::Option<ApplyIssuePrConfigForAllReposFilter>,
+        ///Map of custom action replacement mappings
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub custom_actions_to_replace:
+            ::std::collections::HashMap<::std::string::String, ::std::string::String>,
         ///List of GitHub Actions exempted from checks
         #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
         pub exempted_actions: ::std::vec::Vec<::std::string::String>,
@@ -926,6 +1039,7 @@ pub mod types {
                 add_workflows: Default::default(),
                 apply_issue_pr_config_for_all_repos: Default::default(),
                 apply_issue_pr_config_for_all_repos_filter: Default::default(),
+                custom_actions_to_replace: Default::default(),
                 exempted_actions: Default::default(),
                 exempted_images: Default::default(),
                 labels_to_replace: Default::default(),
@@ -1139,6 +1253,78 @@ pub mod types {
             }
         }
     }
+    ///`DeleteCustomerDeveloperMdmPoliciesPolicyIdResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "message": {
+    ///      "examples": [
+    ///        "policy deleted"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "policy_id": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeleteCustomerDeveloperMdmPoliciesPolicyIdResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub message: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub policy_id: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for DeleteCustomerDeveloperMdmPoliciesPolicyIdResponse {
+        fn default() -> Self {
+            Self {
+                message: Default::default(),
+                policy_id: Default::default(),
+            }
+        }
+    }
+    ///`DeleteCustomerDeveloperMdmProfilesProfileIdResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "message": {
+    ///      "examples": [
+    ///        "profile deleted"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "profile_id": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeleteCustomerDeveloperMdmProfilesProfileIdResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub message: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub profile_id: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for DeleteCustomerDeveloperMdmProfilesProfileIdResponse {
+        fn default() -> Self {
+            Self {
+                message: Default::default(),
+                profile_id: Default::default(),
+            }
+        }
+    }
     ///`DeleteCustomerUsersUserIdResponse`
     ///
     /// <details><summary>JSON schema</summary>
@@ -1202,6 +1388,36 @@ pub mod types {
         pub message: ::std::option::Option<::std::string::String>,
     }
     impl ::std::default::Default for DeleteGithubOwnerActionsPoliciesPolicyNameAttachResponse {
+        fn default() -> Self {
+            Self {
+                message: Default::default(),
+            }
+        }
+    }
+    ///`DeleteGithubOwnerActionsRunPoliciesPolicyIdResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "message": {
+    ///      "examples": [
+    ///        "run policy deleted successfully"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeleteGithubOwnerActionsRunPoliciesPolicyIdResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub message: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for DeleteGithubOwnerActionsRunPoliciesPolicyIdResponse {
         fn default() -> Self {
             Self {
                 message: Default::default(),
@@ -1892,6 +2108,1127 @@ pub mod types {
             }
         }
     }
+    ///Activates on-device enforcement: either all current and future devices, or an explicit device list.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Activates on-device enforcement: either all current and future devices, or an explicit device list.",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "all_devices": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "device_ids": {
+    ///      "description": "Used only when all_devices is false.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeviceAssignment {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub all_devices: ::std::option::Option<bool>,
+        ///Used only when all_devices is false.
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub device_ids: ::std::vec::Vec<::std::string::String>,
+    }
+    impl ::std::default::Default for DeviceAssignment {
+        fn default() -> Self {
+            Self {
+                all_devices: Default::default(),
+                device_ids: Default::default(),
+            }
+        }
+    }
+    ///Per-device, per-category compliance row. desired_hash is recomputed on read so a profile change never shows a stale compliant state.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Per-device, per-category compliance row. desired_hash is recomputed on read so a profile change never shows a stale compliant state.",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "agent_version": {
+    ///      "type": "string"
+    ///    },
+    ///    "applied_hash": {
+    ///      "type": "string"
+    ///    },
+    ///    "category": {
+    ///      "examples": [
+    ///        "ide_extension"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "desired_hash": {
+    ///      "type": "string"
+    ///    },
+    ///    "device_id": {
+    ///      "type": "string"
+    ///    },
+    ///    "evaluated_at": {
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "last_seen_at": {
+    ///      "description": "Epoch seconds the device last checked in.",
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    },
+    ///    "platform": {
+    ///      "examples": [
+    ///        "darwin"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "profile_id": {
+    ///      "type": "string"
+    ///    },
+    ///    "state": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "not_assigned",
+    ///        "pending",
+    ///        "compliant",
+    ///        "drift_detected",
+    ///        "mdm_managed",
+    ///        "policy_not_applied",
+    ///        "write_failed",
+    ///        "verification_failed",
+    ///        "agent_unsupported",
+    ///        "agent_stale"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeviceComplianceView {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub agent_version: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub applied_hash: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub category: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub desired_hash: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub device_id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub evaluated_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        ///Epoch seconds the device last checked in.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub last_seen_at: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub platform: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub profile_id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub state: ::std::option::Option<DeviceComplianceViewState>,
+    }
+    impl ::std::default::Default for DeviceComplianceView {
+        fn default() -> Self {
+            Self {
+                agent_version: Default::default(),
+                applied_hash: Default::default(),
+                category: Default::default(),
+                desired_hash: Default::default(),
+                device_id: Default::default(),
+                evaluated_at: Default::default(),
+                last_seen_at: Default::default(),
+                platform: Default::default(),
+                profile_id: Default::default(),
+                state: Default::default(),
+            }
+        }
+    }
+    ///`DeviceComplianceViewState`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "not_assigned",
+    ///    "pending",
+    ///    "compliant",
+    ///    "drift_detected",
+    ///    "mdm_managed",
+    ///    "policy_not_applied",
+    ///    "write_failed",
+    ///    "verification_failed",
+    ///    "agent_unsupported",
+    ///    "agent_stale"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum DeviceComplianceViewState {
+        #[serde(rename = "not_assigned")]
+        NotAssigned,
+        #[serde(rename = "pending")]
+        Pending,
+        #[serde(rename = "compliant")]
+        Compliant,
+        #[serde(rename = "drift_detected")]
+        DriftDetected,
+        #[serde(rename = "mdm_managed")]
+        MdmManaged,
+        #[serde(rename = "policy_not_applied")]
+        PolicyNotApplied,
+        #[serde(rename = "write_failed")]
+        WriteFailed,
+        #[serde(rename = "verification_failed")]
+        VerificationFailed,
+        #[serde(rename = "agent_unsupported")]
+        AgentUnsupported,
+        #[serde(rename = "agent_stale")]
+        AgentStale,
+    }
+    impl ::std::fmt::Display for DeviceComplianceViewState {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::NotAssigned => f.write_str("not_assigned"),
+                Self::Pending => f.write_str("pending"),
+                Self::Compliant => f.write_str("compliant"),
+                Self::DriftDetected => f.write_str("drift_detected"),
+                Self::MdmManaged => f.write_str("mdm_managed"),
+                Self::PolicyNotApplied => f.write_str("policy_not_applied"),
+                Self::WriteFailed => f.write_str("write_failed"),
+                Self::VerificationFailed => f.write_str("verification_failed"),
+                Self::AgentUnsupported => f.write_str("agent_unsupported"),
+                Self::AgentStale => f.write_str("agent_stale"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for DeviceComplianceViewState {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "not_assigned" => Ok(Self::NotAssigned),
+                "pending" => Ok(Self::Pending),
+                "compliant" => Ok(Self::Compliant),
+                "drift_detected" => Ok(Self::DriftDetected),
+                "mdm_managed" => Ok(Self::MdmManaged),
+                "policy_not_applied" => Ok(Self::PolicyNotApplied),
+                "write_failed" => Ok(Self::WriteFailed),
+                "verification_failed" => Ok(Self::VerificationFailed),
+                "agent_unsupported" => Ok(Self::AgentUnsupported),
+                "agent_stale" => Ok(Self::AgentStale),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for DeviceComplianceViewState {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for DeviceComplianceViewState {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for DeviceComplianceViewState {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///Per-OS MDM-importable rendering of a profile's compiled policy.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Per-OS MDM-importable rendering of a profile's compiled policy.",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "category": {
+    ///      "examples": [
+    ///        "ide_extension"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "content": {
+    ///      "description": "Rendered artifact: Intune PowerShell remediation (Windows), .mobileconfig (macOS), or policy.json (Linux).",
+    ///      "type": "string"
+    ///    },
+    ///    "content_type": {
+    ///      "examples": [
+    ///        "application/x-apple-aspen-config; charset=utf-8"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "filename": {
+    ///      "examples": [
+    ///        "vscode-allowed-extensions.mobileconfig"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "hash": {
+    ///      "examples": [
+    ///        "sha256:..."
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "notes": {
+    ///      "type": "string"
+    ///    },
+    ///    "os": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "windows",
+    ///        "macos",
+    ///        "linux"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeviceExportArtifact {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub category: ::std::option::Option<::std::string::String>,
+        ///Rendered artifact: Intune PowerShell remediation (Windows), .mobileconfig (macOS), or policy.json (Linux).
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub content: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub content_type: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub filename: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub hash: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub notes: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub os: ::std::option::Option<DeviceExportArtifactOs>,
+    }
+    impl ::std::default::Default for DeviceExportArtifact {
+        fn default() -> Self {
+            Self {
+                category: Default::default(),
+                content: Default::default(),
+                content_type: Default::default(),
+                filename: Default::default(),
+                hash: Default::default(),
+                notes: Default::default(),
+                os: Default::default(),
+            }
+        }
+    }
+    ///`DeviceExportArtifactOs`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "windows",
+    ///    "macos",
+    ///    "linux"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum DeviceExportArtifactOs {
+        #[serde(rename = "windows")]
+        Windows,
+        #[serde(rename = "macos")]
+        Macos,
+        #[serde(rename = "linux")]
+        Linux,
+    }
+    impl ::std::fmt::Display for DeviceExportArtifactOs {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Windows => f.write_str("windows"),
+                Self::Macos => f.write_str("macos"),
+                Self::Linux => f.write_str("linux"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for DeviceExportArtifactOs {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "windows" => Ok(Self::Windows),
+                "macos" => Ok(Self::Macos),
+                "linux" => Ok(Self::Linux),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for DeviceExportArtifactOs {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for DeviceExportArtifactOs {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for DeviceExportArtifactOs {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`DevicePolicy`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "category": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "ide_extension"
+    ///      ]
+    ///    },
+    ///    "created_at": {
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "created_by": {
+    ///      "type": "string"
+    ///    },
+    ///    "customer_id": {
+    ///      "type": "string"
+    ///    },
+    ///    "description": {
+    ///      "type": "string"
+    ///    },
+    ///    "mode": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "allowlist",
+    ///        "blocklist"
+    ///      ]
+    ///    },
+    ///    "name": {
+    ///      "type": "string"
+    ///    },
+    ///    "policy_id": {
+    ///      "type": "string"
+    ///    },
+    ///    "spec": {
+    ///      "$ref": "#/components/schemas/DevicePolicySpec"
+    ///    },
+    ///    "spec_version": {
+    ///      "examples": [
+    ///        1
+    ///      ],
+    ///      "type": "integer"
+    ///    },
+    ///    "updated_at": {
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "updated_by": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DevicePolicy {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub category: ::std::option::Option<DevicePolicyCategory>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub created_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub created_by: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub customer_id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub description: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub mode: ::std::option::Option<DevicePolicyMode>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub policy_id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub spec: ::std::option::Option<DevicePolicySpec>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub spec_version: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_by: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for DevicePolicy {
+        fn default() -> Self {
+            Self {
+                category: Default::default(),
+                created_at: Default::default(),
+                created_by: Default::default(),
+                customer_id: Default::default(),
+                description: Default::default(),
+                mode: Default::default(),
+                name: Default::default(),
+                policy_id: Default::default(),
+                spec: Default::default(),
+                spec_version: Default::default(),
+                updated_at: Default::default(),
+                updated_by: Default::default(),
+            }
+        }
+    }
+    ///`DevicePolicyCategory`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "ide_extension"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum DevicePolicyCategory {
+        #[serde(rename = "ide_extension")]
+        IdeExtension,
+    }
+    impl ::std::fmt::Display for DevicePolicyCategory {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::IdeExtension => f.write_str("ide_extension"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for DevicePolicyCategory {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "ide_extension" => Ok(Self::IdeExtension),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for DevicePolicyCategory {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for DevicePolicyCategory {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for DevicePolicyCategory {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`DevicePolicyMode`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "allowlist",
+    ///    "blocklist"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum DevicePolicyMode {
+        #[serde(rename = "allowlist")]
+        Allowlist,
+        #[serde(rename = "blocklist")]
+        Blocklist,
+    }
+    impl ::std::fmt::Display for DevicePolicyMode {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Allowlist => f.write_str("allowlist"),
+                Self::Blocklist => f.write_str("blocklist"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for DevicePolicyMode {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "allowlist" => Ok(Self::Allowlist),
+                "blocklist" => Ok(Self::Blocklist),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for DevicePolicyMode {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for DevicePolicyMode {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for DevicePolicyMode {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`DevicePolicyRequest`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "category",
+    ///    "mode",
+    ///    "name",
+    ///    "spec",
+    ///    "spec_version"
+    ///  ],
+    ///  "properties": {
+    ///    "category": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "ide_extension"
+    ///      ]
+    ///    },
+    ///    "description": {
+    ///      "type": "string"
+    ///    },
+    ///    "mode": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "allowlist",
+    ///        "blocklist"
+    ///      ]
+    ///    },
+    ///    "name": {
+    ///      "type": "string"
+    ///    },
+    ///    "spec": {
+    ///      "$ref": "#/components/schemas/DevicePolicySpec"
+    ///    },
+    ///    "spec_version": {
+    ///      "type": "integer",
+    ///      "enum": [
+    ///        1
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DevicePolicyRequest {
+        pub category: DevicePolicyRequestCategory,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub description: ::std::option::Option<::std::string::String>,
+        pub mode: DevicePolicyRequestMode,
+        pub name: ::std::string::String,
+        pub spec: DevicePolicySpec,
+        pub spec_version: DevicePolicyRequestSpecVersion,
+    }
+    ///`DevicePolicyRequestCategory`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "ide_extension"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum DevicePolicyRequestCategory {
+        #[serde(rename = "ide_extension")]
+        IdeExtension,
+    }
+    impl ::std::fmt::Display for DevicePolicyRequestCategory {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::IdeExtension => f.write_str("ide_extension"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for DevicePolicyRequestCategory {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "ide_extension" => Ok(Self::IdeExtension),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for DevicePolicyRequestCategory {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for DevicePolicyRequestCategory {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for DevicePolicyRequestCategory {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`DevicePolicyRequestMode`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "allowlist",
+    ///    "blocklist"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum DevicePolicyRequestMode {
+        #[serde(rename = "allowlist")]
+        Allowlist,
+        #[serde(rename = "blocklist")]
+        Blocklist,
+    }
+    impl ::std::fmt::Display for DevicePolicyRequestMode {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Allowlist => f.write_str("allowlist"),
+                Self::Blocklist => f.write_str("blocklist"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for DevicePolicyRequestMode {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "allowlist" => Ok(Self::Allowlist),
+                "blocklist" => Ok(Self::Blocklist),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for DevicePolicyRequestMode {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for DevicePolicyRequestMode {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for DevicePolicyRequestMode {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`DevicePolicyRequestSpecVersion`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "integer",
+    ///  "enum": [
+    ///    1
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Serialize, Clone, Debug)]
+    #[serde(transparent)]
+    pub struct DevicePolicyRequestSpecVersion(i64);
+    impl ::std::ops::Deref for DevicePolicyRequestSpecVersion {
+        type Target = i64;
+        fn deref(&self) -> &i64 {
+            &self.0
+        }
+    }
+    impl ::std::convert::From<DevicePolicyRequestSpecVersion> for i64 {
+        fn from(value: DevicePolicyRequestSpecVersion) -> Self {
+            value.0
+        }
+    }
+    impl ::std::convert::TryFrom<i64> for DevicePolicyRequestSpecVersion {
+        type Error = self::error::ConversionError;
+        fn try_from(value: i64) -> ::std::result::Result<Self, self::error::ConversionError> {
+            if ![1_i64].contains(&value) {
+                Err("invalid value".into())
+            } else {
+                Ok(Self(value))
+            }
+        }
+    }
+    impl<'de> ::serde::Deserialize<'de> for DevicePolicyRequestSpecVersion {
+        fn deserialize<D>(deserializer: D) -> ::std::result::Result<Self, D::Error>
+        where
+            D: ::serde::Deserializer<'de>,
+        {
+            Self::try_from(<i64>::deserialize(deserializer)?)
+                .map_err(|e| <D::Error as ::serde::de::Error>::custom(e.to_string()))
+        }
+    }
+    ///Matches by publisher, optionally a specific extension name. Allow-list rules may further restrict to exact versions or stable releases only; deny-list rules block the whole match.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Matches by publisher, optionally a specific extension name. Allow-list rules may further restrict to exact versions or stable releases only; deny-list rules block the whole match.",
+    ///  "type": "object",
+    ///  "required": [
+    ///    "publisher"
+    ///  ],
+    ///  "properties": {
+    ///    "name": {
+    ///      "description": "Specific extension name; omit to match the whole publisher.",
+    ///      "examples": [
+    ///        "python"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "publisher": {
+    ///      "description": "VS Code marketplace publisher id (alphanumeric start, then alphanumerics or hyphens).",
+    ///      "examples": [
+    ///        "ms-python"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "stable": {
+    ///      "description": "Allow-list only. Restrict to stable releases. Mutually exclusive with versions.",
+    ///      "type": "boolean"
+    ///    },
+    ///    "versions": {
+    ///      "description": "Allow-list only. Exact versions (major.minor.patch, optional @platform). Mutually exclusive with stable.",
+    ///      "examples": [
+    ///        [
+    ///          "2024.2.1",
+    ///          "2024.2.1@win32-x64"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DevicePolicyRule {
+        ///Specific extension name; omit to match the whole publisher.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub name: ::std::option::Option<::std::string::String>,
+        ///VS Code marketplace publisher id (alphanumeric start, then alphanumerics or hyphens).
+        pub publisher: ::std::string::String,
+        ///Allow-list only. Restrict to stable releases. Mutually exclusive with versions.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub stable: ::std::option::Option<bool>,
+        ///Allow-list only. Exact versions (major.minor.patch, optional @platform). Mutually exclusive with stable.
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub versions: ::std::vec::Vec<::std::string::String>,
+    }
+    ///Typed policy body for the ide_extension category (spec_version 1).
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Typed policy body for the ide_extension category (spec_version 1).",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "rules": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/DevicePolicyRule"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DevicePolicySpec {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub rules: ::std::vec::Vec<DevicePolicyRule>,
+    }
+    impl ::std::default::Default for DevicePolicySpec {
+        fn default() -> Self {
+            Self {
+                rules: Default::default(),
+            }
+        }
+    }
+    ///`DeviceProfile`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "assignment": {
+    ///      "$ref": "#/components/schemas/DeviceAssignment"
+    ///    },
+    ///    "created_at": {
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "created_by": {
+    ///      "type": "string"
+    ///    },
+    ///    "customer_id": {
+    ///      "type": "string"
+    ///    },
+    ///    "description": {
+    ///      "type": "string"
+    ///    },
+    ///    "name": {
+    ///      "type": "string"
+    ///    },
+    ///    "policy_ids": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "profile_id": {
+    ///      "type": "string"
+    ///    },
+    ///    "updated_at": {
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "updated_by": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeviceProfile {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub assignment: ::std::option::Option<DeviceAssignment>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub created_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub created_by: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub customer_id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub description: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub policy_ids: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub profile_id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_by: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for DeviceProfile {
+        fn default() -> Self {
+            Self {
+                assignment: Default::default(),
+                created_at: Default::default(),
+                created_by: Default::default(),
+                customer_id: Default::default(),
+                description: Default::default(),
+                name: Default::default(),
+                policy_ids: Default::default(),
+                profile_id: Default::default(),
+                updated_at: Default::default(),
+                updated_by: Default::default(),
+            }
+        }
+    }
+    ///`DeviceProfileRequest`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "assignment",
+    ///    "name",
+    ///    "policy_ids"
+    ///  ],
+    ///  "properties": {
+    ///    "assignment": {
+    ///      "$ref": "#/components/schemas/DeviceAssignment"
+    ///    },
+    ///    "description": {
+    ///      "type": "string"
+    ///    },
+    ///    "name": {
+    ///      "type": "string"
+    ///    },
+    ///    "policy_ids": {
+    ///      "description": "One or more policy ids; at most one policy per category.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct DeviceProfileRequest {
+        pub assignment: DeviceAssignment,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub description: ::std::option::Option<::std::string::String>,
+        pub name: ::std::string::String,
+        ///One or more policy ids; at most one policy per category.
+        pub policy_ids: ::std::vec::Vec<::std::string::String>,
+    }
     ///`EndpointObservation`
     ///
     /// <details><summary>JSON schema</summary>
@@ -1941,6 +3278,157 @@ pub mod types {
                 timestamp: Default::default(),
                 workflow_file_name: Default::default(),
             }
+        }
+    }
+    ///`EvaluatedControl`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "Name": {
+    ///      "examples": [
+    ///        "cooldown_period"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "Reason": {
+    ///      "examples": [
+    ///        "Package is in exemption list"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "Status": {
+    ///      "examples": [
+    ///        "allowed"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "allowed",
+    ///        "modified",
+    ///        "blocked",
+    ///        "skipped"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct EvaluatedControl {
+        #[serde(
+            rename = "Name",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub name: ::std::option::Option<::std::string::String>,
+        #[serde(
+            rename = "Reason",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub reason: ::std::option::Option<::std::string::String>,
+        #[serde(
+            rename = "Status",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub status: ::std::option::Option<EvaluatedControlStatus>,
+    }
+    impl ::std::default::Default for EvaluatedControl {
+        fn default() -> Self {
+            Self {
+                name: Default::default(),
+                reason: Default::default(),
+                status: Default::default(),
+            }
+        }
+    }
+    ///`EvaluatedControlStatus`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "examples": [
+    ///    "allowed"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "allowed",
+    ///    "modified",
+    ///    "blocked",
+    ///    "skipped"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum EvaluatedControlStatus {
+        #[serde(rename = "allowed")]
+        Allowed,
+        #[serde(rename = "modified")]
+        Modified,
+        #[serde(rename = "blocked")]
+        Blocked,
+        #[serde(rename = "skipped")]
+        Skipped,
+    }
+    impl ::std::fmt::Display for EvaluatedControlStatus {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Allowed => f.write_str("allowed"),
+                Self::Modified => f.write_str("modified"),
+                Self::Blocked => f.write_str("blocked"),
+                Self::Skipped => f.write_str("skipped"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for EvaluatedControlStatus {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "allowed" => Ok(Self::Allowed),
+                "modified" => Ok(Self::Modified),
+                "blocked" => Ok(Self::Blocked),
+                "skipped" => Ok(Self::Skipped),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for EvaluatedControlStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for EvaluatedControlStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for EvaluatedControlStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
         }
     }
     ///`GetAppsForCustomerResponse`
@@ -4450,6 +5938,891 @@ pub mod types {
             value.parse()
         }
     }
+    ///`GetCustomerApiKeysResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "customer_keys": {
+    ///      "description": "Tenant-level keys",
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "arc_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "broker_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "secure_registry_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "self_hosted_vm_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "tenant_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "tenant_read_only_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        }
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerApiKeysResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub customer_keys: ::std::option::Option<GetCustomerApiKeysResponseCustomerKeys>,
+    }
+    impl ::std::default::Default for GetCustomerApiKeysResponse {
+        fn default() -> Self {
+            Self {
+                customer_keys: Default::default(),
+            }
+        }
+    }
+    ///Tenant-level keys
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Tenant-level keys",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "arc_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "broker_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "secure_registry_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "self_hosted_vm_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "tenant_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "tenant_read_only_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerApiKeysResponseCustomerKeys {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub arc_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub broker_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub secure_registry_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub self_hosted_vm_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub tenant_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub tenant_read_only_api_key: ::std::option::Option<ApiKeyConfig>,
+    }
+    impl ::std::default::Default for GetCustomerApiKeysResponseCustomerKeys {
+        fn default() -> Self {
+            Self {
+                arc_api_key: Default::default(),
+                broker_api_key: Default::default(),
+                secure_registry_api_key: Default::default(),
+                self_hosted_vm_api_key: Default::default(),
+                tenant_api_key: Default::default(),
+                tenant_read_only_api_key: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmAgentSkillsResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "agent_skills": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "object",
+    ///        "properties": {
+    ///          "agents": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "device_count": {
+    ///            "type": "integer"
+    ///          },
+    ///          "has_code": {
+    ///            "description": "Some device bundles executable code with the skill (ORed fleet-wide)",
+    ///            "type": "boolean"
+    ///          },
+    ///          "has_hooks": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "has_shell_injection": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "managed_by": {
+    ///            "description": "Manager that installs and updates the skill (e.g. skills.sh); absent for unmanaged skills",
+    ///            "type": "string"
+    ///          },
+    ///          "scopes": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "skill_key": {
+    ///            "description": "Canonical composite identity: managed:<source_type>:<source_slug>[/<skill_path>] or local:<name>",
+    ///            "examples": [
+    ///              "managed:github:anthropics/skills/pdf"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "skill_md_hash_count": {
+    ///            "description": "Distinct SKILL.md content hashes across the fleet; greater than 1 means the content diverges between devices",
+    ///            "type": "integer"
+    ///          },
+    ///          "skill_name": {
+    ///            "type": "string"
+    ///          },
+    ///          "source_slug": {
+    ///            "type": "string"
+    ///          },
+    ///          "source_type": {
+    ///            "type": "string"
+    ///          },
+    ///          "updated_at": {
+    ///            "description": "Unix seconds; most recent scan reporting this skill",
+    ///            "type": "integer",
+    ///            "format": "int64"
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "facets": {
+    ///      "description": "Provenance filter-pill counts over the full unfiltered tenant index; present only on the warm/index path",
+    ///      "type": [
+    ///        "object",
+    ///        "null"
+    ///      ],
+    ///      "properties": {
+    ///        "managed_by": {
+    ///          "type": "object",
+    ///          "additionalProperties": {
+    ///            "type": "integer"
+    ///          }
+    ///        },
+    ///        "source_type": {
+    ///          "type": "object",
+    ///          "additionalProperties": {
+    ///            "type": "integer"
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "next_token": {
+    ///      "description": "Present only on the cold-start fallback path",
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    },
+    ///    "page": {
+    ///      "type": "integer"
+    ///    },
+    ///    "page_size": {
+    ///      "type": "integer"
+    ///    },
+    ///    "total": {
+    ///      "type": "integer"
+    ///    },
+    ///    "total_pages": {
+    ///      "type": "integer"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmAgentSkillsResponse {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub agent_skills:
+            ::std::vec::Vec<GetCustomerDeveloperMdmAgentSkillsResponseAgentSkillsItem>,
+        ///Provenance filter-pill counts over the full unfiltered tenant index; present only on the warm/index path
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub facets: ::std::option::Option<GetCustomerDeveloperMdmAgentSkillsResponseFacets>,
+        ///Present only on the cold-start fallback path
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub next_token: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub page: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub page_size: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub total: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub total_pages: ::std::option::Option<i64>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmAgentSkillsResponse {
+        fn default() -> Self {
+            Self {
+                agent_skills: Default::default(),
+                facets: Default::default(),
+                next_token: Default::default(),
+                page: Default::default(),
+                page_size: Default::default(),
+                total: Default::default(),
+                total_pages: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmAgentSkillsResponseAgentSkillsItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "agents": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "device_count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "has_code": {
+    ///      "description": "Some device bundles executable code with the skill (ORed fleet-wide)",
+    ///      "type": "boolean"
+    ///    },
+    ///    "has_hooks": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "has_shell_injection": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "managed_by": {
+    ///      "description": "Manager that installs and updates the skill (e.g. skills.sh); absent for unmanaged skills",
+    ///      "type": "string"
+    ///    },
+    ///    "scopes": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "skill_key": {
+    ///      "description": "Canonical composite identity: managed:<source_type>:<source_slug>[/<skill_path>] or local:<name>",
+    ///      "examples": [
+    ///        "managed:github:anthropics/skills/pdf"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "skill_md_hash_count": {
+    ///      "description": "Distinct SKILL.md content hashes across the fleet; greater than 1 means the content diverges between devices",
+    ///      "type": "integer"
+    ///    },
+    ///    "skill_name": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_slug": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_type": {
+    ///      "type": "string"
+    ///    },
+    ///    "updated_at": {
+    ///      "description": "Unix seconds; most recent scan reporting this skill",
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmAgentSkillsResponseAgentSkillsItem {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub agents: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub device_count: ::std::option::Option<i64>,
+        ///Some device bundles executable code with the skill (ORed fleet-wide)
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_code: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_hooks: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_shell_injection: ::std::option::Option<bool>,
+        ///Manager that installs and updates the skill (e.g. skills.sh); absent for unmanaged skills
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub managed_by: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub scopes: ::std::vec::Vec<::std::string::String>,
+        ///Canonical composite identity: managed:<source_type>:<source_slug>[/<skill_path>] or local:<name>
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_key: ::std::option::Option<::std::string::String>,
+        ///Distinct SKILL.md content hashes across the fleet; greater than 1 means the content diverges between devices
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_md_hash_count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_slug: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_type: ::std::option::Option<::std::string::String>,
+        ///Unix seconds; most recent scan reporting this skill
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<i64>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmAgentSkillsResponseAgentSkillsItem {
+        fn default() -> Self {
+            Self {
+                agents: Default::default(),
+                device_count: Default::default(),
+                has_code: Default::default(),
+                has_hooks: Default::default(),
+                has_shell_injection: Default::default(),
+                managed_by: Default::default(),
+                scopes: Default::default(),
+                skill_key: Default::default(),
+                skill_md_hash_count: Default::default(),
+                skill_name: Default::default(),
+                source_slug: Default::default(),
+                source_type: Default::default(),
+                updated_at: Default::default(),
+            }
+        }
+    }
+    ///Provenance filter-pill counts over the full unfiltered tenant index; present only on the warm/index path
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Provenance filter-pill counts over the full unfiltered tenant index; present only on the warm/index path",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "managed_by": {
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "integer"
+    ///      }
+    ///    },
+    ///    "source_type": {
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "integer"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmAgentSkillsResponseFacets {
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub managed_by: ::std::collections::HashMap<::std::string::String, i64>,
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub source_type: ::std::collections::HashMap<::std::string::String, i64>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmAgentSkillsResponseFacets {
+        fn default() -> Self {
+            Self {
+                managed_by: Default::default(),
+                source_type: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmAgentSkillsSkillKeyResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "agents": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "description": {
+    ///      "type": "string"
+    ///    },
+    ///    "device_count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "device_ids": {
+    ///      "description": "Resolve each to hostname/user via GET /{customer}/developer-mdm/devices",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "devices": {
+    ///      "description": "Per-device folded view of the skill's installs",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "object",
+    ///        "properties": {
+    ///          "device_id": {
+    ///            "type": "string"
+    ///          },
+    ///          "has_code": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "has_hooks": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "has_shell_injection": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "instance_count": {
+    ///            "type": "integer"
+    ///          },
+    ///          "project_paths": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "scopes": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "skill_md_hashes": {
+    ///            "description": "Distinct SKILL.md hashes on this device; greater than 1 means multiple installs disagree",
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "sources": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "updated_at": {
+    ///            "type": "integer",
+    ///            "format": "int64"
+    ///          },
+    ///          "version": {
+    ///            "type": "string"
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "has_code": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "managed_by": {
+    ///      "type": "string"
+    ///    },
+    ///    "plugin_name": {
+    ///      "type": "string"
+    ///    },
+    ///    "ref": {
+    ///      "description": "Git ref (branch/tag) the skill was installed from, when known",
+    ///      "type": "string"
+    ///    },
+    ///    "scopes": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "skill_key": {
+    ///      "type": "string"
+    ///    },
+    ///    "skill_md_hash_count": {
+    ///      "description": "Distinct SKILL.md content hashes across the fleet; greater than 1 means the content diverges between devices",
+    ///      "type": "integer"
+    ///    },
+    ///    "skill_name": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_slug": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_type": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_url": {
+    ///      "type": "string"
+    ///    },
+    ///    "updated_at": {
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    },
+    ///    "upstream_folder_hash": {
+    ///      "description": "Hash of the upstream skill folder recorded at install (managed skills)",
+    ///      "type": "string"
+    ///    },
+    ///    "version": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmAgentSkillsSkillKeyResponse {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub agents: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub description: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub device_count: ::std::option::Option<i64>,
+        ///Resolve each to hostname/user via GET /{customer}/developer-mdm/devices
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub device_ids: ::std::vec::Vec<::std::string::String>,
+        ///Per-device folded view of the skill's installs
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub devices: ::std::vec::Vec<GetCustomerDeveloperMdmAgentSkillsSkillKeyResponseDevicesItem>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_code: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub managed_by: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub plugin_name: ::std::option::Option<::std::string::String>,
+        ///Git ref (branch/tag) the skill was installed from, when known
+        #[serde(
+            rename = "ref",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub ref_: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub scopes: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_key: ::std::option::Option<::std::string::String>,
+        ///Distinct SKILL.md content hashes across the fleet; greater than 1 means the content diverges between devices
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_md_hash_count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_slug: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_type: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_url: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<i64>,
+        ///Hash of the upstream skill folder recorded at install (managed skills)
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub upstream_folder_hash: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub version: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmAgentSkillsSkillKeyResponse {
+        fn default() -> Self {
+            Self {
+                agents: Default::default(),
+                description: Default::default(),
+                device_count: Default::default(),
+                device_ids: Default::default(),
+                devices: Default::default(),
+                has_code: Default::default(),
+                managed_by: Default::default(),
+                plugin_name: Default::default(),
+                ref_: Default::default(),
+                scopes: Default::default(),
+                skill_key: Default::default(),
+                skill_md_hash_count: Default::default(),
+                skill_name: Default::default(),
+                source_slug: Default::default(),
+                source_type: Default::default(),
+                source_url: Default::default(),
+                updated_at: Default::default(),
+                upstream_folder_hash: Default::default(),
+                version: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmAgentSkillsSkillKeyResponseDevicesItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "device_id": {
+    ///      "type": "string"
+    ///    },
+    ///    "has_code": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "has_hooks": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "has_shell_injection": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "instance_count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "project_paths": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "scopes": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "skill_md_hashes": {
+    ///      "description": "Distinct SKILL.md hashes on this device; greater than 1 means multiple installs disagree",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "sources": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "updated_at": {
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    },
+    ///    "version": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmAgentSkillsSkillKeyResponseDevicesItem {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub device_id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_code: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_hooks: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_shell_injection: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub instance_count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub project_paths: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub scopes: ::std::vec::Vec<::std::string::String>,
+        ///Distinct SKILL.md hashes on this device; greater than 1 means multiple installs disagree
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub skill_md_hashes: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub sources: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub version: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmAgentSkillsSkillKeyResponseDevicesItem {
+        fn default() -> Self {
+            Self {
+                device_id: Default::default(),
+                has_code: Default::default(),
+                has_hooks: Default::default(),
+                has_shell_injection: Default::default(),
+                instance_count: Default::default(),
+                project_paths: Default::default(),
+                scopes: Default::default(),
+                skill_md_hashes: Default::default(),
+                sources: Default::default(),
+                updated_at: Default::default(),
+                version: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmAgentSkillsSortBy`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "default": "name",
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "name",
+    ///    "device_count"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmAgentSkillsSortBy {
+        #[serde(rename = "name")]
+        Name,
+        #[serde(rename = "device_count")]
+        DeviceCount,
+    }
+    impl ::std::fmt::Display for GetCustomerDeveloperMdmAgentSkillsSortBy {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Name => f.write_str("name"),
+                Self::DeviceCount => f.write_str("device_count"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetCustomerDeveloperMdmAgentSkillsSortBy {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "name" => Ok(Self::Name),
+                "device_count" => Ok(Self::DeviceCount),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetCustomerDeveloperMdmAgentSkillsSortBy {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for GetCustomerDeveloperMdmAgentSkillsSortBy {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for GetCustomerDeveloperMdmAgentSkillsSortBy {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmAgentSkillsSortBy {
+        fn default() -> Self {
+            GetCustomerDeveloperMdmAgentSkillsSortBy::Name
+        }
+    }
+    ///`GetCustomerDeveloperMdmAgentSkillsSortOrder`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "asc",
+    ///    "desc"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmAgentSkillsSortOrder {
+        #[serde(rename = "asc")]
+        Asc,
+        #[serde(rename = "desc")]
+        Desc,
+    }
+    impl ::std::fmt::Display for GetCustomerDeveloperMdmAgentSkillsSortOrder {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Asc => f.write_str("asc"),
+                Self::Desc => f.write_str("desc"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetCustomerDeveloperMdmAgentSkillsSortOrder {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "asc" => Ok(Self::Asc),
+                "desc" => Ok(Self::Desc),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetCustomerDeveloperMdmAgentSkillsSortOrder {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetCustomerDeveloperMdmAgentSkillsSortOrder
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetCustomerDeveloperMdmAgentSkillsSortOrder
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
     ///`GetCustomerDeveloperMdmAiAgentsResponse`
     ///
     /// <details><summary>JSON schema</summary>
@@ -5128,6 +7501,321 @@ pub mod types {
                 primary_key: Default::default(),
                 script_version: Default::default(),
                 secondary_key: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "agent_skills": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "object",
+    ///        "properties": {
+    ///          "agents": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "has_code": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "has_hooks": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "has_shell_injection": {
+    ///            "type": "boolean"
+    ///          },
+    ///          "instance_count": {
+    ///            "type": "integer"
+    ///          },
+    ///          "managed_by": {
+    ///            "type": "string"
+    ///          },
+    ///          "project_paths": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "ref": {
+    ///            "type": "string"
+    ///          },
+    ///          "scopes": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "skill_key": {
+    ///            "examples": [
+    ///              "managed:github:anthropics/skills/pdf"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "skill_md_hashes": {
+    ///            "description": "Distinct SKILL.md content hashes on this device",
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "skill_name": {
+    ///            "type": "string"
+    ///          },
+    ///          "source_slug": {
+    ///            "type": "string"
+    ///          },
+    ///          "source_type": {
+    ///            "type": "string"
+    ///          },
+    ///          "sources": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "updated_at": {
+    ///            "type": "integer",
+    ///            "format": "int64"
+    ///          },
+    ///          "version": {
+    ///            "type": "string"
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "page": {
+    ///      "type": "integer"
+    ///    },
+    ///    "page_size": {
+    ///      "type": "integer"
+    ///    },
+    ///    "total": {
+    ///      "type": "integer"
+    ///    },
+    ///    "total_pages": {
+    ///      "type": "integer"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponse {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub agent_skills: ::std::vec::Vec<
+            GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponseAgentSkillsItem,
+        >,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub page: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub page_size: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub total: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub total_pages: ::std::option::Option<i64>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponse {
+        fn default() -> Self {
+            Self {
+                agent_skills: Default::default(),
+                page: Default::default(),
+                page_size: Default::default(),
+                total: Default::default(),
+                total_pages: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponseAgentSkillsItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "agents": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "has_code": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "has_hooks": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "has_shell_injection": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "instance_count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "managed_by": {
+    ///      "type": "string"
+    ///    },
+    ///    "project_paths": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "ref": {
+    ///      "type": "string"
+    ///    },
+    ///    "scopes": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "skill_key": {
+    ///      "examples": [
+    ///        "managed:github:anthropics/skills/pdf"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "skill_md_hashes": {
+    ///      "description": "Distinct SKILL.md content hashes on this device",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "skill_name": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_slug": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_type": {
+    ///      "type": "string"
+    ///    },
+    ///    "sources": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "updated_at": {
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    },
+    ///    "version": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponseAgentSkillsItem {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub agents: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_code: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_hooks: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_shell_injection: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub instance_count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub managed_by: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub project_paths: ::std::vec::Vec<::std::string::String>,
+        #[serde(
+            rename = "ref",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub ref_: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub scopes: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_key: ::std::option::Option<::std::string::String>,
+        ///Distinct SKILL.md content hashes on this device
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub skill_md_hashes: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub skill_name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_slug: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_type: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub sources: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub version: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default
+        for GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponseAgentSkillsItem
+    {
+        fn default() -> Self {
+            Self {
+                agents: Default::default(),
+                has_code: Default::default(),
+                has_hooks: Default::default(),
+                has_shell_injection: Default::default(),
+                instance_count: Default::default(),
+                managed_by: Default::default(),
+                project_paths: Default::default(),
+                ref_: Default::default(),
+                scopes: Default::default(),
+                skill_key: Default::default(),
+                skill_md_hashes: Default::default(),
+                skill_name: Default::default(),
+                source_slug: Default::default(),
+                source_type: Default::default(),
+                sources: Default::default(),
+                updated_at: Default::default(),
+                version: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmDevicesDeviceIdComplianceResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "compliance": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/DeviceComplianceView"
+    ///      }
+    ///    },
+    ///    "device_id": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmDevicesDeviceIdComplianceResponse {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub compliance: ::std::vec::Vec<DeviceComplianceView>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub device_id: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmDevicesDeviceIdComplianceResponse {
+        fn default() -> Self {
+            Self {
+                compliance: Default::default(),
+                device_id: Default::default(),
             }
         }
     }
@@ -5829,6 +8517,9 @@ pub mod types {
     ///      "items": {
     ///        "type": "object",
     ///        "properties": {
+    ///          "agent_skills_count": {
+    ///            "type": "integer"
+    ///          },
     ///          "agent_version": {
     ///            "type": "string"
     ///          },
@@ -5952,6 +8643,9 @@ pub mod types {
     ///{
     ///  "type": "object",
     ///  "properties": {
+    ///    "agent_skills_count": {
+    ///      "type": "integer"
+    ///    },
     ///    "agent_version": {
     ///      "type": "string"
     ///    },
@@ -6052,6 +8746,8 @@ pub mod types {
     #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
     pub struct GetCustomerDeveloperMdmDevicesResponseDevicesItem {
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub agent_skills_count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub agent_version: ::std::option::Option<::std::string::String>,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub ai_agents_count: ::std::option::Option<i64>,
@@ -6100,6 +8796,7 @@ pub mod types {
     impl ::std::default::Default for GetCustomerDeveloperMdmDevicesResponseDevicesItem {
         fn default() -> Self {
             Self {
+                agent_skills_count: Default::default(),
                 agent_version: Default::default(),
                 ai_agents_count: Default::default(),
                 cursor_extension_count: Default::default(),
@@ -6447,6 +9144,664 @@ pub mod types {
             value.parse()
         }
     }
+    ///`GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "average_rating": {
+    ///      "type": "number",
+    ///      "format": "float"
+    ///    },
+    ///    "compromise_description": {
+    ///      "description": "Human-readable reason for the flag (e.g. removed from the marketplace on a given date).",
+    ///      "type": "string"
+    ///    },
+    ///    "compromise_records": {
+    ///      "description": "Full catalog records matching this extension. Present when the extension is compromised.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "object",
+    ///        "properties": {
+    ///          "affected_versions": {
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "compromise_type": {
+    ///            "type": "string"
+    ///          },
+    ///          "description": {
+    ///            "type": "string"
+    ///          },
+    ///          "removal_date": {
+    ///            "type": "string"
+    ///          },
+    ///          "source": {
+    ///            "type": "string"
+    ///          },
+    ///          "source_url": {
+    ///            "type": "string"
+    ///          },
+    ///          "version_constraint": {
+    ///            "type": "string"
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "compromise_type": {
+    ///      "description": "Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.",
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "malware",
+    ///        "impersonation",
+    ///        "untrustworthy",
+    ///        "spam",
+    ///        "deprecated",
+    ///        "other"
+    ///      ]
+    ///    },
+    ///    "device_count": {
+    ///      "description": "Number of unique devices with this extension installed",
+    ///      "type": "integer"
+    ///    },
+    ///    "display_name": {
+    ///      "type": "string"
+    ///    },
+    ///    "id": {
+    ///      "examples": [
+    ///        "ms-python.python"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "ide_type": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "vscode",
+    ///        "cursor"
+    ///      ]
+    ///    },
+    ///    "install_count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "is_compromised": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "is_score_available": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "is_typosquat_suspect": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "is_verified": {
+    ///      "type": "boolean"
+    ///    },
+    ///    "kind": {
+    ///      "type": "string"
+    ///    },
+    ///    "marketplace_type": {
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "vscode",
+    ///        "openvsx"
+    ///      ]
+    ///    },
+    ///    "name": {
+    ///      "type": "string"
+    ///    },
+    ///    "publisher": {
+    ///      "type": "string"
+    ///    },
+    ///    "security_score": {
+    ///      "type": "number",
+    ///      "format": "float"
+    ///    },
+    ///    "short_description": {
+    ///      "type": "string"
+    ///    },
+    ///    "source": {
+    ///      "type": "string"
+    ///    },
+    ///    "typosquat_of": {
+    ///      "type": "string"
+    ///    },
+    ///    "typosquat_score": {
+    ///      "type": "number",
+    ///      "format": "float"
+    ///    },
+    ///    "updated_at": {
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    },
+    ///    "versions": {
+    ///      "description": "Per-version breakdown, keyed by version string",
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "object",
+    ///        "properties": {
+    ///          "device_count": {
+    ///            "type": "integer"
+    ///          },
+    ///          "device_ids": {
+    ///            "description": "IDs of devices running this version. Resolve each to hostname/username via GET /{customer}/developer-mdm/devices.",
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "device_install_paths": {
+    ///            "description": "Map of device_id to the extension's on-disk install path",
+    ///            "type": "object",
+    ///            "additionalProperties": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "version": {
+    ///            "type": "string"
+    ///          }
+    ///        }
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub average_rating: ::std::option::Option<f32>,
+        ///Human-readable reason for the flag (e.g. removed from the marketplace on a given date).
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub compromise_description: ::std::option::Option<::std::string::String>,
+        ///Full catalog records matching this extension. Present when the extension is compromised.
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub compromise_records: ::std::vec::Vec<
+            GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseRecordsItem,
+        >,
+        ///Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub compromise_type: ::std::option::Option<
+            GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseType,
+        >,
+        ///Number of unique devices with this extension installed
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub device_count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub display_name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub id: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub ide_type: ::std::option::Option<
+            GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType,
+        >,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub install_count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub is_compromised: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub is_score_available: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub is_typosquat_suspect: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub is_verified: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub kind: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub marketplace_type: ::std::option::Option<
+            GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType,
+        >,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub publisher: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub security_score: ::std::option::Option<f32>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub short_description: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub typosquat_of: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub typosquat_score: ::std::option::Option<f32>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<i64>,
+        ///Per-version breakdown, keyed by version string
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub versions: ::std::collections::HashMap<
+            ::std::string::String,
+            GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseVersionsValue,
+        >,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponse {
+        fn default() -> Self {
+            Self {
+                average_rating: Default::default(),
+                compromise_description: Default::default(),
+                compromise_records: Default::default(),
+                compromise_type: Default::default(),
+                device_count: Default::default(),
+                display_name: Default::default(),
+                id: Default::default(),
+                ide_type: Default::default(),
+                install_count: Default::default(),
+                is_compromised: Default::default(),
+                is_score_available: Default::default(),
+                is_typosquat_suspect: Default::default(),
+                is_verified: Default::default(),
+                kind: Default::default(),
+                marketplace_type: Default::default(),
+                name: Default::default(),
+                publisher: Default::default(),
+                security_score: Default::default(),
+                short_description: Default::default(),
+                source: Default::default(),
+                typosquat_of: Default::default(),
+                typosquat_score: Default::default(),
+                updated_at: Default::default(),
+                versions: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseRecordsItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "affected_versions": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "compromise_type": {
+    ///      "type": "string"
+    ///    },
+    ///    "description": {
+    ///      "type": "string"
+    ///    },
+    ///    "removal_date": {
+    ///      "type": "string"
+    ///    },
+    ///    "source": {
+    ///      "type": "string"
+    ///    },
+    ///    "source_url": {
+    ///      "type": "string"
+    ///    },
+    ///    "version_constraint": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseRecordsItem {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub affected_versions: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub compromise_type: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub description: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub removal_date: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub source_url: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub version_constraint: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseRecordsItem
+    {
+        fn default() -> Self {
+            Self {
+                affected_versions: Default::default(),
+                compromise_type: Default::default(),
+                description: Default::default(),
+                removal_date: Default::default(),
+                source: Default::default(),
+                source_url: Default::default(),
+                version_constraint: Default::default(),
+            }
+        }
+    }
+    ///Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.",
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "malware",
+    ///    "impersonation",
+    ///    "untrustworthy",
+    ///    "spam",
+    ///    "deprecated",
+    ///    "other"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseType {
+        #[serde(rename = "malware")]
+        Malware,
+        #[serde(rename = "impersonation")]
+        Impersonation,
+        #[serde(rename = "untrustworthy")]
+        Untrustworthy,
+        #[serde(rename = "spam")]
+        Spam,
+        #[serde(rename = "deprecated")]
+        Deprecated,
+        #[serde(rename = "other")]
+        Other,
+    }
+    impl ::std::fmt::Display
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseType
+    {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Malware => f.write_str("malware"),
+                Self::Impersonation => f.write_str("impersonation"),
+                Self::Untrustworthy => f.write_str("untrustworthy"),
+                Self::Spam => f.write_str("spam"),
+                Self::Deprecated => f.write_str("deprecated"),
+                Self::Other => f.write_str("other"),
+            }
+        }
+    }
+    impl ::std::str::FromStr
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseType
+    {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "malware" => Ok(Self::Malware),
+                "impersonation" => Ok(Self::Impersonation),
+                "untrustworthy" => Ok(Self::Untrustworthy),
+                "spam" => Ok(Self::Spam),
+                "deprecated" => Ok(Self::Deprecated),
+                "other" => Ok(Self::Other),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseCompromiseType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "vscode",
+    ///    "cursor"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType {
+        #[serde(rename = "vscode")]
+        Vscode,
+        #[serde(rename = "cursor")]
+        Cursor,
+    }
+    impl ::std::fmt::Display for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Vscode => f.write_str("vscode"),
+                Self::Cursor => f.write_str("cursor"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "vscode" => Ok(Self::Vscode),
+                "cursor" => Ok(Self::Cursor),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseIdeType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "vscode",
+    ///    "openvsx"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType {
+        #[serde(rename = "vscode")]
+        Vscode,
+        #[serde(rename = "openvsx")]
+        Openvsx,
+    }
+    impl ::std::fmt::Display
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType
+    {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Vscode => f.write_str("vscode"),
+                Self::Openvsx => f.write_str("openvsx"),
+            }
+        }
+    }
+    impl ::std::str::FromStr
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType
+    {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "vscode" => Ok(Self::Vscode),
+                "openvsx" => Ok(Self::Openvsx),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseMarketplaceType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseVersionsValue`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "device_count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "device_ids": {
+    ///      "description": "IDs of devices running this version. Resolve each to hostname/username via GET /{customer}/developer-mdm/devices.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "device_install_paths": {
+    ///      "description": "Map of device_id to the extension's on-disk install path",
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "version": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseVersionsValue {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub device_count: ::std::option::Option<i64>,
+        ///IDs of devices running this version. Resolve each to hostname/username via GET /{customer}/developer-mdm/devices.
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub device_ids: ::std::vec::Vec<::std::string::String>,
+        ///Map of device_id to the extension's on-disk install path
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub device_install_paths:
+            ::std::collections::HashMap<::std::string::String, ::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub version: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default
+        for GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponseVersionsValue
+    {
+        fn default() -> Self {
+            Self {
+                device_count: Default::default(),
+                device_ids: Default::default(),
+                device_install_paths: Default::default(),
+                version: Default::default(),
+            }
+        }
+    }
     ///`GetCustomerDeveloperMdmIdeExtensionsResponse`
     ///
     /// <details><summary>JSON schema</summary>
@@ -6460,8 +9815,21 @@ pub mod types {
     ///      "items": {
     ///        "type": "object",
     ///        "properties": {
-    ///          "compromise_type": {
+    ///          "compromise_description": {
+    ///            "description": "Human-readable reason for the flag (e.g. removed from the marketplace on a given date).",
     ///            "type": "string"
+    ///          },
+    ///          "compromise_type": {
+    ///            "description": "Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.",
+    ///            "type": "string",
+    ///            "enum": [
+    ///              "malware",
+    ///              "impersonation",
+    ///              "untrustworthy",
+    ///              "spam",
+    ///              "deprecated",
+    ///              "other"
+    ///            ]
     ///          },
     ///          "device_count": {
     ///            "type": "integer"
@@ -6579,8 +9947,21 @@ pub mod types {
     ///{
     ///  "type": "object",
     ///  "properties": {
-    ///    "compromise_type": {
+    ///    "compromise_description": {
+    ///      "description": "Human-readable reason for the flag (e.g. removed from the marketplace on a given date).",
     ///      "type": "string"
+    ///    },
+    ///    "compromise_type": {
+    ///      "description": "Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.",
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "malware",
+    ///        "impersonation",
+    ///        "untrustworthy",
+    ///        "spam",
+    ///        "deprecated",
+    ///        "other"
+    ///      ]
     ///    },
     ///    "device_count": {
     ///      "type": "integer"
@@ -6632,8 +10013,14 @@ pub mod types {
     /// </details>
     #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
     pub struct GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItem {
+        ///Human-readable reason for the flag (e.g. removed from the marketplace on a given date).
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
-        pub compromise_type: ::std::option::Option<::std::string::String>,
+        pub compromise_description: ::std::option::Option<::std::string::String>,
+        ///Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub compromise_type: ::std::option::Option<
+            GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemCompromiseType,
+        >,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub device_count: ::std::option::Option<i64>,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
@@ -6664,6 +10051,7 @@ pub mod types {
     impl ::std::default::Default for GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItem {
         fn default() -> Self {
             Self {
+                compromise_description: Default::default(),
                 compromise_type: Default::default(),
                 device_count: Default::default(),
                 id: Default::default(),
@@ -6678,6 +10066,109 @@ pub mod types {
                 security_score: Default::default(),
                 typosquat_of: Default::default(),
             }
+        }
+    }
+    ///Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.",
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "malware",
+    ///    "impersonation",
+    ///    "untrustworthy",
+    ///    "spam",
+    ///    "deprecated",
+    ///    "other"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemCompromiseType {
+        #[serde(rename = "malware")]
+        Malware,
+        #[serde(rename = "impersonation")]
+        Impersonation,
+        #[serde(rename = "untrustworthy")]
+        Untrustworthy,
+        #[serde(rename = "spam")]
+        Spam,
+        #[serde(rename = "deprecated")]
+        Deprecated,
+        #[serde(rename = "other")]
+        Other,
+    }
+    impl ::std::fmt::Display
+        for GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemCompromiseType
+    {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Malware => f.write_str("malware"),
+                Self::Impersonation => f.write_str("impersonation"),
+                Self::Untrustworthy => f.write_str("untrustworthy"),
+                Self::Spam => f.write_str("spam"),
+                Self::Deprecated => f.write_str("deprecated"),
+                Self::Other => f.write_str("other"),
+            }
+        }
+    }
+    impl ::std::str::FromStr
+        for GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemCompromiseType
+    {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "malware" => Ok(Self::Malware),
+                "impersonation" => Ok(Self::Impersonation),
+                "untrustworthy" => Ok(Self::Untrustworthy),
+                "spam" => Ok(Self::Spam),
+                "deprecated" => Ok(Self::Deprecated),
+                "other" => Ok(Self::Other),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str>
+        for GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemCompromiseType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemCompromiseType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemCompromiseType
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
         }
     }
     ///`GetCustomerDeveloperMdmIdeExtensionsResponseExtensionsItemIdeType`
@@ -6997,6 +10488,272 @@ pub mod types {
             Self {
                 count: Default::default(),
                 packages: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmPoliciesResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "policies": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/DevicePolicy"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmPoliciesResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub policies: ::std::vec::Vec<DevicePolicy>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmPoliciesResponse {
+        fn default() -> Self {
+            Self {
+                count: Default::default(),
+                policies: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmProfilesProfileIdComplianceResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "compliance": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/DeviceComplianceView"
+    ///      }
+    ///    },
+    ///    "profile_id": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmProfilesProfileIdComplianceResponse {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub compliance: ::std::vec::Vec<DeviceComplianceView>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub profile_id: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmProfilesProfileIdComplianceResponse {
+        fn default() -> Self {
+            Self {
+                compliance: Default::default(),
+                profile_id: Default::default(),
+            }
+        }
+    }
+    ///`GetCustomerDeveloperMdmProfilesProfileIdExportCategory`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "default": "ide_extension",
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "ide_extension"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmProfilesProfileIdExportCategory {
+        #[serde(rename = "ide_extension")]
+        IdeExtension,
+    }
+    impl ::std::fmt::Display for GetCustomerDeveloperMdmProfilesProfileIdExportCategory {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::IdeExtension => f.write_str("ide_extension"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetCustomerDeveloperMdmProfilesProfileIdExportCategory {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "ide_extension" => Ok(Self::IdeExtension),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetCustomerDeveloperMdmProfilesProfileIdExportCategory {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetCustomerDeveloperMdmProfilesProfileIdExportCategory
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetCustomerDeveloperMdmProfilesProfileIdExportCategory
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmProfilesProfileIdExportCategory {
+        fn default() -> Self {
+            GetCustomerDeveloperMdmProfilesProfileIdExportCategory::IdeExtension
+        }
+    }
+    ///`GetCustomerDeveloperMdmProfilesProfileIdExportOs`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "windows",
+    ///    "macos",
+    ///    "linux"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetCustomerDeveloperMdmProfilesProfileIdExportOs {
+        #[serde(rename = "windows")]
+        Windows,
+        #[serde(rename = "macos")]
+        Macos,
+        #[serde(rename = "linux")]
+        Linux,
+    }
+    impl ::std::fmt::Display for GetCustomerDeveloperMdmProfilesProfileIdExportOs {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Windows => f.write_str("windows"),
+                Self::Macos => f.write_str("macos"),
+                Self::Linux => f.write_str("linux"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetCustomerDeveloperMdmProfilesProfileIdExportOs {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "windows" => Ok(Self::Windows),
+                "macos" => Ok(Self::Macos),
+                "linux" => Ok(Self::Linux),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetCustomerDeveloperMdmProfilesProfileIdExportOs {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetCustomerDeveloperMdmProfilesProfileIdExportOs
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetCustomerDeveloperMdmProfilesProfileIdExportOs
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetCustomerDeveloperMdmProfilesResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "count": {
+    ///      "type": "integer"
+    ///    },
+    ///    "profiles": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/DeviceProfile"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetCustomerDeveloperMdmProfilesResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub count: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub profiles: ::std::vec::Vec<DeviceProfile>,
+    }
+    impl ::std::default::Default for GetCustomerDeveloperMdmProfilesResponse {
+        fn default() -> Self {
+            Self {
+                count: Default::default(),
+                profiles: Default::default(),
             }
         }
     }
@@ -9052,6 +12809,161 @@ pub mod types {
             }
         }
     }
+    ///`GetGithubOrgApiKeysResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "customer_keys": {
+    ///      "description": "Tenant-level keys. Present only when the caller has the tenant-api-keys read permission.",
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "arc_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "broker_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "secure_registry_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "self_hosted_vm_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "tenant_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "tenant_read_only_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        }
+    ///      }
+    ///    },
+    ///    "subscription_keys": {
+    ///      "description": "Organization-level keys. Requires the api-keys read permission; always present, but empty when the caller lacks the permission or no keys exist.",
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        },
+    ///        "self_hosted_vm_api_key": {
+    ///          "$ref": "#/components/schemas/ApiKeyConfig"
+    ///        }
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetGithubOrgApiKeysResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub customer_keys: ::std::option::Option<GetGithubOrgApiKeysResponseCustomerKeys>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub subscription_keys: ::std::option::Option<GetGithubOrgApiKeysResponseSubscriptionKeys>,
+    }
+    impl ::std::default::Default for GetGithubOrgApiKeysResponse {
+        fn default() -> Self {
+            Self {
+                customer_keys: Default::default(),
+                subscription_keys: Default::default(),
+            }
+        }
+    }
+    ///Tenant-level keys. Present only when the caller has the tenant-api-keys read permission.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Tenant-level keys. Present only when the caller has the tenant-api-keys read permission.",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "arc_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "broker_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "secure_registry_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "self_hosted_vm_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "tenant_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "tenant_read_only_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetGithubOrgApiKeysResponseCustomerKeys {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub arc_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub broker_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub secure_registry_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub self_hosted_vm_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub tenant_api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub tenant_read_only_api_key: ::std::option::Option<ApiKeyConfig>,
+    }
+    impl ::std::default::Default for GetGithubOrgApiKeysResponseCustomerKeys {
+        fn default() -> Self {
+            Self {
+                arc_api_key: Default::default(),
+                broker_api_key: Default::default(),
+                secure_registry_api_key: Default::default(),
+                self_hosted_vm_api_key: Default::default(),
+                tenant_api_key: Default::default(),
+                tenant_read_only_api_key: Default::default(),
+            }
+        }
+    }
+    ///Organization-level keys. Requires the api-keys read permission; always present, but empty when the caller lacks the permission or no keys exist.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Organization-level keys. Requires the api-keys read permission; always present, but empty when the caller lacks the permission or no keys exist.",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    },
+    ///    "self_hosted_vm_api_key": {
+    ///      "$ref": "#/components/schemas/ApiKeyConfig"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetGithubOrgApiKeysResponseSubscriptionKeys {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub api_key: ::std::option::Option<ApiKeyConfig>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub self_hosted_vm_api_key: ::std::option::Option<ApiKeyConfig>,
+    }
+    impl ::std::default::Default for GetGithubOrgApiKeysResponseSubscriptionKeys {
+        fn default() -> Self {
+            Self {
+                api_key: Default::default(),
+                self_hosted_vm_api_key: Default::default(),
+            }
+        }
+    }
     ///`GetGithubOwnerActionsBaselineResponse`
     ///
     /// <details><summary>JSON schema</summary>
@@ -9894,6 +13806,643 @@ pub mod types {
     impl ::std::convert::TryFrom<::std::string::String>
         for GetGithubOwnerActionsReportIdResponseStatus
     {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetGithubOwnerPullRequestsResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "data": {
+    ///      "description": "Page of pull requests.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "object",
+    ///        "properties": {
+    ///          "author_github_user": {
+    ///            "examples": [
+    ///              "stepsecurity-app"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "customer": {
+    ///            "examples": [
+    ///              "acme-corp"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "fix_branch_name": {
+    ///            "type": "string"
+    ///          },
+    ///          "full_repo_name": {
+    ///            "examples": [
+    ///              "acme-corp/example-repo"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "id": {
+    ///            "examples": [
+    ///              56
+    ///            ],
+    ///            "type": "integer"
+    ///          },
+    ///          "is_pr_merged": {
+    ///            "examples": [
+    ///              false
+    ///            ],
+    ///            "type": "boolean"
+    ///          },
+    ///          "issue_id": {
+    ///            "description": "GitHub issue number this remediation is associated with, if any. `0` when no issue is linked.",
+    ///            "examples": [
+    ///              0
+    ///            ],
+    ///            "type": "integer"
+    ///          },
+    ///          "owner": {
+    ///            "examples": [
+    ///              "acme-corp"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "pull_Request_id": {
+    ///            "description": "GitHub's internal pull request ID. Note the unusual casing of this key (`pull_Request_id` with a capital `R`) — this is the actual JSON key returned by the API and clients must match it exactly.",
+    ///            "examples": [
+    ///              3539744868
+    ///            ],
+    ///            "type": "integer"
+    ///          },
+    ///          "pull_request_created_at": {
+    ///            "description": "Unix epoch seconds when the pull request was created on GitHub.",
+    ///            "examples": [
+    ///              1776347230
+    ///            ],
+    ///            "type": "integer",
+    ///            "format": "int64"
+    ///          },
+    ///          "pull_request_html_url": {
+    ///            "examples": [
+    ///              "https://github.com/acme-corp/example-repo/pull/56"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "pull_request_number": {
+    ///            "examples": [
+    ///              56
+    ///            ],
+    ///            "type": "integer"
+    ///          },
+    ///          "pull_request_state": {
+    ///            "description": "GitHub pull request state. Only `open` or `closed` ever appear here — merged PRs have `pull_request_state: \"closed\"` together with `is_pr_merged: true`. The `state=merged` query filter is just shorthand for that combination.",
+    ///            "examples": [
+    ///              "open"
+    ///            ],
+    ///            "type": "string",
+    ///            "enum": [
+    ///              "open",
+    ///              "closed"
+    ///            ]
+    ///          },
+    ///          "remediated_controls": {
+    ///            "description": "Per-workflow list of controls remediated by this pull request.",
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "object",
+    ///              "properties": {
+    ///                "Controls": {
+    ///                  "examples": [
+    ///                    [
+    ///                      "ActionsShouldBePinned",
+    ///                      "GitHubHostedRunnerShouldBeHardened"
+    ///                    ]
+    ///                  ],
+    ///                  "type": "array",
+    ///                  "items": {
+    ///                    "type": "string"
+    ///                  }
+    ///                },
+    ///                "Workflow": {
+    ///                  "examples": [
+    ///                    "codeql.yml"
+    ///                  ],
+    ///                  "type": "string"
+    ///                }
+    ///              }
+    ///            }
+    ///          },
+    ///          "remediation_type": {
+    ///            "examples": [
+    ///              "PullRequest"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "status": {
+    ///            "examples": [
+    ///              "ACTIVE"
+    ///            ],
+    ///            "type": "string"
+    ///          },
+    ///          "updated_at": {
+    ///            "description": "Unix epoch seconds of the last update; results are sorted by this field descending.",
+    ///            "examples": [
+    ///              1776347231
+    ///            ],
+    ///            "type": "integer",
+    ///            "format": "int64"
+    ///          },
+    ///          "vulnerability_identifiers": {
+    ///            "examples": [
+    ///              [
+    ///                "main::.github/workflows/codeql.yml::UnpinnedGitHubActions"
+    ///              ]
+    ///            ],
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "has_more": {
+    ///      "description": "`true` if there are more results available; pass `next_token` to fetch them.",
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "next_token": {
+    ///      "description": "Pagination cursor for the next page. Empty when `has_more` is `false`.",
+    ///      "examples": [
+    ///        "eyJmdWxsX3JlcG9fbmFtZSI6..."
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetGithubOwnerPullRequestsResponse {
+        ///Page of pull requests.
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub data: ::std::vec::Vec<GetGithubOwnerPullRequestsResponseDataItem>,
+        ///`true` if there are more results available; pass `next_token` to fetch them.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_more: ::std::option::Option<bool>,
+        ///Pagination cursor for the next page. Empty when `has_more` is `false`.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub next_token: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for GetGithubOwnerPullRequestsResponse {
+        fn default() -> Self {
+            Self {
+                data: Default::default(),
+                has_more: Default::default(),
+                next_token: Default::default(),
+            }
+        }
+    }
+    ///`GetGithubOwnerPullRequestsResponseDataItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "author_github_user": {
+    ///      "examples": [
+    ///        "stepsecurity-app"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "customer": {
+    ///      "examples": [
+    ///        "acme-corp"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "fix_branch_name": {
+    ///      "type": "string"
+    ///    },
+    ///    "full_repo_name": {
+    ///      "examples": [
+    ///        "acme-corp/example-repo"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "id": {
+    ///      "examples": [
+    ///        56
+    ///      ],
+    ///      "type": "integer"
+    ///    },
+    ///    "is_pr_merged": {
+    ///      "examples": [
+    ///        false
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "issue_id": {
+    ///      "description": "GitHub issue number this remediation is associated with, if any. `0` when no issue is linked.",
+    ///      "examples": [
+    ///        0
+    ///      ],
+    ///      "type": "integer"
+    ///    },
+    ///    "owner": {
+    ///      "examples": [
+    ///        "acme-corp"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "pull_Request_id": {
+    ///      "description": "GitHub's internal pull request ID. Note the unusual casing of this key (`pull_Request_id` with a capital `R`) — this is the actual JSON key returned by the API and clients must match it exactly.",
+    ///      "examples": [
+    ///        3539744868
+    ///      ],
+    ///      "type": "integer"
+    ///    },
+    ///    "pull_request_created_at": {
+    ///      "description": "Unix epoch seconds when the pull request was created on GitHub.",
+    ///      "examples": [
+    ///        1776347230
+    ///      ],
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    },
+    ///    "pull_request_html_url": {
+    ///      "examples": [
+    ///        "https://github.com/acme-corp/example-repo/pull/56"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "pull_request_number": {
+    ///      "examples": [
+    ///        56
+    ///      ],
+    ///      "type": "integer"
+    ///    },
+    ///    "pull_request_state": {
+    ///      "description": "GitHub pull request state. Only `open` or `closed` ever appear here — merged PRs have `pull_request_state: \"closed\"` together with `is_pr_merged: true`. The `state=merged` query filter is just shorthand for that combination.",
+    ///      "examples": [
+    ///        "open"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "open",
+    ///        "closed"
+    ///      ]
+    ///    },
+    ///    "remediated_controls": {
+    ///      "description": "Per-workflow list of controls remediated by this pull request.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "object",
+    ///        "properties": {
+    ///          "Controls": {
+    ///            "examples": [
+    ///              [
+    ///                "ActionsShouldBePinned",
+    ///                "GitHubHostedRunnerShouldBeHardened"
+    ///              ]
+    ///            ],
+    ///            "type": "array",
+    ///            "items": {
+    ///              "type": "string"
+    ///            }
+    ///          },
+    ///          "Workflow": {
+    ///            "examples": [
+    ///              "codeql.yml"
+    ///            ],
+    ///            "type": "string"
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "remediation_type": {
+    ///      "examples": [
+    ///        "PullRequest"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "status": {
+    ///      "examples": [
+    ///        "ACTIVE"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "updated_at": {
+    ///      "description": "Unix epoch seconds of the last update; results are sorted by this field descending.",
+    ///      "examples": [
+    ///        1776347231
+    ///      ],
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    },
+    ///    "vulnerability_identifiers": {
+    ///      "examples": [
+    ///        [
+    ///          "main::.github/workflows/codeql.yml::UnpinnedGitHubActions"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetGithubOwnerPullRequestsResponseDataItem {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub author_github_user: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub customer: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub fix_branch_name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub full_repo_name: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub id: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub is_pr_merged: ::std::option::Option<bool>,
+        ///GitHub issue number this remediation is associated with, if any. `0` when no issue is linked.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub issue_id: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub owner: ::std::option::Option<::std::string::String>,
+        ///Unix epoch seconds when the pull request was created on GitHub.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub pull_request_created_at: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub pull_request_html_url: ::std::option::Option<::std::string::String>,
+        ///GitHub's internal pull request ID. Note the unusual casing of this key (`pull_Request_id` with a capital `R`) — this is the actual JSON key returned by the API and clients must match it exactly.
+        #[serde(
+            rename = "pull_Request_id",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub pull_request_id: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub pull_request_number: ::std::option::Option<i64>,
+        ///GitHub pull request state. Only `open` or `closed` ever appear here — merged PRs have `pull_request_state: "closed"` together with `is_pr_merged: true`. The `state=merged` query filter is just shorthand for that combination.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub pull_request_state:
+            ::std::option::Option<GetGithubOwnerPullRequestsResponseDataItemPullRequestState>,
+        ///Per-workflow list of controls remediated by this pull request.
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub remediated_controls:
+            ::std::vec::Vec<GetGithubOwnerPullRequestsResponseDataItemRemediatedControlsItem>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub remediation_type: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub status: ::std::option::Option<::std::string::String>,
+        ///Unix epoch seconds of the last update; results are sorted by this field descending.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<i64>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub vulnerability_identifiers: ::std::vec::Vec<::std::string::String>,
+    }
+    impl ::std::default::Default for GetGithubOwnerPullRequestsResponseDataItem {
+        fn default() -> Self {
+            Self {
+                author_github_user: Default::default(),
+                customer: Default::default(),
+                fix_branch_name: Default::default(),
+                full_repo_name: Default::default(),
+                id: Default::default(),
+                is_pr_merged: Default::default(),
+                issue_id: Default::default(),
+                owner: Default::default(),
+                pull_request_created_at: Default::default(),
+                pull_request_html_url: Default::default(),
+                pull_request_id: Default::default(),
+                pull_request_number: Default::default(),
+                pull_request_state: Default::default(),
+                remediated_controls: Default::default(),
+                remediation_type: Default::default(),
+                status: Default::default(),
+                updated_at: Default::default(),
+                vulnerability_identifiers: Default::default(),
+            }
+        }
+    }
+    ///GitHub pull request state. Only `open` or `closed` ever appear here — merged PRs have `pull_request_state: "closed"` together with `is_pr_merged: true`. The `state=merged` query filter is just shorthand for that combination.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "GitHub pull request state. Only `open` or `closed` ever appear here — merged PRs have `pull_request_state: \"closed\"` together with `is_pr_merged: true`. The `state=merged` query filter is just shorthand for that combination.",
+    ///  "examples": [
+    ///    "open"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "open",
+    ///    "closed"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetGithubOwnerPullRequestsResponseDataItemPullRequestState {
+        #[serde(rename = "open")]
+        Open,
+        #[serde(rename = "closed")]
+        Closed,
+    }
+    impl ::std::fmt::Display for GetGithubOwnerPullRequestsResponseDataItemPullRequestState {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Open => f.write_str("open"),
+                Self::Closed => f.write_str("closed"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetGithubOwnerPullRequestsResponseDataItemPullRequestState {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "open" => Ok(Self::Open),
+                "closed" => Ok(Self::Closed),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetGithubOwnerPullRequestsResponseDataItemPullRequestState {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetGithubOwnerPullRequestsResponseDataItemPullRequestState
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetGithubOwnerPullRequestsResponseDataItemPullRequestState
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetGithubOwnerPullRequestsResponseDataItemRemediatedControlsItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "Controls": {
+    ///      "examples": [
+    ///        [
+    ///          "ActionsShouldBePinned",
+    ///          "GitHubHostedRunnerShouldBeHardened"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "Workflow": {
+    ///      "examples": [
+    ///        "codeql.yml"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetGithubOwnerPullRequestsResponseDataItemRemediatedControlsItem {
+        #[serde(
+            rename = "Controls",
+            default,
+            skip_serializing_if = "::std::vec::Vec::is_empty"
+        )]
+        pub controls: ::std::vec::Vec<::std::string::String>,
+        #[serde(
+            rename = "Workflow",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub workflow: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for GetGithubOwnerPullRequestsResponseDataItemRemediatedControlsItem {
+        fn default() -> Self {
+            Self {
+                controls: Default::default(),
+                workflow: Default::default(),
+            }
+        }
+    }
+    ///`GetGithubOwnerPullRequestsState`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "open",
+    ///    "closed",
+    ///    "merged"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetGithubOwnerPullRequestsState {
+        #[serde(rename = "open")]
+        Open,
+        #[serde(rename = "closed")]
+        Closed,
+        #[serde(rename = "merged")]
+        Merged,
+    }
+    impl ::std::fmt::Display for GetGithubOwnerPullRequestsState {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Open => f.write_str("open"),
+                Self::Closed => f.write_str("closed"),
+                Self::Merged => f.write_str("merged"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetGithubOwnerPullRequestsState {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "open" => Ok(Self::Open),
+                "closed" => Ok(Self::Closed),
+                "merged" => Ok(Self::Merged),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetGithubOwnerPullRequestsState {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for GetGithubOwnerPullRequestsState {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for GetGithubOwnerPullRequestsState {
         type Error = self::error::ConversionError;
         fn try_from(
             value: ::std::string::String,
@@ -10952,6 +15501,66 @@ pub mod types {
             }
         }
     }
+    ///`GetGithubOwnerRepoJobsBaselineResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "oneOf": [
+    ///    {
+    ///      "description": "Legacy bare-array response. Returned when neither `limit` nor `next_token` is supplied.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/WorkflowJobRunEndpointAggregation"
+    ///      }
+    ///    },
+    ///    {
+    ///      "description": "Paginated envelope. Returned when `limit` or `next_token` is supplied.",
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "data": {
+    ///          "type": "array",
+    ///          "items": {
+    ///            "$ref": "#/components/schemas/WorkflowJobRunEndpointAggregation"
+    ///          }
+    ///        },
+    ///        "has_more": {
+    ///          "description": "True when more rows remain; pass `next_token` to fetch the next page.",
+    ///          "type": "boolean"
+    ///        },
+    ///        "next_token": {
+    ///          "description": "Cursor for the next page. Empty when `has_more` is false.",
+    ///          "type": "string"
+    ///        }
+    ///      }
+    ///    }
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    #[serde(untagged)]
+    pub enum GetGithubOwnerRepoJobsBaselineResponse {
+        Array(::std::vec::Vec<WorkflowJobRunEndpointAggregation>),
+        Object {
+            #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+            data: ::std::vec::Vec<WorkflowJobRunEndpointAggregation>,
+            ///True when more rows remain; pass `next_token` to fetch the next page.
+            #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+            has_more: ::std::option::Option<bool>,
+            ///Cursor for the next page. Empty when `has_more` is false.
+            #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+            next_token: ::std::option::Option<::std::string::String>,
+        },
+    }
+    impl ::std::convert::From<::std::vec::Vec<WorkflowJobRunEndpointAggregation>>
+        for GetGithubOwnerRepoJobsBaselineResponse
+    {
+        fn from(value: ::std::vec::Vec<WorkflowJobRunEndpointAggregation>) -> Self {
+            Self::Array(value)
+        }
+    }
     ///`GetGithubOwnerRepoJobsBaselineStatus`
     ///
     /// <details><summary>JSON schema</summary>
@@ -11023,6 +15632,492 @@ pub mod types {
         }
     }
     impl ::std::convert::TryFrom<::std::string::String> for GetGithubOwnerRepoJobsBaselineStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetHardenRunnerAgentProviderOsTopoReleasesOs`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "linux",
+    ///    "windows",
+    ///    "darwin"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetHardenRunnerAgentProviderOsTopoReleasesOs {
+        #[serde(rename = "linux")]
+        Linux,
+        #[serde(rename = "windows")]
+        Windows,
+        #[serde(rename = "darwin")]
+        Darwin,
+    }
+    impl ::std::fmt::Display for GetHardenRunnerAgentProviderOsTopoReleasesOs {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Linux => f.write_str("linux"),
+                Self::Windows => f.write_str("windows"),
+                Self::Darwin => f.write_str("darwin"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetHardenRunnerAgentProviderOsTopoReleasesOs {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "linux" => Ok(Self::Linux),
+                "windows" => Ok(Self::Windows),
+                "darwin" => Ok(Self::Darwin),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetHardenRunnerAgentProviderOsTopoReleasesOs {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesOs
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesOs
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetHardenRunnerAgentProviderOsTopoReleasesProvider`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "github",
+    ///    "gitlab",
+    ///    "ado"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetHardenRunnerAgentProviderOsTopoReleasesProvider {
+        #[serde(rename = "github")]
+        Github,
+        #[serde(rename = "gitlab")]
+        Gitlab,
+        #[serde(rename = "ado")]
+        Ado,
+    }
+    impl ::std::fmt::Display for GetHardenRunnerAgentProviderOsTopoReleasesProvider {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Github => f.write_str("github"),
+                Self::Gitlab => f.write_str("gitlab"),
+                Self::Ado => f.write_str("ado"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetHardenRunnerAgentProviderOsTopoReleasesProvider {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "github" => Ok(Self::Github),
+                "gitlab" => Ok(Self::Gitlab),
+                "ado" => Ok(Self::Ado),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetHardenRunnerAgentProviderOsTopoReleasesProvider {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesProvider
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesProvider
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetHardenRunnerAgentProviderOsTopoReleasesTagOs`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "linux",
+    ///    "windows",
+    ///    "darwin"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetHardenRunnerAgentProviderOsTopoReleasesTagOs {
+        #[serde(rename = "linux")]
+        Linux,
+        #[serde(rename = "windows")]
+        Windows,
+        #[serde(rename = "darwin")]
+        Darwin,
+    }
+    impl ::std::fmt::Display for GetHardenRunnerAgentProviderOsTopoReleasesTagOs {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Linux => f.write_str("linux"),
+                Self::Windows => f.write_str("windows"),
+                Self::Darwin => f.write_str("darwin"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetHardenRunnerAgentProviderOsTopoReleasesTagOs {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "linux" => Ok(Self::Linux),
+                "windows" => Ok(Self::Windows),
+                "darwin" => Ok(Self::Darwin),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetHardenRunnerAgentProviderOsTopoReleasesTagOs {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTagOs
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTagOs
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetHardenRunnerAgentProviderOsTopoReleasesTagProvider`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "github",
+    ///    "gitlab",
+    ///    "ado"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetHardenRunnerAgentProviderOsTopoReleasesTagProvider {
+        #[serde(rename = "github")]
+        Github,
+        #[serde(rename = "gitlab")]
+        Gitlab,
+        #[serde(rename = "ado")]
+        Ado,
+    }
+    impl ::std::fmt::Display for GetHardenRunnerAgentProviderOsTopoReleasesTagProvider {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Github => f.write_str("github"),
+                Self::Gitlab => f.write_str("gitlab"),
+                Self::Ado => f.write_str("ado"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetHardenRunnerAgentProviderOsTopoReleasesTagProvider {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "github" => Ok(Self::Github),
+                "gitlab" => Ok(Self::Gitlab),
+                "ado" => Ok(Self::Ado),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetHardenRunnerAgentProviderOsTopoReleasesTagProvider {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTagProvider
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTagProvider
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetHardenRunnerAgentProviderOsTopoReleasesTagTopo`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "single",
+    ///    "multi",
+    ///    "k8s"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetHardenRunnerAgentProviderOsTopoReleasesTagTopo {
+        #[serde(rename = "single")]
+        Single,
+        #[serde(rename = "multi")]
+        Multi,
+        #[serde(rename = "k8s")]
+        K8s,
+    }
+    impl ::std::fmt::Display for GetHardenRunnerAgentProviderOsTopoReleasesTagTopo {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Single => f.write_str("single"),
+                Self::Multi => f.write_str("multi"),
+                Self::K8s => f.write_str("k8s"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetHardenRunnerAgentProviderOsTopoReleasesTagTopo {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "single" => Ok(Self::Single),
+                "multi" => Ok(Self::Multi),
+                "k8s" => Ok(Self::K8s),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetHardenRunnerAgentProviderOsTopoReleasesTagTopo {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTagTopo
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTagTopo
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetHardenRunnerAgentProviderOsTopoReleasesTopo`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "single",
+    ///    "multi",
+    ///    "k8s"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetHardenRunnerAgentProviderOsTopoReleasesTopo {
+        #[serde(rename = "single")]
+        Single,
+        #[serde(rename = "multi")]
+        Multi,
+        #[serde(rename = "k8s")]
+        K8s,
+    }
+    impl ::std::fmt::Display for GetHardenRunnerAgentProviderOsTopoReleasesTopo {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Single => f.write_str("single"),
+                Self::Multi => f.write_str("multi"),
+                Self::K8s => f.write_str("k8s"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetHardenRunnerAgentProviderOsTopoReleasesTopo {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "single" => Ok(Self::Single),
+                "multi" => Ok(Self::Multi),
+                "k8s" => Ok(Self::K8s),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetHardenRunnerAgentProviderOsTopoReleasesTopo {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTopo
+    {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String>
+        for GetHardenRunnerAgentProviderOsTopoReleasesTopo
+    {
         type Error = self::error::ConversionError;
         fn try_from(
             value: ::std::string::String,
@@ -11544,6 +16639,371 @@ pub mod types {
             }
         }
     }
+    ///`GetSecureRegistryAuditLogsEcosystem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "javascript",
+    ///    "python"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetSecureRegistryAuditLogsEcosystem {
+        #[serde(rename = "javascript")]
+        Javascript,
+        #[serde(rename = "python")]
+        Python,
+    }
+    impl ::std::fmt::Display for GetSecureRegistryAuditLogsEcosystem {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Javascript => f.write_str("javascript"),
+                Self::Python => f.write_str("python"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetSecureRegistryAuditLogsEcosystem {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "javascript" => Ok(Self::Javascript),
+                "python" => Ok(Self::Python),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetSecureRegistryAuditLogsEcosystem {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for GetSecureRegistryAuditLogsEcosystem {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for GetSecureRegistryAuditLogsEcosystem {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetSecureRegistryAuditLogsRequestType`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "metadata",
+    ///    "tarball_download"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetSecureRegistryAuditLogsRequestType {
+        #[serde(rename = "metadata")]
+        Metadata,
+        #[serde(rename = "tarball_download")]
+        TarballDownload,
+    }
+    impl ::std::fmt::Display for GetSecureRegistryAuditLogsRequestType {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Metadata => f.write_str("metadata"),
+                Self::TarballDownload => f.write_str("tarball_download"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetSecureRegistryAuditLogsRequestType {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "metadata" => Ok(Self::Metadata),
+                "tarball_download" => Ok(Self::TarballDownload),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetSecureRegistryAuditLogsRequestType {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for GetSecureRegistryAuditLogsRequestType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for GetSecureRegistryAuditLogsRequestType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetSecureRegistryAuditLogsSource`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "dev",
+    ///    "gha"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetSecureRegistryAuditLogsSource {
+        #[serde(rename = "dev")]
+        Dev,
+        #[serde(rename = "gha")]
+        Gha,
+    }
+    impl ::std::fmt::Display for GetSecureRegistryAuditLogsSource {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Dev => f.write_str("dev"),
+                Self::Gha => f.write_str("gha"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetSecureRegistryAuditLogsSource {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "dev" => Ok(Self::Dev),
+                "gha" => Ok(Self::Gha),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetSecureRegistryAuditLogsSource {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for GetSecureRegistryAuditLogsSource {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for GetSecureRegistryAuditLogsSource {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetSecureRegistryAuditLogsStatus`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "allowed",
+    ///    "modified",
+    ///    "blocked"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetSecureRegistryAuditLogsStatus {
+        #[serde(rename = "allowed")]
+        Allowed,
+        #[serde(rename = "modified")]
+        Modified,
+        #[serde(rename = "blocked")]
+        Blocked,
+    }
+    impl ::std::fmt::Display for GetSecureRegistryAuditLogsStatus {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Allowed => f.write_str("allowed"),
+                Self::Modified => f.write_str("modified"),
+                Self::Blocked => f.write_str("blocked"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetSecureRegistryAuditLogsStatus {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "allowed" => Ok(Self::Allowed),
+                "modified" => Ok(Self::Modified),
+                "blocked" => Ok(Self::Blocked),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetSecureRegistryAuditLogsStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for GetSecureRegistryAuditLogsStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for GetSecureRegistryAuditLogsStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`GetSecureRegistryConfigRegistry`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "npm",
+    ///    "pypi"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum GetSecureRegistryConfigRegistry {
+        #[serde(rename = "npm")]
+        Npm,
+        #[serde(rename = "pypi")]
+        Pypi,
+    }
+    impl ::std::fmt::Display for GetSecureRegistryConfigRegistry {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Npm => f.write_str("npm"),
+                Self::Pypi => f.write_str("pypi"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for GetSecureRegistryConfigRegistry {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "npm" => Ok(Self::Npm),
+                "pypi" => Ok(Self::Pypi),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for GetSecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for GetSecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for GetSecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
     ///`GetThreatIntelIncidentByIdResponse`
     ///
     /// <details><summary>JSON schema</summary>
@@ -11568,6 +17028,36 @@ pub mod types {
         fn default() -> Self {
             Self {
                 detections: Default::default(),
+            }
+        }
+    }
+    ///`GetThreatIntelIncidentCompromisedComponentsResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "compromised_components": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/OSSCompromisedComponent"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct GetThreatIntelIncidentCompromisedComponentsResponse {
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub compromised_components: ::std::vec::Vec<OssCompromisedComponent>,
+    }
+    impl ::std::default::Default for GetThreatIntelIncidentCompromisedComponentsResponse {
+        fn default() -> Self {
+            Self {
+                compromised_components: Default::default(),
             }
         }
     }
@@ -11772,6 +17262,430 @@ pub mod types {
     {
         fn from(value: ::serde_json::Map<::std::string::String, ::serde_json::Value>) -> Self {
             Self(value)
+        }
+    }
+    ///`HardenRunnerAgentRelease`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "assets": {
+    ///      "description": "Artifacts available for this release.",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/HardenRunnerAgentReleaseAsset"
+    ///      }
+    ///    },
+    ///    "os": {
+    ///      "description": "Operating system for the release artifacts.",
+    ///      "examples": [
+    ///        "linux"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "linux",
+    ///        "windows",
+    ///        "darwin"
+    ///      ]
+    ///    },
+    ///    "provider": {
+    ///      "description": "Source control provider for the release.",
+    ///      "examples": [
+    ///        "github"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "github",
+    ///        "gitlab",
+    ///        "ado"
+    ///      ]
+    ///    },
+    ///    "published_at": {
+    ///      "description": "Release publish timestamp.",
+    ///      "examples": [
+    ///        "2026-06-30T03:53:19Z"
+    ///      ],
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "repo": {
+    ///      "description": "Upstream repository containing the release.",
+    ///      "examples": [
+    ///        "step-security/agent-ebpf"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "tag": {
+    ///      "description": "Release tag resolved by the API.",
+    ///      "examples": [
+    ///        "v1.8.12"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "topology": {
+    ///      "description": "Deployment topology for the release.",
+    ///      "examples": [
+    ///        "single"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "single",
+    ///        "multi",
+    ///        "k8s"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct HardenRunnerAgentRelease {
+        ///Artifacts available for this release.
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub assets: ::std::vec::Vec<HardenRunnerAgentReleaseAsset>,
+        ///Operating system for the release artifacts.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub os: ::std::option::Option<HardenRunnerAgentReleaseOs>,
+        ///Source control provider for the release.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub provider: ::std::option::Option<HardenRunnerAgentReleaseProvider>,
+        ///Release publish timestamp.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub published_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        ///Upstream repository containing the release.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub repo: ::std::option::Option<::std::string::String>,
+        ///Release tag resolved by the API.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub tag: ::std::option::Option<::std::string::String>,
+        ///Deployment topology for the release.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub topology: ::std::option::Option<HardenRunnerAgentReleaseTopology>,
+    }
+    impl ::std::default::Default for HardenRunnerAgentRelease {
+        fn default() -> Self {
+            Self {
+                assets: Default::default(),
+                os: Default::default(),
+                provider: Default::default(),
+                published_at: Default::default(),
+                repo: Default::default(),
+                tag: Default::default(),
+                topology: Default::default(),
+            }
+        }
+    }
+    ///`HardenRunnerAgentReleaseAsset`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "asset_name": {
+    ///      "description": "Release asset file name.",
+    ///      "examples": [
+    ///        "harden-runner_1.8.12_linux_amd64.tar.gz"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "checksum": {
+    ///      "description": "Artifact checksum including algorithm prefix.",
+    ///      "examples": [
+    ///        "sha256:a54c4305b5665ba54bfdc46eb32aee1758699b994550ca3658d698367cc96a3f"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "fallback_download_url": {
+    ///      "description": "Fallback download URL for the release asset.",
+    ///      "examples": [
+    ///        "https://packages.stepsecurity.io/self-hosted/harden-runner_1.8.12_linux_amd64.tar.gz"
+    ///      ],
+    ///      "type": "string",
+    ///      "format": "uri"
+    ///    },
+    ///    "primary_download_url": {
+    ///      "description": "Primary download URL for the release asset.",
+    ///      "examples": [
+    ///        "https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner_1.8.12_linux_amd64.tar.gz"
+    ///      ],
+    ///      "type": "string",
+    ///      "format": "uri"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct HardenRunnerAgentReleaseAsset {
+        ///Release asset file name.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub asset_name: ::std::option::Option<::std::string::String>,
+        ///Artifact checksum including algorithm prefix.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub checksum: ::std::option::Option<::std::string::String>,
+        ///Fallback download URL for the release asset.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub fallback_download_url: ::std::option::Option<::std::string::String>,
+        ///Primary download URL for the release asset.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub primary_download_url: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for HardenRunnerAgentReleaseAsset {
+        fn default() -> Self {
+            Self {
+                asset_name: Default::default(),
+                checksum: Default::default(),
+                fallback_download_url: Default::default(),
+                primary_download_url: Default::default(),
+            }
+        }
+    }
+    ///Operating system for the release artifacts.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Operating system for the release artifacts.",
+    ///  "examples": [
+    ///    "linux"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "linux",
+    ///    "windows",
+    ///    "darwin"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum HardenRunnerAgentReleaseOs {
+        #[serde(rename = "linux")]
+        Linux,
+        #[serde(rename = "windows")]
+        Windows,
+        #[serde(rename = "darwin")]
+        Darwin,
+    }
+    impl ::std::fmt::Display for HardenRunnerAgentReleaseOs {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Linux => f.write_str("linux"),
+                Self::Windows => f.write_str("windows"),
+                Self::Darwin => f.write_str("darwin"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for HardenRunnerAgentReleaseOs {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "linux" => Ok(Self::Linux),
+                "windows" => Ok(Self::Windows),
+                "darwin" => Ok(Self::Darwin),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for HardenRunnerAgentReleaseOs {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for HardenRunnerAgentReleaseOs {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for HardenRunnerAgentReleaseOs {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///Source control provider for the release.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Source control provider for the release.",
+    ///  "examples": [
+    ///    "github"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "github",
+    ///    "gitlab",
+    ///    "ado"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum HardenRunnerAgentReleaseProvider {
+        #[serde(rename = "github")]
+        Github,
+        #[serde(rename = "gitlab")]
+        Gitlab,
+        #[serde(rename = "ado")]
+        Ado,
+    }
+    impl ::std::fmt::Display for HardenRunnerAgentReleaseProvider {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Github => f.write_str("github"),
+                Self::Gitlab => f.write_str("gitlab"),
+                Self::Ado => f.write_str("ado"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for HardenRunnerAgentReleaseProvider {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "github" => Ok(Self::Github),
+                "gitlab" => Ok(Self::Gitlab),
+                "ado" => Ok(Self::Ado),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for HardenRunnerAgentReleaseProvider {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for HardenRunnerAgentReleaseProvider {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for HardenRunnerAgentReleaseProvider {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///Deployment topology for the release.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Deployment topology for the release.",
+    ///  "examples": [
+    ///    "single"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "single",
+    ///    "multi",
+    ///    "k8s"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum HardenRunnerAgentReleaseTopology {
+        #[serde(rename = "single")]
+        Single,
+        #[serde(rename = "multi")]
+        Multi,
+        #[serde(rename = "k8s")]
+        K8s,
+    }
+    impl ::std::fmt::Display for HardenRunnerAgentReleaseTopology {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Single => f.write_str("single"),
+                Self::Multi => f.write_str("multi"),
+                Self::K8s => f.write_str("k8s"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for HardenRunnerAgentReleaseTopology {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "single" => Ok(Self::Single),
+                "multi" => Ok(Self::Multi),
+                "k8s" => Ok(Self::K8s),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for HardenRunnerAgentReleaseTopology {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for HardenRunnerAgentReleaseTopology {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for HardenRunnerAgentReleaseTopology {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
         }
     }
     ///`HardenRunnerConfigChangeDetails`
@@ -12120,6 +18034,130 @@ pub mod types {
                 security_events: Default::default(),
                 statuses: Default::default(),
             }
+        }
+    }
+    ///Lockdown mode configuration.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Lockdown mode configuration.",
+    ///  "type": "object",
+    ///  "required": [
+    ///    "enabled"
+    ///  ],
+    ///  "properties": {
+    ///    "detections": {
+    ///      "description": "Detection types to enable during lockdown",
+    ///      "examples": [
+    ///        [
+    ///          "Privileged-Container",
+    ///          "Reverse-Shell",
+    ///          "Runner-Worker-Memory-Read"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string",
+    ///        "enum": [
+    ///          "Privileged-Container",
+    ///          "Reverse-Shell",
+    ///          "Runner-Worker-Memory-Read"
+    ///        ]
+    ///      }
+    ///    },
+    ///    "enabled": {
+    ///      "description": "Enable lockdown mode",
+    ///      "type": "boolean"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct LockdownConfig {
+        ///Detection types to enable during lockdown
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub detections: ::std::vec::Vec<LockdownConfigDetectionsItem>,
+        ///Enable lockdown mode
+        pub enabled: bool,
+    }
+    ///`LockdownConfigDetectionsItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "Privileged-Container",
+    ///    "Reverse-Shell",
+    ///    "Runner-Worker-Memory-Read"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum LockdownConfigDetectionsItem {
+        #[serde(rename = "Privileged-Container")]
+        PrivilegedContainer,
+        #[serde(rename = "Reverse-Shell")]
+        ReverseShell,
+        #[serde(rename = "Runner-Worker-Memory-Read")]
+        RunnerWorkerMemoryRead,
+    }
+    impl ::std::fmt::Display for LockdownConfigDetectionsItem {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::PrivilegedContainer => f.write_str("Privileged-Container"),
+                Self::ReverseShell => f.write_str("Reverse-Shell"),
+                Self::RunnerWorkerMemoryRead => f.write_str("Runner-Worker-Memory-Read"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for LockdownConfigDetectionsItem {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "Privileged-Container" => Ok(Self::PrivilegedContainer),
+                "Reverse-Shell" => Ok(Self::ReverseShell),
+                "Runner-Worker-Memory-Read" => Ok(Self::RunnerWorkerMemoryRead),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for LockdownConfigDetectionsItem {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for LockdownConfigDetectionsItem {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for LockdownConfigDetectionsItem {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
         }
     }
     ///`NotificationSettings`
@@ -12996,6 +19034,313 @@ pub mod types {
             }
         }
     }
+    ///A compromised OSS component linked to a threat intel incident
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "A compromised OSS component linked to a threat intel incident",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "added_at": {
+    ///      "description": "When this record was added",
+    ///      "examples": [
+    ///        "2024-01-15T10:00:00Z"
+    ///      ],
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "component_name": {
+    ///      "description": "Plain package name",
+    ///      "examples": [
+    ///        "malicious-pkg"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "description": {
+    ///      "description": "Description of the compromise",
+    ///      "examples": [
+    ///        "Package contains malicious code that exfiltrates credentials"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    },
+    ///    "incident_group_id": {
+    ///      "description": "Associated incident group identifier",
+    ///      "examples": [
+    ///        "ig-001"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    },
+    ///    "severity": {
+    ///      "description": "Severity level",
+    ///      "examples": [
+    ///        "critical"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "low",
+    ///        "medium",
+    ///        "high",
+    ///        "critical"
+    ///      ]
+    ///    },
+    ///    "threat_intel_id": {
+    ///      "description": "Associated threat intel incident identifier",
+    ///      "examples": [
+    ///        "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    },
+    ///    "type": {
+    ///      "description": "Package ecosystem type",
+    ///      "examples": [
+    ///        "npm"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "npm",
+    ///        "pypi"
+    ///      ]
+    ///    },
+    ///    "verified": {
+    ///      "description": "Whether the compromise has been verified",
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "version": {
+    ///      "description": "Affected version, or '*' for all versions",
+    ///      "examples": [
+    ///        "1.2.3"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct OssCompromisedComponent {
+        ///When this record was added
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub added_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        ///Plain package name
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub component_name: ::std::option::Option<::std::string::String>,
+        ///Description of the compromise
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub description: ::std::option::Option<::std::string::String>,
+        ///Associated incident group identifier
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub incident_group_id: ::std::option::Option<::std::string::String>,
+        ///Severity level
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub severity: ::std::option::Option<OssCompromisedComponentSeverity>,
+        ///Associated threat intel incident identifier
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub threat_intel_id: ::std::option::Option<::std::string::String>,
+        ///Package ecosystem type
+        #[serde(
+            rename = "type",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub type_: ::std::option::Option<OssCompromisedComponentType>,
+        ///Whether the compromise has been verified
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub verified: ::std::option::Option<bool>,
+        ///Affected version, or '*' for all versions
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub version: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for OssCompromisedComponent {
+        fn default() -> Self {
+            Self {
+                added_at: Default::default(),
+                component_name: Default::default(),
+                description: Default::default(),
+                incident_group_id: Default::default(),
+                severity: Default::default(),
+                threat_intel_id: Default::default(),
+                type_: Default::default(),
+                verified: Default::default(),
+                version: Default::default(),
+            }
+        }
+    }
+    ///Severity level
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Severity level",
+    ///  "examples": [
+    ///    "critical"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "low",
+    ///    "medium",
+    ///    "high",
+    ///    "critical"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum OssCompromisedComponentSeverity {
+        #[serde(rename = "low")]
+        Low,
+        #[serde(rename = "medium")]
+        Medium,
+        #[serde(rename = "high")]
+        High,
+        #[serde(rename = "critical")]
+        Critical,
+    }
+    impl ::std::fmt::Display for OssCompromisedComponentSeverity {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Low => f.write_str("low"),
+                Self::Medium => f.write_str("medium"),
+                Self::High => f.write_str("high"),
+                Self::Critical => f.write_str("critical"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for OssCompromisedComponentSeverity {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "low" => Ok(Self::Low),
+                "medium" => Ok(Self::Medium),
+                "high" => Ok(Self::High),
+                "critical" => Ok(Self::Critical),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for OssCompromisedComponentSeverity {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for OssCompromisedComponentSeverity {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for OssCompromisedComponentSeverity {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///Package ecosystem type
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Package ecosystem type",
+    ///  "examples": [
+    ///    "npm"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "npm",
+    ///    "pypi"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum OssCompromisedComponentType {
+        #[serde(rename = "npm")]
+        Npm,
+        #[serde(rename = "pypi")]
+        Pypi,
+    }
+    impl ::std::fmt::Display for OssCompromisedComponentType {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Npm => f.write_str("npm"),
+                Self::Pypi => f.write_str("pypi"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for OssCompromisedComponentType {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "npm" => Ok(Self::Npm),
+                "pypi" => Ok(Self::Pypi),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for OssCompromisedComponentType {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for OssCompromisedComponentType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for OssCompromisedComponentType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
     ///`OwnerJobRunEndpointAggregation`
     ///
     /// <details><summary>JSON schema</summary>
@@ -13538,6 +19883,158 @@ pub mod types {
             }
         }
     }
+    ///Policy configuration fields.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Policy configuration fields.",
+    ///  "examples": [
+    ///    {
+    ///      "allowed_endpoints": [
+    ///        "api.github.com",
+    ///        "objects.githubusercontent.com"
+    ///      ],
+    ///      "egress_policy": "audit",
+    ///      "lockdown": {
+    ///        "detections": [
+    ///          "Privileged-Container",
+    ///          "Reverse-Shell"
+    ///        ],
+    ///        "enabled": true
+    ///      }
+    ///    }
+    ///  ],
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "allowed_endpoints": {
+    ///      "description": "List of allowed egress endpoints (FQDNs or IPs)",
+    ///      "examples": [
+    ///        [
+    ///          "api.github.com",
+    ///          "objects.githubusercontent.com"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "egress_policy": {
+    ///      "description": "Egress traffic policy mode",
+    ///      "examples": [
+    ///        "audit"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "audit",
+    ///        "block"
+    ///      ]
+    ///    },
+    ///    "lockdown": {
+    ///      "$ref": "#/components/schemas/LockdownConfig"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct PolicyDetails {
+        ///List of allowed egress endpoints (FQDNs or IPs)
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub allowed_endpoints: ::std::vec::Vec<::std::string::String>,
+        ///Egress traffic policy mode
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub egress_policy: ::std::option::Option<PolicyDetailsEgressPolicy>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub lockdown: ::std::option::Option<LockdownConfig>,
+    }
+    impl ::std::default::Default for PolicyDetails {
+        fn default() -> Self {
+            Self {
+                allowed_endpoints: Default::default(),
+                egress_policy: Default::default(),
+                lockdown: Default::default(),
+            }
+        }
+    }
+    ///Egress traffic policy mode
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Egress traffic policy mode",
+    ///  "examples": [
+    ///    "audit"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "audit",
+    ///    "block"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum PolicyDetailsEgressPolicy {
+        #[serde(rename = "audit")]
+        Audit,
+        #[serde(rename = "block")]
+        Block,
+    }
+    impl ::std::fmt::Display for PolicyDetailsEgressPolicy {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Audit => f.write_str("audit"),
+                Self::Block => f.write_str("block"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for PolicyDetailsEgressPolicy {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "audit" => Ok(Self::Audit),
+                "block" => Ok(Self::Block),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for PolicyDetailsEgressPolicy {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for PolicyDetailsEgressPolicy {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for PolicyDetailsEgressPolicy {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
     ///`PolicyDrivenPrConfig`
     ///
     /// <details><summary>JSON schema</summary>
@@ -13723,6 +20220,659 @@ pub mod types {
         pub use_org_level_config: bool,
         ///Whether to use repository-level configuration
         pub use_repo_level_config: bool,
+    }
+    ///`PolicyEvaluationItem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "Customer": {
+    ///      "examples": [
+    ///        "acme"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "Ecosystem": {
+    ///      "examples": [
+    ///        "javascript"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "javascript",
+    ///        "python"
+    ///      ]
+    ///    },
+    ///    "EvaluatedControls": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/EvaluatedControl"
+    ///      }
+    ///    },
+    ///    "PackageVersions": {
+    ///      "examples": [
+    ///        [
+    ///          "1.0.0",
+    ///          "1.0.1"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "RequestID": {
+    ///      "examples": [
+    ///        "req-abc123"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "RequestMetadata": {
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "ModifiedVersions": {
+    ///          "examples": [
+    ///            []
+    ///          ],
+    ///          "type": "array",
+    ///          "items": {
+    ///            "type": "string"
+    ///          }
+    ///        },
+    ///        "PackageName": {
+    ///          "examples": [
+    ///            "lodash"
+    ///          ],
+    ///          "type": "string"
+    ///        },
+    ///        "Version": {
+    ///          "examples": [
+    ///            "4.17.21"
+    ///          ],
+    ///          "type": "string"
+    ///        }
+    ///      }
+    ///    },
+    ///    "RequestStatus": {
+    ///      "examples": [
+    ///        "allowed"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "allowed",
+    ///        "modified",
+    ///        "blocked"
+    ///      ]
+    ///    },
+    ///    "RequestType": {
+    ///      "examples": [
+    ///        "tarball_download"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "metadata",
+    ///        "tarball_download"
+    ///      ]
+    ///    },
+    ///    "Source": {
+    ///      "examples": [
+    ///        "gha"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "dev",
+    ///        "gha"
+    ///      ]
+    ///    },
+    ///    "SourceIP": {
+    ///      "examples": [
+    ///        "203.0.113.42"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "SourceIdentifier": {
+    ///      "examples": [
+    ///        "myorg/my-repo/.github/workflows/ci.yml"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "Timestamp": {
+    ///      "examples": [
+    ///        "2024-06-01T12:00:00Z"
+    ///      ],
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "UserAgentType": {
+    ///      "examples": [
+    ///        "npm"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct PolicyEvaluationItem {
+        #[serde(
+            rename = "Customer",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub customer: ::std::option::Option<::std::string::String>,
+        #[serde(
+            rename = "Ecosystem",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub ecosystem: ::std::option::Option<PolicyEvaluationItemEcosystem>,
+        #[serde(
+            rename = "EvaluatedControls",
+            default,
+            skip_serializing_if = "::std::vec::Vec::is_empty"
+        )]
+        pub evaluated_controls: ::std::vec::Vec<EvaluatedControl>,
+        #[serde(
+            rename = "PackageVersions",
+            default,
+            skip_serializing_if = "::std::vec::Vec::is_empty"
+        )]
+        pub package_versions: ::std::vec::Vec<::std::string::String>,
+        #[serde(
+            rename = "RequestID",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub request_id: ::std::option::Option<::std::string::String>,
+        #[serde(
+            rename = "RequestMetadata",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub request_metadata: ::std::option::Option<PolicyEvaluationItemRequestMetadata>,
+        #[serde(
+            rename = "RequestStatus",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub request_status: ::std::option::Option<PolicyEvaluationItemRequestStatus>,
+        #[serde(
+            rename = "RequestType",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub request_type: ::std::option::Option<PolicyEvaluationItemRequestType>,
+        #[serde(
+            rename = "Source",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub source: ::std::option::Option<PolicyEvaluationItemSource>,
+        #[serde(
+            rename = "SourceIdentifier",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub source_identifier: ::std::option::Option<::std::string::String>,
+        #[serde(
+            rename = "SourceIP",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub source_ip: ::std::option::Option<::std::string::String>,
+        #[serde(
+            rename = "Timestamp",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub timestamp: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        #[serde(
+            rename = "UserAgentType",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub user_agent_type: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for PolicyEvaluationItem {
+        fn default() -> Self {
+            Self {
+                customer: Default::default(),
+                ecosystem: Default::default(),
+                evaluated_controls: Default::default(),
+                package_versions: Default::default(),
+                request_id: Default::default(),
+                request_metadata: Default::default(),
+                request_status: Default::default(),
+                request_type: Default::default(),
+                source: Default::default(),
+                source_identifier: Default::default(),
+                source_ip: Default::default(),
+                timestamp: Default::default(),
+                user_agent_type: Default::default(),
+            }
+        }
+    }
+    ///`PolicyEvaluationItemEcosystem`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "examples": [
+    ///    "javascript"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "javascript",
+    ///    "python"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum PolicyEvaluationItemEcosystem {
+        #[serde(rename = "javascript")]
+        Javascript,
+        #[serde(rename = "python")]
+        Python,
+    }
+    impl ::std::fmt::Display for PolicyEvaluationItemEcosystem {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Javascript => f.write_str("javascript"),
+                Self::Python => f.write_str("python"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for PolicyEvaluationItemEcosystem {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "javascript" => Ok(Self::Javascript),
+                "python" => Ok(Self::Python),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for PolicyEvaluationItemEcosystem {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for PolicyEvaluationItemEcosystem {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for PolicyEvaluationItemEcosystem {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`PolicyEvaluationItemRequestMetadata`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "ModifiedVersions": {
+    ///      "examples": [
+    ///        []
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "PackageName": {
+    ///      "examples": [
+    ///        "lodash"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "Version": {
+    ///      "examples": [
+    ///        "4.17.21"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct PolicyEvaluationItemRequestMetadata {
+        #[serde(
+            rename = "ModifiedVersions",
+            default,
+            skip_serializing_if = "::std::vec::Vec::is_empty"
+        )]
+        pub modified_versions: ::std::vec::Vec<::std::string::String>,
+        #[serde(
+            rename = "PackageName",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub package_name: ::std::option::Option<::std::string::String>,
+        #[serde(
+            rename = "Version",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub version: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for PolicyEvaluationItemRequestMetadata {
+        fn default() -> Self {
+            Self {
+                modified_versions: Default::default(),
+                package_name: Default::default(),
+                version: Default::default(),
+            }
+        }
+    }
+    ///`PolicyEvaluationItemRequestStatus`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "examples": [
+    ///    "allowed"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "allowed",
+    ///    "modified",
+    ///    "blocked"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum PolicyEvaluationItemRequestStatus {
+        #[serde(rename = "allowed")]
+        Allowed,
+        #[serde(rename = "modified")]
+        Modified,
+        #[serde(rename = "blocked")]
+        Blocked,
+    }
+    impl ::std::fmt::Display for PolicyEvaluationItemRequestStatus {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Allowed => f.write_str("allowed"),
+                Self::Modified => f.write_str("modified"),
+                Self::Blocked => f.write_str("blocked"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for PolicyEvaluationItemRequestStatus {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "allowed" => Ok(Self::Allowed),
+                "modified" => Ok(Self::Modified),
+                "blocked" => Ok(Self::Blocked),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for PolicyEvaluationItemRequestStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for PolicyEvaluationItemRequestStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for PolicyEvaluationItemRequestStatus {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`PolicyEvaluationItemRequestType`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "examples": [
+    ///    "tarball_download"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "metadata",
+    ///    "tarball_download"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum PolicyEvaluationItemRequestType {
+        #[serde(rename = "metadata")]
+        Metadata,
+        #[serde(rename = "tarball_download")]
+        TarballDownload,
+    }
+    impl ::std::fmt::Display for PolicyEvaluationItemRequestType {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Metadata => f.write_str("metadata"),
+                Self::TarballDownload => f.write_str("tarball_download"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for PolicyEvaluationItemRequestType {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "metadata" => Ok(Self::Metadata),
+                "tarball_download" => Ok(Self::TarballDownload),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for PolicyEvaluationItemRequestType {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for PolicyEvaluationItemRequestType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for PolicyEvaluationItemRequestType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`PolicyEvaluationItemSource`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "examples": [
+    ///    "gha"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "dev",
+    ///    "gha"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum PolicyEvaluationItemSource {
+        #[serde(rename = "dev")]
+        Dev,
+        #[serde(rename = "gha")]
+        Gha,
+    }
+    impl ::std::fmt::Display for PolicyEvaluationItemSource {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Dev => f.write_str("dev"),
+                Self::Gha => f.write_str("gha"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for PolicyEvaluationItemSource {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "dev" => Ok(Self::Dev),
+                "gha" => Ok(Self::Gha),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for PolicyEvaluationItemSource {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for PolicyEvaluationItemSource {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for PolicyEvaluationItemSource {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`PolicyEvaluationsResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "has_more": {
+    ///      "examples": [
+    ///        false
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "items": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/PolicyEvaluationItem"
+    ///      }
+    ///    },
+    ///    "next_token": {
+    ///      "examples": [
+    ///        "eyJsYXN0S2V5IjogImFiYzEyMyJ9"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct PolicyEvaluationsResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub has_more: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub items: ::std::vec::Vec<PolicyEvaluationItem>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub next_token: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for PolicyEvaluationsResponse {
+        fn default() -> Self {
+            Self {
+                has_more: Default::default(),
+                items: Default::default(),
+                next_token: Default::default(),
+            }
+        }
     }
     ///`PolicyOrganization`
     ///
@@ -16937,6 +24087,36 @@ pub mod types {
         ///Your email address for communication about the request
         pub email_address: ::std::string::String,
     }
+    ///`PostGithubOwnerActionsPoliciesPolicyNameResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "message": {
+    ///      "examples": [
+    ///        "policy saved successfully"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct PostGithubOwnerActionsPoliciesPolicyNameResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub message: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for PostGithubOwnerActionsPoliciesPolicyNameResponse {
+        fn default() -> Self {
+            Self {
+                message: Default::default(),
+            }
+        }
+    }
     ///`PostGithubOwnerActionsReportResponse`
     ///
     /// <details><summary>JSON schema</summary>
@@ -17131,39 +24311,6 @@ pub mod types {
                 id: Default::default(),
                 name: Default::default(),
                 severity_action: Default::default(),
-            }
-        }
-    }
-    ///`PostGithubOwnerActionsRunPoliciesBody`
-    ///
-    /// <details><summary>JSON schema</summary>
-    ///
-    /// ```json
-    ///{
-    ///  "type": "object",
-    ///  "properties": {
-    ///    "name": {
-    ///      "type": "string"
-    ///    },
-    ///    "policy": {
-    ///      "type": "object"
-    ///    }
-    ///  }
-    ///}
-    /// ```
-    /// </details>
-    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
-    pub struct PostGithubOwnerActionsRunPoliciesBody {
-        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
-        pub name: ::std::option::Option<::std::string::String>,
-        #[serde(default, skip_serializing_if = "::serde_json::Map::is_empty")]
-        pub policy: ::serde_json::Map<::std::string::String, ::serde_json::Value>,
-    }
-    impl ::std::default::Default for PostGithubOwnerActionsRunPoliciesBody {
-        fn default() -> Self {
-            Self {
-                name: Default::default(),
-                policy: Default::default(),
             }
         }
     }
@@ -18399,6 +25546,599 @@ pub mod types {
                 total_workflow_runs: Default::default(),
                 total_workflow_runs_since_last_change: Default::default(),
             }
+        }
+    }
+    ///`RotateCustomerApiKeyBody`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "key_name",
+    ///    "type"
+    ///  ],
+    ///  "properties": {
+    ///    "key_name": {
+    ///      "description": "Which tenant-level key to rotate (matched case-insensitively)",
+    ///      "examples": [
+    ///        "TenantAPIKey"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "BrokerAPIKey",
+    ///        "ARCApiKey",
+    ///        "TenantAPIKey",
+    ///        "TenantReadOnlyAPIKey",
+    ///        "TenantWideSelfHostedVMAPIKeyName",
+    ///        "SecureRegistryAPIKey"
+    ///      ]
+    ///    },
+    ///    "type": {
+    ///      "description": "Which key slot to rotate",
+    ///      "examples": [
+    ///        "Primary"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "Primary",
+    ///        "Secondary"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct RotateCustomerApiKeyBody {
+        ///Which tenant-level key to rotate (matched case-insensitively)
+        pub key_name: RotateCustomerApiKeyBodyKeyName,
+        ///Which key slot to rotate
+        #[serde(rename = "type")]
+        pub type_: RotateCustomerApiKeyBodyType,
+    }
+    ///Which tenant-level key to rotate (matched case-insensitively)
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Which tenant-level key to rotate (matched case-insensitively)",
+    ///  "examples": [
+    ///    "TenantAPIKey"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "BrokerAPIKey",
+    ///    "ARCApiKey",
+    ///    "TenantAPIKey",
+    ///    "TenantReadOnlyAPIKey",
+    ///    "TenantWideSelfHostedVMAPIKeyName",
+    ///    "SecureRegistryAPIKey"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum RotateCustomerApiKeyBodyKeyName {
+        #[serde(rename = "BrokerAPIKey")]
+        BrokerApiKey,
+        #[serde(rename = "ARCApiKey")]
+        ArcApiKey,
+        #[serde(rename = "TenantAPIKey")]
+        TenantApiKey,
+        #[serde(rename = "TenantReadOnlyAPIKey")]
+        TenantReadOnlyApiKey,
+        #[serde(rename = "TenantWideSelfHostedVMAPIKeyName")]
+        TenantWideSelfHostedVmapiKeyName,
+        #[serde(rename = "SecureRegistryAPIKey")]
+        SecureRegistryApiKey,
+    }
+    impl ::std::fmt::Display for RotateCustomerApiKeyBodyKeyName {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::BrokerApiKey => f.write_str("BrokerAPIKey"),
+                Self::ArcApiKey => f.write_str("ARCApiKey"),
+                Self::TenantApiKey => f.write_str("TenantAPIKey"),
+                Self::TenantReadOnlyApiKey => f.write_str("TenantReadOnlyAPIKey"),
+                Self::TenantWideSelfHostedVmapiKeyName => {
+                    f.write_str("TenantWideSelfHostedVMAPIKeyName")
+                }
+                Self::SecureRegistryApiKey => f.write_str("SecureRegistryAPIKey"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for RotateCustomerApiKeyBodyKeyName {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "BrokerAPIKey" => Ok(Self::BrokerApiKey),
+                "ARCApiKey" => Ok(Self::ArcApiKey),
+                "TenantAPIKey" => Ok(Self::TenantApiKey),
+                "TenantReadOnlyAPIKey" => Ok(Self::TenantReadOnlyApiKey),
+                "TenantWideSelfHostedVMAPIKeyName" => Ok(Self::TenantWideSelfHostedVmapiKeyName),
+                "SecureRegistryAPIKey" => Ok(Self::SecureRegistryApiKey),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for RotateCustomerApiKeyBodyKeyName {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for RotateCustomerApiKeyBodyKeyName {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for RotateCustomerApiKeyBodyKeyName {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///Which key slot to rotate
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Which key slot to rotate",
+    ///  "examples": [
+    ///    "Primary"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "Primary",
+    ///    "Secondary"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum RotateCustomerApiKeyBodyType {
+        Primary,
+        Secondary,
+    }
+    impl ::std::fmt::Display for RotateCustomerApiKeyBodyType {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Primary => f.write_str("Primary"),
+                Self::Secondary => f.write_str("Secondary"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for RotateCustomerApiKeyBodyType {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "Primary" => Ok(Self::Primary),
+                "Secondary" => Ok(Self::Secondary),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for RotateCustomerApiKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for RotateCustomerApiKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for RotateCustomerApiKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`RotateDeveloperMdmTelemetryKeyBody`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "type"
+    ///  ],
+    ///  "properties": {
+    ///    "type": {
+    ///      "description": "Which telemetry key slot to rotate",
+    ///      "examples": [
+    ///        "Primary"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "Primary",
+    ///        "Secondary"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct RotateDeveloperMdmTelemetryKeyBody {
+        ///Which telemetry key slot to rotate
+        #[serde(rename = "type")]
+        pub type_: RotateDeveloperMdmTelemetryKeyBodyType,
+    }
+    ///Which telemetry key slot to rotate
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Which telemetry key slot to rotate",
+    ///  "examples": [
+    ///    "Primary"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "Primary",
+    ///    "Secondary"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum RotateDeveloperMdmTelemetryKeyBodyType {
+        Primary,
+        Secondary,
+    }
+    impl ::std::fmt::Display for RotateDeveloperMdmTelemetryKeyBodyType {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Primary => f.write_str("Primary"),
+                Self::Secondary => f.write_str("Secondary"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for RotateDeveloperMdmTelemetryKeyBodyType {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "Primary" => Ok(Self::Primary),
+                "Secondary" => Ok(Self::Secondary),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for RotateDeveloperMdmTelemetryKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for RotateDeveloperMdmTelemetryKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for RotateDeveloperMdmTelemetryKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`RotateDeveloperMdmTelemetryKeyResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "key": {
+    ///      "description": "The newly generated telemetry key",
+    ///      "type": "string"
+    ///    },
+    ///    "timestamp": {
+    ///      "description": "Unix timestamp (seconds) when the key was rotated",
+    ///      "type": "integer",
+    ///      "format": "int64"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct RotateDeveloperMdmTelemetryKeyResponse {
+        ///The newly generated telemetry key
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub key: ::std::option::Option<::std::string::String>,
+        ///Unix timestamp (seconds) when the key was rotated
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub timestamp: ::std::option::Option<i64>,
+    }
+    impl ::std::default::Default for RotateDeveloperMdmTelemetryKeyResponse {
+        fn default() -> Self {
+            Self {
+                key: Default::default(),
+                timestamp: Default::default(),
+            }
+        }
+    }
+    ///`RotateGithubOrgApiKeyBody`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "key_name",
+    ///    "type"
+    ///  ],
+    ///  "properties": {
+    ///    "key_name": {
+    ///      "description": "Which key to rotate (matched case-insensitively). ApiKey and SelfHostedVMApiKey are organization-level; the rest are tenant-level.",
+    ///      "examples": [
+    ///        "ApiKey"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "ApiKey",
+    ///        "SelfHostedVMApiKey",
+    ///        "BrokerAPIKey",
+    ///        "ARCApiKey",
+    ///        "TenantAPIKey",
+    ///        "TenantReadOnlyAPIKey",
+    ///        "TenantWideSelfHostedVMAPIKeyName"
+    ///      ]
+    ///    },
+    ///    "type": {
+    ///      "description": "Which key slot to rotate",
+    ///      "examples": [
+    ///        "Primary"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "Primary",
+    ///        "Secondary"
+    ///      ]
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct RotateGithubOrgApiKeyBody {
+        ///Which key to rotate (matched case-insensitively). ApiKey and SelfHostedVMApiKey are organization-level; the rest are tenant-level.
+        pub key_name: RotateGithubOrgApiKeyBodyKeyName,
+        ///Which key slot to rotate
+        #[serde(rename = "type")]
+        pub type_: RotateGithubOrgApiKeyBodyType,
+    }
+    ///Which key to rotate (matched case-insensitively). ApiKey and SelfHostedVMApiKey are organization-level; the rest are tenant-level.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Which key to rotate (matched case-insensitively). ApiKey and SelfHostedVMApiKey are organization-level; the rest are tenant-level.",
+    ///  "examples": [
+    ///    "ApiKey"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "ApiKey",
+    ///    "SelfHostedVMApiKey",
+    ///    "BrokerAPIKey",
+    ///    "ARCApiKey",
+    ///    "TenantAPIKey",
+    ///    "TenantReadOnlyAPIKey",
+    ///    "TenantWideSelfHostedVMAPIKeyName"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum RotateGithubOrgApiKeyBodyKeyName {
+        ApiKey,
+        #[serde(rename = "SelfHostedVMApiKey")]
+        SelfHostedVmApiKey,
+        #[serde(rename = "BrokerAPIKey")]
+        BrokerApiKey,
+        #[serde(rename = "ARCApiKey")]
+        ArcApiKey,
+        #[serde(rename = "TenantAPIKey")]
+        TenantApiKey,
+        #[serde(rename = "TenantReadOnlyAPIKey")]
+        TenantReadOnlyApiKey,
+        #[serde(rename = "TenantWideSelfHostedVMAPIKeyName")]
+        TenantWideSelfHostedVmapiKeyName,
+    }
+    impl ::std::fmt::Display for RotateGithubOrgApiKeyBodyKeyName {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::ApiKey => f.write_str("ApiKey"),
+                Self::SelfHostedVmApiKey => f.write_str("SelfHostedVMApiKey"),
+                Self::BrokerApiKey => f.write_str("BrokerAPIKey"),
+                Self::ArcApiKey => f.write_str("ARCApiKey"),
+                Self::TenantApiKey => f.write_str("TenantAPIKey"),
+                Self::TenantReadOnlyApiKey => f.write_str("TenantReadOnlyAPIKey"),
+                Self::TenantWideSelfHostedVmapiKeyName => {
+                    f.write_str("TenantWideSelfHostedVMAPIKeyName")
+                }
+            }
+        }
+    }
+    impl ::std::str::FromStr for RotateGithubOrgApiKeyBodyKeyName {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "ApiKey" => Ok(Self::ApiKey),
+                "SelfHostedVMApiKey" => Ok(Self::SelfHostedVmApiKey),
+                "BrokerAPIKey" => Ok(Self::BrokerApiKey),
+                "ARCApiKey" => Ok(Self::ArcApiKey),
+                "TenantAPIKey" => Ok(Self::TenantApiKey),
+                "TenantReadOnlyAPIKey" => Ok(Self::TenantReadOnlyApiKey),
+                "TenantWideSelfHostedVMAPIKeyName" => Ok(Self::TenantWideSelfHostedVmapiKeyName),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for RotateGithubOrgApiKeyBodyKeyName {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for RotateGithubOrgApiKeyBodyKeyName {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for RotateGithubOrgApiKeyBodyKeyName {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///Which key slot to rotate
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Which key slot to rotate",
+    ///  "examples": [
+    ///    "Primary"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "Primary",
+    ///    "Secondary"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum RotateGithubOrgApiKeyBodyType {
+        Primary,
+        Secondary,
+    }
+    impl ::std::fmt::Display for RotateGithubOrgApiKeyBodyType {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Primary => f.write_str("Primary"),
+                Self::Secondary => f.write_str("Secondary"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for RotateGithubOrgApiKeyBodyType {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "Primary" => Ok(Self::Primary),
+                "Secondary" => Ok(Self::Secondary),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for RotateGithubOrgApiKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for RotateGithubOrgApiKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for RotateGithubOrgApiKeyBodyType {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
         }
     }
     ///`RunPolicyEvaluation`
@@ -19876,6 +27616,292 @@ pub mod types {
             value.parse()
         }
     }
+    ///`RunPolicyRequest`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "examples": [
+    ///    {
+    ///      "all_orgs": false,
+    ///      "all_repos": false,
+    ///      "name": "Harden-Runner Policy",
+    ///      "policy_config": {
+    ///        "enable_harden_runner_policy": true,
+    ///        "is_dry_run": false
+    ///      },
+    ///      "repositories": [
+    ///        "example-repo"
+    ///      ]
+    ///    }
+    ///  ],
+    ///  "type": "object",
+    ///  "required": [
+    ///    "name",
+    ///    "policy_config"
+    ///  ],
+    ///  "properties": {
+    ///    "all_orgs": {
+    ///      "description": "Apply the policy across all organizations in the tenant (requires admin privileges)",
+    ///      "type": "boolean"
+    ///    },
+    ///    "all_repos": {
+    ///      "description": "Apply the policy to all repositories in the organization",
+    ///      "type": "boolean"
+    ///    },
+    ///    "name": {
+    ///      "description": "Human-readable name of the run policy",
+    ///      "examples": [
+    ///        "Harden-Runner Policy"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "policy_config": {
+    ///      "description": "Policy configuration. Enable one or more policy types and provide their settings.",
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "allowed_actions": {
+    ///          "description": "Map of action reference to allow/block decision (used with enable_action_policy)",
+    ///          "examples": [
+    ///            {
+    ///              "actions/checkout": "allow"
+    ///            }
+    ///          ],
+    ///          "type": "object",
+    ///          "additionalProperties": {
+    ///            "type": "string"
+    ///          }
+    ///        },
+    ///        "bulk_secrets_only_mode": {
+    ///          "description": "Restrict secret-exfiltration detection to the bulk-dump pattern only",
+    ///          "type": "boolean"
+    ///        },
+    ///        "disallowed_runner_labels": {
+    ///          "description": "Set of runner labels that are not allowed (used with enable_runs_on_policy)",
+    ///          "type": "object",
+    ///          "additionalProperties": {
+    ///            "type": "object"
+    ///          }
+    ///        },
+    ///        "enable_action_policy": {
+    ///          "description": "Restrict which GitHub Actions may be used",
+    ///          "type": "boolean"
+    ///        },
+    ///        "enable_compromised_actions_policy": {
+    ///          "description": "Block usage of known-compromised actions",
+    ///          "type": "boolean"
+    ///        },
+    ///        "enable_harden_runner_policy": {
+    ///          "description": "Require Harden-Runner in workflows",
+    ///          "type": "boolean"
+    ///        },
+    ///        "enable_runs_on_policy": {
+    ///          "description": "Restrict which runner labels workflows may run on",
+    ///          "type": "boolean"
+    ///        },
+    ///        "enable_secrets_policy": {
+    ///          "description": "Detect and block secret exfiltration",
+    ///          "type": "boolean"
+    ///        },
+    ///        "exempted_users": {
+    ///          "description": "Users/bots exempted from the secrets policy",
+    ///          "type": "array",
+    ///          "items": {
+    ///            "type": "string"
+    ///          }
+    ///        },
+    ///        "is_dry_run": {
+    ///          "description": "Evaluate the policy without blocking (report-only)",
+    ///          "type": "boolean"
+    ///        },
+    ///        "pinned_actions_exemptions": {
+    ///          "description": "Actions exempt from the pinned-actions requirement",
+    ///          "type": "array",
+    ///          "items": {
+    ///            "type": "string"
+    ///          }
+    ///        },
+    ///        "require_pinned_actions": {
+    ///          "description": "Require actions to be pinned to a full commit SHA",
+    ///          "type": "boolean"
+    ///        }
+    ///      }
+    ///    },
+    ///    "repositories": {
+    ///      "description": "Specific repositories the policy applies to (when all_repos is false)",
+    ///      "type": [
+    ///        "array",
+    ///        "null"
+    ///      ],
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct RunPolicyRequest {
+        ///Apply the policy across all organizations in the tenant (requires admin privileges)
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub all_orgs: ::std::option::Option<bool>,
+        ///Apply the policy to all repositories in the organization
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub all_repos: ::std::option::Option<bool>,
+        ///Human-readable name of the run policy
+        pub name: ::std::string::String,
+        pub policy_config: RunPolicyRequestPolicyConfig,
+        ///Specific repositories the policy applies to (when all_repos is false)
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub repositories: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+    }
+    ///Policy configuration. Enable one or more policy types and provide their settings.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Policy configuration. Enable one or more policy types and provide their settings.",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "allowed_actions": {
+    ///      "description": "Map of action reference to allow/block decision (used with enable_action_policy)",
+    ///      "examples": [
+    ///        {
+    ///          "actions/checkout": "allow"
+    ///        }
+    ///      ],
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "bulk_secrets_only_mode": {
+    ///      "description": "Restrict secret-exfiltration detection to the bulk-dump pattern only",
+    ///      "type": "boolean"
+    ///    },
+    ///    "disallowed_runner_labels": {
+    ///      "description": "Set of runner labels that are not allowed (used with enable_runs_on_policy)",
+    ///      "type": "object",
+    ///      "additionalProperties": {
+    ///        "type": "object"
+    ///      }
+    ///    },
+    ///    "enable_action_policy": {
+    ///      "description": "Restrict which GitHub Actions may be used",
+    ///      "type": "boolean"
+    ///    },
+    ///    "enable_compromised_actions_policy": {
+    ///      "description": "Block usage of known-compromised actions",
+    ///      "type": "boolean"
+    ///    },
+    ///    "enable_harden_runner_policy": {
+    ///      "description": "Require Harden-Runner in workflows",
+    ///      "type": "boolean"
+    ///    },
+    ///    "enable_runs_on_policy": {
+    ///      "description": "Restrict which runner labels workflows may run on",
+    ///      "type": "boolean"
+    ///    },
+    ///    "enable_secrets_policy": {
+    ///      "description": "Detect and block secret exfiltration",
+    ///      "type": "boolean"
+    ///    },
+    ///    "exempted_users": {
+    ///      "description": "Users/bots exempted from the secrets policy",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "is_dry_run": {
+    ///      "description": "Evaluate the policy without blocking (report-only)",
+    ///      "type": "boolean"
+    ///    },
+    ///    "pinned_actions_exemptions": {
+    ///      "description": "Actions exempt from the pinned-actions requirement",
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "require_pinned_actions": {
+    ///      "description": "Require actions to be pinned to a full commit SHA",
+    ///      "type": "boolean"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct RunPolicyRequestPolicyConfig {
+        ///Map of action reference to allow/block decision (used with enable_action_policy)
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub allowed_actions:
+            ::std::collections::HashMap<::std::string::String, ::std::string::String>,
+        ///Restrict secret-exfiltration detection to the bulk-dump pattern only
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub bulk_secrets_only_mode: ::std::option::Option<bool>,
+        ///Set of runner labels that are not allowed (used with enable_runs_on_policy)
+        #[serde(
+            default,
+            skip_serializing_if = ":: std :: collections :: HashMap::is_empty"
+        )]
+        pub disallowed_runner_labels: ::std::collections::HashMap<
+            ::std::string::String,
+            ::serde_json::Map<::std::string::String, ::serde_json::Value>,
+        >,
+        ///Restrict which GitHub Actions may be used
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enable_action_policy: ::std::option::Option<bool>,
+        ///Block usage of known-compromised actions
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enable_compromised_actions_policy: ::std::option::Option<bool>,
+        ///Require Harden-Runner in workflows
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enable_harden_runner_policy: ::std::option::Option<bool>,
+        ///Restrict which runner labels workflows may run on
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enable_runs_on_policy: ::std::option::Option<bool>,
+        ///Detect and block secret exfiltration
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enable_secrets_policy: ::std::option::Option<bool>,
+        ///Users/bots exempted from the secrets policy
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub exempted_users: ::std::vec::Vec<::std::string::String>,
+        ///Evaluate the policy without blocking (report-only)
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub is_dry_run: ::std::option::Option<bool>,
+        ///Actions exempt from the pinned-actions requirement
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub pinned_actions_exemptions: ::std::vec::Vec<::std::string::String>,
+        ///Require actions to be pinned to a full commit SHA
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub require_pinned_actions: ::std::option::Option<bool>,
+    }
+    impl ::std::default::Default for RunPolicyRequestPolicyConfig {
+        fn default() -> Self {
+            Self {
+                allowed_actions: Default::default(),
+                bulk_secrets_only_mode: Default::default(),
+                disallowed_runner_labels: Default::default(),
+                enable_action_policy: Default::default(),
+                enable_compromised_actions_policy: Default::default(),
+                enable_harden_runner_policy: Default::default(),
+                enable_runs_on_policy: Default::default(),
+                enable_secrets_policy: Default::default(),
+                exempted_users: Default::default(),
+                is_dry_run: Default::default(),
+                pinned_actions_exemptions: Default::default(),
+                require_pinned_actions: Default::default(),
+            }
+        }
+    }
     ///`SearchGhOrgNpmPackagesBody`
     ///
     /// <details><summary>JSON schema</summary>
@@ -20161,6 +28187,539 @@ pub mod types {
                 seen_only_in_default_branch: Default::default(),
                 seen_only_in_prs: Default::default(),
                 start_time: Default::default(),
+            }
+        }
+    }
+    ///`SecureRegistryConfig`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "compromised_packages": {
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "enabled": {
+    ///          "examples": [
+    ///            true
+    ///          ],
+    ///          "type": "boolean"
+    ///        }
+    ///      }
+    ///    },
+    ///    "cooldown_period": {
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "enabled": {
+    ///          "examples": [
+    ///            true
+    ///          ],
+    ///          "type": "boolean"
+    ///        },
+    ///        "exemption_list": {
+    ///          "examples": [
+    ///            [
+    ///              "lodash@1.2.3",
+    ///              "@company/*"
+    ///            ]
+    ///          ],
+    ///          "type": "array",
+    ///          "items": {
+    ///            "type": "string"
+    ///          }
+    ///        },
+    ///        "period_in_days": {
+    ///          "examples": [
+    ///            7
+    ///          ],
+    ///          "type": "integer"
+    ///        }
+    ///      }
+    ///    },
+    ///    "customer": {
+    ///      "examples": [
+    ///        "myorg"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "registry": {
+    ///      "examples": [
+    ///        "npm"
+    ///      ],
+    ///      "type": "string",
+    ///      "enum": [
+    ///        "npm",
+    ///        "pypi"
+    ///      ]
+    ///    },
+    ///    "typosquatting": {
+    ///      "type": "object",
+    ///      "properties": {
+    ///        "enabled": {
+    ///          "examples": [
+    ///            true
+    ///          ],
+    ///          "type": "boolean"
+    ///        },
+    ///        "whitelist": {
+    ///          "examples": [
+    ///            []
+    ///          ],
+    ///          "type": "array",
+    ///          "items": {
+    ///            "type": "string"
+    ///          }
+    ///        }
+    ///      }
+    ///    },
+    ///    "updated_at": {
+    ///      "examples": [
+    ///        "2024-06-01T12:00:00Z"
+    ///      ],
+    ///      "type": "string",
+    ///      "format": "date-time"
+    ///    },
+    ///    "updated_by": {
+    ///      "examples": [
+    ///        "user@example.com"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfig {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub compromised_packages: ::std::option::Option<SecureRegistryConfigCompromisedPackages>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub cooldown_period: ::std::option::Option<SecureRegistryConfigCooldownPeriod>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub customer: ::std::option::Option<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub registry: ::std::option::Option<SecureRegistryConfigRegistry>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub typosquatting: ::std::option::Option<SecureRegistryConfigTyposquatting>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_at: ::std::option::Option<::chrono::DateTime<::chrono::offset::Utc>>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub updated_by: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for SecureRegistryConfig {
+        fn default() -> Self {
+            Self {
+                compromised_packages: Default::default(),
+                cooldown_period: Default::default(),
+                customer: Default::default(),
+                registry: Default::default(),
+                typosquatting: Default::default(),
+                updated_at: Default::default(),
+                updated_by: Default::default(),
+            }
+        }
+    }
+    ///`SecureRegistryConfigCompromisedPackages`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "enabled": {
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfigCompromisedPackages {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enabled: ::std::option::Option<bool>,
+    }
+    impl ::std::default::Default for SecureRegistryConfigCompromisedPackages {
+        fn default() -> Self {
+            Self {
+                enabled: Default::default(),
+            }
+        }
+    }
+    ///`SecureRegistryConfigCooldownPeriod`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "enabled": {
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "exemption_list": {
+    ///      "examples": [
+    ///        [
+    ///          "lodash@1.2.3",
+    ///          "@company/*"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "period_in_days": {
+    ///      "examples": [
+    ///        7
+    ///      ],
+    ///      "type": "integer"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfigCooldownPeriod {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enabled: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub exemption_list: ::std::vec::Vec<::std::string::String>,
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub period_in_days: ::std::option::Option<i64>,
+    }
+    impl ::std::default::Default for SecureRegistryConfigCooldownPeriod {
+        fn default() -> Self {
+            Self {
+                enabled: Default::default(),
+                exemption_list: Default::default(),
+                period_in_days: Default::default(),
+            }
+        }
+    }
+    ///`SecureRegistryConfigPayload`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "compromised_packages",
+    ///    "cooldown_period",
+    ///    "typosquatting"
+    ///  ],
+    ///  "properties": {
+    ///    "compromised_packages": {
+    ///      "type": "object",
+    ///      "required": [
+    ///        "enabled"
+    ///      ],
+    ///      "properties": {
+    ///        "enabled": {
+    ///          "examples": [
+    ///            true
+    ///          ],
+    ///          "type": "boolean"
+    ///        }
+    ///      }
+    ///    },
+    ///    "cooldown_period": {
+    ///      "type": "object",
+    ///      "required": [
+    ///        "enabled",
+    ///        "exemption_list",
+    ///        "period_in_days"
+    ///      ],
+    ///      "properties": {
+    ///        "enabled": {
+    ///          "examples": [
+    ///            true
+    ///          ],
+    ///          "type": "boolean"
+    ///        },
+    ///        "exemption_list": {
+    ///          "examples": [
+    ///            [
+    ///              "lodash"
+    ///            ]
+    ///          ],
+    ///          "type": "array",
+    ///          "items": {
+    ///            "type": "string"
+    ///          }
+    ///        },
+    ///        "period_in_days": {
+    ///          "examples": [
+    ///            7
+    ///          ],
+    ///          "type": "integer"
+    ///        }
+    ///      }
+    ///    },
+    ///    "typosquatting": {
+    ///      "type": "object",
+    ///      "required": [
+    ///        "enabled",
+    ///        "whitelist"
+    ///      ],
+    ///      "properties": {
+    ///        "enabled": {
+    ///          "examples": [
+    ///            true
+    ///          ],
+    ///          "type": "boolean"
+    ///        },
+    ///        "whitelist": {
+    ///          "examples": [
+    ///            []
+    ///          ],
+    ///          "type": "array",
+    ///          "items": {
+    ///            "type": "string"
+    ///          }
+    ///        }
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfigPayload {
+        pub compromised_packages: SecureRegistryConfigPayloadCompromisedPackages,
+        pub cooldown_period: SecureRegistryConfigPayloadCooldownPeriod,
+        pub typosquatting: SecureRegistryConfigPayloadTyposquatting,
+    }
+    ///`SecureRegistryConfigPayloadCompromisedPackages`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "enabled"
+    ///  ],
+    ///  "properties": {
+    ///    "enabled": {
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfigPayloadCompromisedPackages {
+        pub enabled: bool,
+    }
+    ///`SecureRegistryConfigPayloadCooldownPeriod`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "enabled",
+    ///    "exemption_list",
+    ///    "period_in_days"
+    ///  ],
+    ///  "properties": {
+    ///    "enabled": {
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "exemption_list": {
+    ///      "examples": [
+    ///        [
+    ///          "lodash"
+    ///        ]
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    },
+    ///    "period_in_days": {
+    ///      "examples": [
+    ///        7
+    ///      ],
+    ///      "type": "integer"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfigPayloadCooldownPeriod {
+        pub enabled: bool,
+        pub exemption_list: ::std::vec::Vec<::std::string::String>,
+        pub period_in_days: i64,
+    }
+    ///`SecureRegistryConfigPayloadTyposquatting`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "enabled",
+    ///    "whitelist"
+    ///  ],
+    ///  "properties": {
+    ///    "enabled": {
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "whitelist": {
+    ///      "examples": [
+    ///        []
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfigPayloadTyposquatting {
+        pub enabled: bool,
+        pub whitelist: ::std::vec::Vec<::std::string::String>,
+    }
+    ///`SecureRegistryConfigRegistry`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "examples": [
+    ///    "npm"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "npm",
+    ///    "pypi"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum SecureRegistryConfigRegistry {
+        #[serde(rename = "npm")]
+        Npm,
+        #[serde(rename = "pypi")]
+        Pypi,
+    }
+    impl ::std::fmt::Display for SecureRegistryConfigRegistry {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Npm => f.write_str("npm"),
+                Self::Pypi => f.write_str("pypi"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for SecureRegistryConfigRegistry {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "npm" => Ok(Self::Npm),
+                "pypi" => Ok(Self::Pypi),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for SecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for SecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for SecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    ///`SecureRegistryConfigTyposquatting`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "enabled": {
+    ///      "examples": [
+    ///        true
+    ///      ],
+    ///      "type": "boolean"
+    ///    },
+    ///    "whitelist": {
+    ///      "examples": [
+    ///        []
+    ///      ],
+    ///      "type": "array",
+    ///      "items": {
+    ///        "type": "string"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct SecureRegistryConfigTyposquatting {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub enabled: ::std::option::Option<bool>,
+        #[serde(default, skip_serializing_if = "::std::vec::Vec::is_empty")]
+        pub whitelist: ::std::vec::Vec<::std::string::String>,
+    }
+    impl ::std::default::Default for SecureRegistryConfigTyposquatting {
+        fn default() -> Self {
+            Self {
+                enabled: Default::default(),
+                whitelist: Default::default(),
             }
         }
     }
@@ -20733,6 +29292,66 @@ pub mod types {
             value: ::std::string::String,
         ) -> ::std::result::Result<Self, self::error::ConversionError> {
             value.parse()
+        }
+    }
+    ///`TriggerAppsPatsRefreshResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "status": {
+    ///      "examples": [
+    ///        "refresh triggered"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct TriggerAppsPatsRefreshResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub status: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for TriggerAppsPatsRefreshResponse {
+        fn default() -> Self {
+            Self {
+                status: Default::default(),
+            }
+        }
+    }
+    ///`TriggerControlsRefreshResponse`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "status": {
+    ///      "examples": [
+    ///        "refresh triggered"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug)]
+    pub struct TriggerControlsRefreshResponse {
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub status: ::std::option::Option<::std::string::String>,
+    }
+    impl ::std::default::Default for TriggerControlsRefreshResponse {
+        fn default() -> Self {
+            Self {
+                status: Default::default(),
+            }
         }
     }
     ///`UpdateGithubChecksConfigBody`
@@ -21704,6 +30323,78 @@ pub mod types {
             Self {
                 message: Default::default(),
             }
+        }
+    }
+    ///`UpdateSecureRegistryConfigRegistry`
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "npm",
+    ///    "pypi"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(
+        ::serde::Deserialize,
+        ::serde::Serialize,
+        Clone,
+        Copy,
+        Debug,
+        Eq,
+        Hash,
+        Ord,
+        PartialEq,
+        PartialOrd,
+    )]
+    pub enum UpdateSecureRegistryConfigRegistry {
+        #[serde(rename = "npm")]
+        Npm,
+        #[serde(rename = "pypi")]
+        Pypi,
+    }
+    impl ::std::fmt::Display for UpdateSecureRegistryConfigRegistry {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+            match *self {
+                Self::Npm => f.write_str("npm"),
+                Self::Pypi => f.write_str("pypi"),
+            }
+        }
+    }
+    impl ::std::str::FromStr for UpdateSecureRegistryConfigRegistry {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            match value {
+                "npm" => Ok(Self::Npm),
+                "pypi" => Ok(Self::Pypi),
+                _ => Err("invalid value".into()),
+            }
+        }
+    }
+    impl ::std::convert::TryFrom<&str> for UpdateSecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<&::std::string::String> for UpdateSecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: &::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
+        }
+    }
+    impl ::std::convert::TryFrom<::std::string::String> for UpdateSecureRegistryConfigRegistry {
+        type Error = self::error::ConversionError;
+        fn try_from(
+            value: ::std::string::String,
+        ) -> ::std::result::Result<Self, self::error::ConversionError> {
+            value.parse()
         }
     }
     ///`WorkflowJobRunAggregatedEndpoint`
@@ -23327,6 +32018,66 @@ impl Client {
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
+    /**Create or update a HardenRunner policy
+
+    Creates a new policy or updates an existing one. If the policy already exists,
+    only the fields provided in the request body are updated (partial update).
+    The policy name is specified in the URL path.
+
+
+    Sends a `POST` request to `/github/{owner}/actions/policies/{policy_name}`
+
+    Arguments:
+    - `owner`: GitHub Organization
+    - `policy_name`: Policy name (unique identifier within the org)
+    - `body`
+    */
+    pub async fn post_github_owner_actions_policies_policy_name<'a>(
+        &'a self,
+        owner: &'a str,
+        policy_name: &'a str,
+        body: &'a types::PolicyDetails,
+    ) -> Result<
+        ResponseValue<types::PostGithubOwnerActionsPoliciesPolicyNameResponse>,
+        Error<types::ApiError>,
+    > {
+        let url = format!(
+            "{}/github/{}/actions/policies/{}",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+            encode_path(&policy_name.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .post(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "post_github_owner_actions_policies_policy_name",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
     /**Attach policy to targets
 
     Attach an existing policy to specific targets (workflows, repositories, organization, or cluster)
@@ -23475,29 +32226,37 @@ impl Client {
     }
     /**Get job-level baselines for a GitHub repository
 
-    Retrieves the baseline status of every workflow job in a repository. If  `all` is supplied for `repo`, the call aggregates job baselines across all repositories under the specified owner.
+    Retrieves the baseline status of every workflow job in a repository. If `[all]` is supplied for `repo`, the call aggregates job baselines across all repositories under the specified owner.
+
+    Pagination is opt-in. Without `limit` or `next_token` the response is the legacy bare-array shape and is bounded by a 500-job hard cap (see the `X-Truncated` response header). Supplying `limit` (and `next_token` on subsequent pages) switches the response to the paginated envelope `{ data, has_more, next_token }`. Pagination is not supported when `repo` is `[all]` — that path uses a different read shape and returns the bare array unconditionally.
 
 
     Sends a `GET` request to `/github/{owner}/{repo}/jobs/baseline`
 
     Arguments:
     - `owner`: GitHub owner or organization name.
-    - `repo`: GitHub Repository name, or `[all]` to fetch job baselines across the entire owner.
+    - `repo`: GitHub repository name, or `[all]` to fetch job baselines across the entire owner.
     - `destination_type`: Filter endpoints by destination type. Can be specified multiple times.
+    - `limit`: Opt-in cursor pagination — page size. Values above 500 are clamped to 500. Supplying `limit` switches the response shape from the legacy bare array to the paginated envelope `{ data, has_more, next_token }`; on subsequent pages, pass the previous response's `next_token` together with `limit` (a bare `next_token` without `limit` is rejected). Not supported when `repo` is `[all]`.
+
+    - `next_token`: Opaque cursor returned by a prior paginated response's `next_token` field. Requires `limit`. Not supported when `repo` is `[all]`.
+
     - `search`: Case-insensitive filter applied to job name.
     - `status`: Filter jobs by baseline status.
-    - `workflow_file`: Filter jobs by workflow file name. When specified, bypasses the default 100-job limit.
+    - `workflow_file`: Filter jobs by workflow file name. When specified, bypasses the default 100-job soft cap applied to un-paginated repo-scope responses. Un-paginated responses are still bounded by the 500-job hard cap; use `limit` + `next_token` to page through larger results.
+
     */
     pub async fn get_github_owner_repo_jobs_baseline<'a>(
         &'a self,
         owner: &'a str,
         repo: &'a str,
         destination_type: Option<&'a str>,
+        limit: Option<::std::num::NonZeroU64>,
+        next_token: Option<&'a str>,
         search: Option<&'a str>,
         status: Option<types::GetGithubOwnerRepoJobsBaselineStatus>,
         workflow_file: Option<&'a str>,
-    ) -> Result<ResponseValue<::std::vec::Vec<types::WorkflowJobRunEndpointAggregation>>, Error<()>>
-    {
+    ) -> Result<ResponseValue<types::GetGithubOwnerRepoJobsBaselineResponse>, Error<()>> {
         let url = format!(
             "{}/github/{}/{}/jobs/baseline",
             self.baseurl,
@@ -23520,6 +32279,11 @@ impl Client {
             .query(&progenitor_client::QueryParam::new(
                 "destination_type",
                 &destination_type,
+            ))
+            .query(&progenitor_client::QueryParam::new("limit", &limit))
+            .query(&progenitor_client::QueryParam::new(
+                "next_token",
+                &next_token,
             ))
             .query(&progenitor_client::QueryParam::new("search", &search))
             .query(&progenitor_client::QueryParam::new("status", &status))
@@ -23778,6 +32542,122 @@ impl Client {
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
+    /**Get a Harden Runner agent release by tag
+
+    Retrieves metadata for a specific Harden Runner agent release. The `tag` path parameter may be a concrete release tag such as `v1.8.12` or the special value `latest`, which resolves to the most recent release for the selected provider, operating system, and topology.
+
+
+    Sends a `GET` request to `/harden-runner-agent/{provider}/{os}/{topo}/releases/{tag}`
+
+    Arguments:
+    - `provider`: Source control provider.
+    - `os`: Target operating system.
+    - `topo`: Target deployment topology.
+    - `tag`: Release tag or `latest`.
+    */
+    pub async fn get_harden_runner_agent_provider_os_topo_releases_tag<'a>(
+        &'a self,
+        provider: types::GetHardenRunnerAgentProviderOsTopoReleasesTagProvider,
+        os: types::GetHardenRunnerAgentProviderOsTopoReleasesTagOs,
+        topo: types::GetHardenRunnerAgentProviderOsTopoReleasesTagTopo,
+        tag: &'a str,
+    ) -> Result<ResponseValue<types::HardenRunnerAgentRelease>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/harden-runner-agent/{}/{}/{}/releases/{}",
+            self.baseurl,
+            encode_path(&provider.to_string()),
+            encode_path(&os.to_string()),
+            encode_path(&topo.to_string()),
+            encode_path(&tag.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_harden_runner_agent_provider_os_topo_releases_tag",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**List Harden Runner agent releases
+
+    Retrieves all available Harden Runner agent releases for the selected provider, operating system, and topology.
+
+
+    Sends a `GET` request to `/harden-runner-agent/{provider}/{os}/{topo}/releases`
+
+    Arguments:
+    - `provider`: Source control provider.
+    - `os`: Target operating system.
+    - `topo`: Target deployment topology.
+    */
+    pub async fn get_harden_runner_agent_provider_os_topo_releases<'a>(
+        &'a self,
+        provider: types::GetHardenRunnerAgentProviderOsTopoReleasesProvider,
+        os: types::GetHardenRunnerAgentProviderOsTopoReleasesOs,
+        topo: types::GetHardenRunnerAgentProviderOsTopoReleasesTopo,
+    ) -> Result<
+        ResponseValue<::std::vec::Vec<types::HardenRunnerAgentRelease>>,
+        Error<types::ApiError>,
+    > {
+        let url = format!(
+            "{}/harden-runner-agent/{}/{}/{}/releases",
+            self.baseurl,
+            encode_path(&provider.to_string()),
+            encode_path(&os.to_string()),
+            encode_path(&topo.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_harden_runner_agent_provider_os_topo_releases",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
     /**Get policy-driven pull request configured for org/repo
 
     Retrieve pull requests created by security policies
@@ -23977,17 +32857,29 @@ impl Client {
     }
     /**Get security pull requests
 
-    Retrieve security-related pull requests for the organization
+    Retrieve security-related pull requests for the organization, ordered by `updated_at` descending (most recently updated first).
+
+    **Pagination.** Results are paginated. Each response includes `has_more` and `next_token`. To fetch the next page, pass the returned `next_token` back as the `next_token` query parameter on the next request, keeping `limit` and any filters the same. When `has_more` is `false`, `next_token` will be empty and there are no more results.
+
 
     Sends a `GET` request to `/github/{owner}/pull-requests`
 
     Arguments:
     - `owner`: GitHub Organization
+    - `limit`: Maximum number of results to return per page.
+    - `next_token`: Pagination cursor returned as `next_token` from the previous response. Omit on the first request.
+    - `repo`: Filter to a single repository (the repo name only, without the org prefix).
+    - `state`: Filter by pull request state. `merged` returns closed PRs that were merged.
     */
     pub async fn get_github_owner_pull_requests<'a>(
         &'a self,
         owner: &'a str,
-    ) -> Result<ResponseValue<()>, Error<()>> {
+        limit: Option<::std::num::NonZeroU64>,
+        next_token: Option<&'a str>,
+        repo: Option<&'a str>,
+        state: Option<types::GetGithubOwnerPullRequestsState>,
+    ) -> Result<ResponseValue<types::GetGithubOwnerPullRequestsResponse>, Error<types::ApiError>>
+    {
         let url = format!(
             "{}/github/{}/pull-requests",
             self.baseurl,
@@ -23999,7 +32891,22 @@ impl Client {
             ::reqwest::header::HeaderValue::from_static(Self::api_version()),
         );
         #[allow(unused_mut)]
-        let mut request = self.client.get(url).headers(header_map).build()?;
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .query(&progenitor_client::QueryParam::new("limit", &limit))
+            .query(&progenitor_client::QueryParam::new(
+                "next_token",
+                &next_token,
+            ))
+            .query(&progenitor_client::QueryParam::new("repo", &repo))
+            .query(&progenitor_client::QueryParam::new("state", &state))
+            .headers(header_map)
+            .build()?;
         let info = OperationInfo {
             operation_id: "get_github_owner_pull_requests",
         };
@@ -24008,8 +32915,10 @@ impl Client {
         self.post(&result, &info).await?;
         let response = result?;
         match response.status().as_u16() {
-            200u16 => Ok(ResponseValue::empty(response)),
-            401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
@@ -24064,7 +32973,7 @@ impl Client {
     pub async fn post_github_owner_actions_run_policies<'a>(
         &'a self,
         owner: &'a str,
-        body: &'a types::PostGithubOwnerActionsRunPoliciesBody,
+        body: &'a types::RunPolicyRequest,
     ) -> Result<ResponseValue<()>, Error<()>> {
         let url = format!(
             "{}/github/{}/actions/run-policies",
@@ -24092,6 +33001,145 @@ impl Client {
         let response = result?;
         match response.status().as_u16() {
             201u16 => Ok(ResponseValue::empty(response)),
+            401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get run policy
+
+    Retrieve a single CI/CD run policy by its identifier for the organization
+
+    Sends a `GET` request to `/github/{owner}/actions/run-policies/{policy_id}`
+
+    Arguments:
+    - `owner`: GitHub Organization
+    - `policy_id`: Identifier of the run policy to retrieve
+    */
+    pub async fn get_github_owner_actions_run_policies_policy_id<'a>(
+        &'a self,
+        owner: &'a str,
+        policy_id: &'a str,
+    ) -> Result<ResponseValue<()>, Error<()>> {
+        let url = format!(
+            "{}/github/{}/actions/run-policies/{}",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+            encode_path(&policy_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self.client.get(url).headers(header_map).build()?;
+        let info = OperationInfo {
+            operation_id: "get_github_owner_actions_run_policies_policy_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => Ok(ResponseValue::empty(response)),
+            401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Update run policy
+
+    Update an existing CI/CD run policy for the organization. Updating a tenant-level (all-org) policy requires organization admin privileges.
+
+    Sends a `PUT` request to `/github/{owner}/actions/run-policies/{policy_id}`
+
+    Arguments:
+    - `owner`: GitHub Organization
+    - `policy_id`: Identifier of the run policy to update
+    - `body`
+    */
+    pub async fn put_github_owner_actions_run_policies_policy_id<'a>(
+        &'a self,
+        owner: &'a str,
+        policy_id: &'a str,
+        body: &'a types::RunPolicyRequest,
+    ) -> Result<ResponseValue<()>, Error<()>> {
+        let url = format!(
+            "{}/github/{}/actions/run-policies/{}",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+            encode_path(&policy_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .put(url)
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "put_github_owner_actions_run_policies_policy_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => Ok(ResponseValue::empty(response)),
+            400u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Delete run policy
+
+    Delete a CI/CD run policy for the organization. Deleting an all-org policy requires organization admin privileges.
+
+    Sends a `DELETE` request to `/github/{owner}/actions/run-policies/{policy_id}`
+
+    Arguments:
+    - `owner`: GitHub Organization
+    - `policy_id`: Identifier of the run policy to delete
+    */
+    pub async fn delete_github_owner_actions_run_policies_policy_id<'a>(
+        &'a self,
+        owner: &'a str,
+        policy_id: &'a str,
+    ) -> Result<ResponseValue<types::DeleteGithubOwnerActionsRunPoliciesPolicyIdResponse>, Error<()>>
+    {
+        let url = format!(
+            "{}/github/{}/actions/run-policies/{}",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+            encode_path(&policy_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .delete(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "delete_github_owner_actions_run_policies_policy_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
             401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
             _ => Err(Error::UnexpectedResponse(response)),
         }
@@ -24238,6 +33286,56 @@ impl Client {
             .build()?;
         let info = OperationInfo {
             operation_id: "get_threat_intel_incident_by_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get compromised components for a threat intel incident
+
+    Retrieve all compromised OSS components associated with a specific supply chain threat incident
+
+    Sends a `GET` request to `/github/{owner}/threat-intel/incidents/{incidentId}/compromised-components`
+
+    Arguments:
+    - `owner`: GitHub Organization
+    - `incident_id`: Unique incident identifier
+    */
+    pub async fn get_threat_intel_incident_compromised_components<'a>(
+        &'a self,
+        owner: &'a str,
+        incident_id: &'a str,
+    ) -> Result<ResponseValue<types::GetThreatIntelIncidentCompromisedComponentsResponse>, Error<()>>
+    {
+        let url = format!(
+            "{}/github/{}/threat-intel/incidents/{}/compromised-components",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+            encode_path(&incident_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_threat_intel_incident_compromised_components",
         };
         self.pre(&mut request, &info).await?;
         let result = self.exec(request, &info).await;
@@ -24489,6 +33587,201 @@ impl Client {
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
+    /**Get secure registry configuration
+
+    Retrieve the secure registry configuration for a specific package ecosystem (npm or PyPI). Returns controls for cooldown period, compromised packages, and typosquatting detection.
+
+    Sends a `GET` request to `/{customer}/secure-registry/controls/{registry}`
+
+    Arguments:
+    - `customer`: Customer/organization identifier
+    - `registry`: Package registry ecosystem
+    */
+    pub async fn get_secure_registry_config<'a>(
+        &'a self,
+        customer: &'a str,
+        registry: types::GetSecureRegistryConfigRegistry,
+    ) -> Result<ResponseValue<types::SecureRegistryConfig>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/secure-registry/controls/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&registry.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_secure_registry_config",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            401u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Update secure registry configuration
+
+    Update the secure registry configuration for a specific package ecosystem (npm or PyPI). Configures controls for cooldown period, compromised package blocking, and typosquatting detection.
+
+    Sends a `PUT` request to `/{customer}/secure-registry/controls/{registry}`
+
+    Arguments:
+    - `customer`: Customer/organization identifier
+    - `registry`: Package registry ecosystem
+    - `body`
+    */
+    pub async fn update_secure_registry_config<'a>(
+        &'a self,
+        customer: &'a str,
+        registry: types::UpdateSecureRegistryConfigRegistry,
+        body: &'a types::SecureRegistryConfigPayload,
+    ) -> Result<ResponseValue<()>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/secure-registry/controls/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&registry.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .put(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "update_secure_registry_config",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            204u16 => Ok(ResponseValue::empty(response)),
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get secure registry audit logs (policy evaluations)
+
+    Retrieve paginated audit log entries for secure registry policy evaluations. Each entry records a package request and the outcome of each security control evaluated against it.
+
+    Sends a `GET` request to `/{customer}/secure-registry/audit-logs`
+
+    Arguments:
+    - `customer`: Customer/organization identifier
+    - `ecosystem`: Filter by package ecosystem
+    - `from`: Start of time range (ISO 8601)
+    - `next_token`: Pagination token from a previous response
+    - `package_name`: Filter by package name
+    - `request_type`: Filter by request type
+    - `source`: Filter by request source
+    - `source_identifier`: Filter by source identifier (device ID or workflow path)
+    - `status`: Filter by request status
+    - `to`: End of time range (ISO 8601)
+    - `versions`: Filter by comma-separated version list
+    */
+    pub async fn get_secure_registry_audit_logs<'a>(
+        &'a self,
+        customer: &'a str,
+        ecosystem: Option<types::GetSecureRegistryAuditLogsEcosystem>,
+        from: Option<&'a ::chrono::DateTime<::chrono::offset::Utc>>,
+        next_token: Option<&'a str>,
+        package_name: Option<&'a str>,
+        request_type: Option<types::GetSecureRegistryAuditLogsRequestType>,
+        source: Option<types::GetSecureRegistryAuditLogsSource>,
+        source_identifier: Option<&'a str>,
+        status: Option<types::GetSecureRegistryAuditLogsStatus>,
+        to: Option<&'a ::chrono::DateTime<::chrono::offset::Utc>>,
+        versions: Option<&'a str>,
+    ) -> Result<ResponseValue<types::PolicyEvaluationsResponse>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/secure-registry/audit-logs",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .query(&progenitor_client::QueryParam::new("ecosystem", &ecosystem))
+            .query(&progenitor_client::QueryParam::new("from", &from))
+            .query(&progenitor_client::QueryParam::new(
+                "next_token",
+                &next_token,
+            ))
+            .query(&progenitor_client::QueryParam::new(
+                "package_name",
+                &package_name,
+            ))
+            .query(&progenitor_client::QueryParam::new(
+                "request_type",
+                &request_type,
+            ))
+            .query(&progenitor_client::QueryParam::new("source", &source))
+            .query(&progenitor_client::QueryParam::new(
+                "source_identifier",
+                &source_identifier,
+            ))
+            .query(&progenitor_client::QueryParam::new("status", &status))
+            .query(&progenitor_client::QueryParam::new("to", &to))
+            .query(&progenitor_client::QueryParam::new("versions", &versions))
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_secure_registry_audit_logs",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            401u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
     /**Get action secrets inventory
 
     Retrieve inventory of GitHub Actions secrets usage
@@ -24524,6 +33817,105 @@ impl Client {
         match response.status().as_u16() {
             200u16 => Ok(ResponseValue::empty(response)),
             401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get GitHub organization API keys
+
+    Retrieve the organization-level subscription keys (API key and self-hosted VM API key) and, when the caller has tenant-level permission, the tenant-level customer keys. Full key values are returned. When tenant-wide self-hosted VM settings are enabled for the tenant, the tenant self-hosted VM key is returned in subscription_keys.self_hosted_vm_api_key.
+
+    Sends a `GET` request to `/github/{owner}/actions/api-keys`
+
+    Arguments:
+    - `owner`: GitHub Organization
+    */
+    pub async fn get_github_org_api_keys<'a>(
+        &'a self,
+        owner: &'a str,
+    ) -> Result<ResponseValue<types::GetGithubOrgApiKeysResponse>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/github/{}/actions/api-keys",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_github_org_api_keys",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Rotate a GitHub organization or tenant API key
+
+    Rotates an organization-level or tenant-level API key. A new key is generated server-side for the chosen slot (Primary or Secondary) and returned; the sibling slot and all other keys are left untouched, so clients using the other slot are not disrupted. Rotating ApiKey or SelfHostedVMApiKey requires the api-keys write permission; rotating the tenant-level keys requires the tenant-api-keys write permission.
+
+    Sends a `PUT` request to `/github/{owner}/actions/api-key`
+
+    Arguments:
+    - `owner`: GitHub Organization
+    - `body`
+    */
+    pub async fn rotate_github_org_api_key<'a>(
+        &'a self,
+        owner: &'a str,
+        body: &'a types::RotateGithubOrgApiKeyBody,
+    ) -> Result<ResponseValue<types::ApiKeyDetails>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/github/{}/actions/api-key",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .put(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "rotate_github_org_api_key",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
@@ -25185,6 +34577,58 @@ impl Client {
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
+    /**Rotate a Dev Machine Guard telemetry key
+
+    Rotates the tenant's Primary or Secondary Dev Machine Guard telemetry key. A new key is generated for the chosen slot and returned; the sibling key and all other configuration are left untouched, so devices using the other slot are not disrupted.
+
+    Sends a `PUT` request to `/{customer}/developer-mdm/telemetry-key`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `body`
+    */
+    pub async fn rotate_developer_mdm_telemetry_key<'a>(
+        &'a self,
+        customer: &'a str,
+        body: &'a types::RotateDeveloperMdmTelemetryKeyBody,
+    ) -> Result<ResponseValue<types::RotateDeveloperMdmTelemetryKeyResponse>, Error<types::ApiError>>
+    {
+        let url = format!(
+            "{}/{}/developer-mdm/telemetry-key",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .put(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "rotate_developer_mdm_telemetry_key",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
     /**List registered devices
 
     List all developer devices registered with Dev Machine Guard for this tenant.
@@ -25371,6 +34815,67 @@ impl Client {
         match response.status().as_u16() {
             200u16 => ResponseValue::from_response(response).await,
             401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**List agent skills on a device
+
+    List the AI agent skills installed on a specific device.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/devices/{device_id}/agent-skills`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `device_id`: Device identifier
+    - `agent`: Filter to a single agent (e.g. claude, cursor, codex)
+    - `page`: Page number
+    - `page_size`: Results per page (max 100)
+    */
+    pub async fn get_customer_developer_mdm_devices_device_id_agent_skills<'a>(
+        &'a self,
+        customer: &'a str,
+        device_id: &'a str,
+        agent: Option<&'a str>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> Result<
+        ResponseValue<types::GetCustomerDeveloperMdmDevicesDeviceIdAgentSkillsResponse>,
+        Error<()>,
+    > {
+        let url = format!(
+            "{}/{}/developer-mdm/devices/{}/agent-skills",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&device_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .query(&progenitor_client::QueryParam::new("agent", &agent))
+            .query(&progenitor_client::QueryParam::new("page", &page))
+            .query(&progenitor_client::QueryParam::new("page_size", &page_size))
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_devices_device_id_agent_skills",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
@@ -25799,7 +35304,10 @@ impl Client {
         customer: &'a str,
         ide_type: types::GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdIdeType,
         extension_id: &'a str,
-    ) -> Result<ResponseValue<()>, Error<()>> {
+    ) -> Result<
+        ResponseValue<types::GetCustomerDeveloperMdmIdeExtensionsIdeTypeExtensionIdResponse>,
+        Error<()>,
+    > {
         let url = format!(
             "{}/{}/developer-mdm/ide-extensions/{}/{}",
             self.baseurl,
@@ -25813,7 +35321,15 @@ impl Client {
             ::reqwest::header::HeaderValue::from_static(Self::api_version()),
         );
         #[allow(unused_mut)]
-        let mut request = self.client.get(url).headers(header_map).build()?;
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
         let info = OperationInfo {
             operation_id: "get_customer_developer_mdm_ide_extensions_ide_type_extension_id",
         };
@@ -25822,7 +35338,7 @@ impl Client {
         self.post(&result, &info).await?;
         let response = result?;
         match response.status().as_u16() {
-            200u16 => Ok(ResponseValue::empty(response)),
+            200u16 => ResponseValue::from_response(response).await,
             401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
             _ => Err(Error::UnexpectedResponse(response)),
         }
@@ -26238,6 +35754,156 @@ impl Client {
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
+    /**List AI agent skills across devices
+
+    List all AI agent skills (Claude Code, Cursor, Codex, Copilot, and the shared .agents / skills.sh ecosystem) detected across devices, with provenance, per-skill device and instance counts, SKILL.md content-hash divergence, and content/risk flags. Served from a materialized index (filters, search, sort) with a cold-start fallback.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/agent-skills`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `agent`: Comma-separated agent filter (e.g. claude,cursor,codex); OR within the list
+    - `has_code`: When true, only skills that bundle executable code files
+    - `has_hooks`: When true, only skills that define hooks
+    - `has_shell_injection`: When true, only skills flagged for shell-injection risk
+    - `managed_by`: Filter by manager (e.g. skills.sh)
+    - `next_token`: Opaque cursor for the cold-start fallback path; ignored when sort_by is set
+    - `page`: Page number
+    - `page_size`: Results per page (max 100)
+    - `scope`: Filter by install scope (e.g. project, user, system)
+    - `search`: Filter by skill name
+    - `sort_by`: Sort field (default name / alphabetical)
+    - `sort_order`: Sort direction (defaults to asc for name, desc for device_count)
+    - `source_type`: Filter by provenance source type (e.g. github, gitlab, well-known, local)
+    */
+    pub async fn get_customer_developer_mdm_agent_skills<'a>(
+        &'a self,
+        customer: &'a str,
+        agent: Option<&'a str>,
+        has_code: Option<bool>,
+        has_hooks: Option<bool>,
+        has_shell_injection: Option<bool>,
+        managed_by: Option<&'a str>,
+        next_token: Option<&'a str>,
+        page: Option<i64>,
+        page_size: Option<i64>,
+        scope: Option<&'a str>,
+        search: Option<&'a str>,
+        sort_by: Option<types::GetCustomerDeveloperMdmAgentSkillsSortBy>,
+        sort_order: Option<types::GetCustomerDeveloperMdmAgentSkillsSortOrder>,
+        source_type: Option<&'a str>,
+    ) -> Result<ResponseValue<types::GetCustomerDeveloperMdmAgentSkillsResponse>, Error<()>> {
+        let url = format!(
+            "{}/{}/developer-mdm/agent-skills",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .query(&progenitor_client::QueryParam::new("agent", &agent))
+            .query(&progenitor_client::QueryParam::new("has_code", &has_code))
+            .query(&progenitor_client::QueryParam::new("has_hooks", &has_hooks))
+            .query(&progenitor_client::QueryParam::new(
+                "has_shell_injection",
+                &has_shell_injection,
+            ))
+            .query(&progenitor_client::QueryParam::new(
+                "managed_by",
+                &managed_by,
+            ))
+            .query(&progenitor_client::QueryParam::new(
+                "next_token",
+                &next_token,
+            ))
+            .query(&progenitor_client::QueryParam::new("page", &page))
+            .query(&progenitor_client::QueryParam::new("page_size", &page_size))
+            .query(&progenitor_client::QueryParam::new("scope", &scope))
+            .query(&progenitor_client::QueryParam::new("search", &search))
+            .query(&progenitor_client::QueryParam::new("sort_by", &sort_by))
+            .query(&progenitor_client::QueryParam::new(
+                "sort_order",
+                &sort_order,
+            ))
+            .query(&progenitor_client::QueryParam::new(
+                "source_type",
+                &source_type,
+            ))
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_agent_skills",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get agent skill details
+
+    Retrieve identity, provenance, and per-device install instances for one skill. skill_key is a composite carrying '/' and ':'; URL-encode it in the path (e.g. %2F for '/') or pass it unencoded via the skill_key query parameter, which takes precedence.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/agent-skills/{skill_key}`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `skill_key`: Canonical composite key, URL-encoded (e.g. managed:well-known:mintlify.com%2Fmintlify-api)
+    */
+    pub async fn get_customer_developer_mdm_agent_skills_skill_key<'a>(
+        &'a self,
+        customer: &'a str,
+        skill_key: &'a str,
+    ) -> Result<ResponseValue<types::GetCustomerDeveloperMdmAgentSkillsSkillKeyResponse>, Error<()>>
+    {
+        let url = format!(
+            "{}/{}/developer-mdm/agent-skills/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&skill_key.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_agent_skills_skill_key",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
     /**Get available install scripts
 
     Returns all available installation script versions, the current configured version, and changelogs.
@@ -26553,6 +36219,681 @@ impl Client {
         match response.status().as_u16() {
             200u16 => ResponseValue::from_response(response).await,
             400u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**List device policies
+
+    List all Developer MDM policies for the customer. v1 ships the ide_extension category (compiled to VS Code's extensions.allowed managed setting).
+
+    Sends a `GET` request to `/{customer}/developer-mdm/policies`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    */
+    pub async fn get_customer_developer_mdm_policies<'a>(
+        &'a self,
+        customer: &'a str,
+    ) -> Result<ResponseValue<types::GetCustomerDeveloperMdmPoliciesResponse>, Error<()>> {
+        let url = format!(
+            "{}/{}/developer-mdm/policies",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_policies",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Create a device policy
+
+    Create a new policy. The spec is validated for the category (ide_extension): publisher/name must be valid marketplace identifiers, versions are allow-list only and must be exact, and stable conflicts with versions.
+
+    Sends a `POST` request to `/{customer}/developer-mdm/policies`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `body`
+    */
+    pub async fn post_customer_developer_mdm_policies<'a>(
+        &'a self,
+        customer: &'a str,
+        body: &'a types::DevicePolicyRequest,
+    ) -> Result<ResponseValue<types::DevicePolicy>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/developer-mdm/policies",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .post(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "post_customer_developer_mdm_policies",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            201u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get a device policy
+
+    Retrieve a single policy by id.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/policies/{policy_id}`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `policy_id`: Policy identifier
+    */
+    pub async fn get_customer_developer_mdm_policies_policy_id<'a>(
+        &'a self,
+        customer: &'a str,
+        policy_id: &'a str,
+    ) -> Result<ResponseValue<types::DevicePolicy>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/developer-mdm/policies/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&policy_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_policies_policy_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            404u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Update a device policy
+
+    Replace a policy's fields. The spec is re-validated for the category.
+
+    Sends a `PUT` request to `/{customer}/developer-mdm/policies/{policy_id}`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `policy_id`: Policy identifier
+    - `body`
+    */
+    pub async fn put_customer_developer_mdm_policies_policy_id<'a>(
+        &'a self,
+        customer: &'a str,
+        policy_id: &'a str,
+        body: &'a types::DevicePolicyRequest,
+    ) -> Result<ResponseValue<types::DevicePolicy>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/developer-mdm/policies/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&policy_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .put(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "put_customer_developer_mdm_policies_policy_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Delete a device policy
+
+    Delete a policy. A policy referenced by one or more profiles cannot be deleted; remove it from those profiles first.
+
+    Sends a `DELETE` request to `/{customer}/developer-mdm/policies/{policy_id}`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `policy_id`: Policy identifier
+    */
+    pub async fn delete_customer_developer_mdm_policies_policy_id<'a>(
+        &'a self,
+        customer: &'a str,
+        policy_id: &'a str,
+    ) -> Result<
+        ResponseValue<types::DeleteCustomerDeveloperMdmPoliciesPolicyIdResponse>,
+        Error<types::ApiError>,
+    > {
+        let url = format!(
+            "{}/{}/developer-mdm/policies/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&policy_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .delete(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "delete_customer_developer_mdm_policies_policy_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            404u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**List profiles
+
+    List all profiles for the customer. A profile bundles one or more policies (at most one per category) and assigns them to devices.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/profiles`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    */
+    pub async fn get_customer_developer_mdm_profiles<'a>(
+        &'a self,
+        customer: &'a str,
+    ) -> Result<ResponseValue<types::GetCustomerDeveloperMdmProfilesResponse>, Error<()>> {
+        let url = format!(
+            "{}/{}/developer-mdm/profiles",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_profiles",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Create a profile
+
+    Create a profile. Every referenced policy must exist, a profile must reference at least one policy, and it may hold at most one policy per category.
+
+    Sends a `POST` request to `/{customer}/developer-mdm/profiles`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `body`
+    */
+    pub async fn post_customer_developer_mdm_profiles<'a>(
+        &'a self,
+        customer: &'a str,
+        body: &'a types::DeviceProfileRequest,
+    ) -> Result<ResponseValue<types::DeviceProfile>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/developer-mdm/profiles",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .post(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "post_customer_developer_mdm_profiles",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            201u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get a profile
+
+    Retrieve a single profile by id.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/profiles/{profile_id}`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `profile_id`: Profile identifier
+    */
+    pub async fn get_customer_developer_mdm_profiles_profile_id<'a>(
+        &'a self,
+        customer: &'a str,
+        profile_id: &'a str,
+    ) -> Result<ResponseValue<types::DeviceProfile>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/developer-mdm/profiles/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&profile_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_profiles_profile_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            404u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Update a profile
+
+    Replace a profile's fields, including its policy bundle and device assignment.
+
+    Sends a `PUT` request to `/{customer}/developer-mdm/profiles/{profile_id}`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `profile_id`: Profile identifier
+    - `body`
+    */
+    pub async fn put_customer_developer_mdm_profiles_profile_id<'a>(
+        &'a self,
+        customer: &'a str,
+        profile_id: &'a str,
+        body: &'a types::DeviceProfileRequest,
+    ) -> Result<ResponseValue<types::DeviceProfile>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/developer-mdm/profiles/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&profile_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .put(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "put_customer_developer_mdm_profiles_profile_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Delete a profile
+
+    Delete a profile. On-device enforcement for its assigned devices stops on their next cycle.
+
+    Sends a `DELETE` request to `/{customer}/developer-mdm/profiles/{profile_id}`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `profile_id`: Profile identifier
+    */
+    pub async fn delete_customer_developer_mdm_profiles_profile_id<'a>(
+        &'a self,
+        customer: &'a str,
+        profile_id: &'a str,
+    ) -> Result<
+        ResponseValue<types::DeleteCustomerDeveloperMdmProfilesProfileIdResponse>,
+        Error<types::ApiError>,
+    > {
+        let url = format!(
+            "{}/{}/developer-mdm/profiles/{}",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&profile_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .delete(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "delete_customer_developer_mdm_profiles_profile_id",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            404u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Export a profile as an MDM artifact
+
+    Compile the profile's policy for the category and render an importable MDM artifact for the requested OS. The compiled policy and its hash are identical to what the agent enforces; only the per-OS packaging differs.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/profiles/{profile_id}/export`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `profile_id`: Profile identifier
+    - `category`: Policy category to export (defaults to ide_extension)
+    - `os`: Target OS for the artifact
+    */
+    pub async fn get_customer_developer_mdm_profiles_profile_id_export<'a>(
+        &'a self,
+        customer: &'a str,
+        profile_id: &'a str,
+        category: Option<types::GetCustomerDeveloperMdmProfilesProfileIdExportCategory>,
+        os: types::GetCustomerDeveloperMdmProfilesProfileIdExportOs,
+    ) -> Result<ResponseValue<types::DeviceExportArtifact>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/developer-mdm/profiles/{}/export",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&profile_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .query(&progenitor_client::QueryParam::new("category", &category))
+            .query(&progenitor_client::QueryParam::new("os", &os))
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_profiles_profile_id_export",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get profile compliance
+
+    Per-device compliance for every device the profile governs. desired_hash is recomputed on read and reconciled with each device's last applied_hash, so a profile change never shows a stale compliant state.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/profiles/{profile_id}/compliance`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `profile_id`: Profile identifier
+    */
+    pub async fn get_customer_developer_mdm_profiles_profile_id_compliance<'a>(
+        &'a self,
+        customer: &'a str,
+        profile_id: &'a str,
+    ) -> Result<
+        ResponseValue<types::GetCustomerDeveloperMdmProfilesProfileIdComplianceResponse>,
+        Error<types::ApiError>,
+    > {
+        let url = format!(
+            "{}/{}/developer-mdm/profiles/{}/compliance",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&profile_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_profiles_profile_id_compliance",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            404u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get device compliance
+
+    Per-category compliance for a single device, derived from its assignment and last agent report.
+
+    Sends a `GET` request to `/{customer}/developer-mdm/devices/{device_id}/compliance`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `device_id`: Device UUID
+    */
+    pub async fn get_customer_developer_mdm_devices_device_id_compliance<'a>(
+        &'a self,
+        customer: &'a str,
+        device_id: &'a ::uuid::Uuid,
+    ) -> Result<
+        ResponseValue<types::GetCustomerDeveloperMdmDevicesDeviceIdComplianceResponse>,
+        Error<()>,
+    > {
+        let url = format!(
+            "{}/{}/developer-mdm/devices/{}/compliance",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+            encode_path(&device_id.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_developer_mdm_devices_device_id_compliance",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            401u16 => Err(Error::ErrorResponse(ResponseValue::empty(response))),
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
@@ -27165,6 +37506,105 @@ impl Client {
             _ => Err(Error::UnexpectedResponse(response)),
         }
     }
+    /**Trigger an on-demand Apps & PATs refresh
+
+    Re-runs the GitHub Apps & PATs posture scan for the organization. The scan runs asynchronously, so the response returns immediately (202) and the posture data updates in the background.
+
+    Sends a `POST` request to `/github/{owner}/refresh/apps-pats`
+
+    Arguments:
+    - `owner`: GitHub Organization Name
+    */
+    pub async fn trigger_apps_pats_refresh<'a>(
+        &'a self,
+        owner: &'a str,
+    ) -> Result<ResponseValue<types::TriggerAppsPatsRefreshResponse>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/github/{}/refresh/apps-pats",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .post(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "trigger_apps_pats_refresh",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            202u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Trigger an on-demand controls refresh for a repository
+
+    Re-runs control evaluation (workflow security controls analysis) for a specific repository. The analysis runs asynchronously, so the response returns immediately (202) and control results update in the background.
+
+    Sends a `POST` request to `/github/{owner}/{repo}/refresh/controls`
+
+    Arguments:
+    - `owner`: GitHub Organization Name
+    - `repo`: GitHub Repository Name
+    */
+    pub async fn trigger_controls_refresh<'a>(
+        &'a self,
+        owner: &'a str,
+        repo: &'a str,
+    ) -> Result<ResponseValue<types::TriggerControlsRefreshResponse>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/github/{}/{}/refresh/controls",
+            self.baseurl,
+            encode_path(&owner.to_string()),
+            encode_path(&repo.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .post(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "trigger_controls_refresh",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            202u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
     /**Get GitHub Apps and Personal Access Tokens for organization
 
     Retrieve comprehensive posture data including GitHub Apps, Fine-grained PATs, and Classic PATs for a specific organization. Supports pagination, search, filtering by type, and advanced filters.
@@ -27290,6 +37730,105 @@ impl Client {
             .build()?;
         let info = OperationInfo {
             operation_id: "get_apps_for_customer",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Get customer API keys
+
+    Retrieve the tenant-level API keys for a customer. Requires admin privileges or the tenant-api-keys read permission. Full key values are returned.
+
+    Sends a `GET` request to `/{customer}/api-keys`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    */
+    pub async fn get_customer_api_keys<'a>(
+        &'a self,
+        customer: &'a str,
+    ) -> Result<ResponseValue<types::GetCustomerApiKeysResponse>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/api-keys",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .get(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "get_customer_api_keys",
+        };
+        self.pre(&mut request, &info).await?;
+        let result = self.exec(request, &info).await;
+        self.post(&result, &info).await?;
+        let response = result?;
+        match response.status().as_u16() {
+            200u16 => ResponseValue::from_response(response).await,
+            400u16 => Err(Error::ErrorResponse(
+                ResponseValue::from_response(response).await?,
+            )),
+            _ => Err(Error::UnexpectedResponse(response)),
+        }
+    }
+    /**Rotate a customer API key
+
+    Rotates one of the customer's tenant-level API keys. A new key is generated server-side for the chosen slot (Primary or Secondary) and returned; the sibling slot and all other keys are left untouched, so clients using the other slot are not disrupted. Requires admin privileges or the tenant-api-keys write permission.
+
+    Sends a `PUT` request to `/{customer}/api-key`
+
+    Arguments:
+    - `customer`: Customer/tenant identifier
+    - `body`
+    */
+    pub async fn rotate_customer_api_key<'a>(
+        &'a self,
+        customer: &'a str,
+        body: &'a types::RotateCustomerApiKeyBody,
+    ) -> Result<ResponseValue<types::ApiKeyDetails>, Error<types::ApiError>> {
+        let url = format!(
+            "{}/{}/api-key",
+            self.baseurl,
+            encode_path(&customer.to_string()),
+        );
+        let mut header_map = ::reqwest::header::HeaderMap::with_capacity(1usize);
+        header_map.append(
+            ::reqwest::header::HeaderName::from_static("api-version"),
+            ::reqwest::header::HeaderValue::from_static(Self::api_version()),
+        );
+        #[allow(unused_mut)]
+        let mut request = self
+            .client
+            .put(url)
+            .header(
+                ::reqwest::header::ACCEPT,
+                ::reqwest::header::HeaderValue::from_static("application/json"),
+            )
+            .json(&body)
+            .headers(header_map)
+            .build()?;
+        let info = OperationInfo {
+            operation_id: "rotate_customer_api_key",
         };
         self.pre(&mut request, &info).await?;
         let result = self.exec(request, &info).await;

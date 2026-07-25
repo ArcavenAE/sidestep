@@ -1869,6 +1869,62 @@ paths:
           description: Internal Server Error
       security:
       - BearerAuth: []
+  /github/{owner}/actions/policies/{policy_name}:
+    post:
+      tags:
+      - Harden Runner
+      summary: Create or update a HardenRunner policy
+      description: |
+        Creates a new policy or updates an existing one. If the policy already exists,
+        only the fields provided in the request body are updated (partial update).
+        The policy name is specified in the URL path.
+      operationId: post_github_owner_actions_policies_policy_name
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: policy_name
+        description: Policy name (unique identifier within the org)
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyDetails'
+        required: true
+      responses:
+        '200':
+          description: Policy saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: policy saved successfully
+                    type: string
+        '400':
+          description: Bad request (invalid request body)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
   /github/{owner}/actions/policies/{policy_name}/attach:
     post:
       tags:
@@ -2114,7 +2170,9 @@ paths:
       - Harden Runner
       summary: Get job-level baselines for a GitHub repository.
       description: |
-        Retrieves the baseline status of every workflow job in a repository. If  `all` is supplied for `repo`, the call aggregates job baselines across all repositories under the specified owner.
+        Retrieves the baseline status of every workflow job in a repository. If `[all]` is supplied for `repo`, the call aggregates job baselines across all repositories under the specified owner.
+
+        Pagination is opt-in. Without `limit` or `next_token` the response is the legacy bare-array shape and is bounded by a 500-job hard cap (see the `X-Truncated` response header). Supplying `limit` (and `next_token` on subsequent pages) switches the response to the paginated envelope `{ data, has_more, next_token }`. Pagination is not supported when `repo` is `[all]` — that path uses a different read shape and returns the bare array unconditionally.
       externalDocs:
         url: https://docs.stepsecurity.io/harden-runner/baseline
       operationId: get_github_owner_repo_jobs_baseline
@@ -2128,7 +2186,7 @@ paths:
         style: simple
       - in: path
         name: repo
-        description: GitHub Repository name, or `[all]` to fetch job baselines across the entire owner.
+        description: GitHub repository name, or `[all]` to fetch job baselines across the entire owner.
         required: true
         schema:
           type: string
@@ -2158,63 +2216,144 @@ paths:
         style: form
       - in: query
         name: workflow_file
-        description: Filter jobs by workflow file name. When specified, bypasses the default 100-job limit.
+        description: |
+          Filter jobs by workflow file name. When specified, bypasses the default 100-job soft cap applied to un-paginated repo-scope responses. Un-paginated responses are still bounded by the 500-job hard cap; use `limit` + `next_token` to page through larger results.
+        schema:
+          type: string
+        style: form
+      - in: query
+        name: limit
+        description: |
+          Opt-in cursor pagination — page size. Values above 500 are clamped to 500. Supplying `limit` switches the response shape from the legacy bare array to the paginated envelope `{ data, has_more, next_token }`; on subsequent pages, pass the previous response's `next_token` together with `limit` (a bare `next_token` without `limit` is rejected). Not supported when `repo` is `[all]`.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+        style: form
+      - in: query
+        name: next_token
+        description: |
+          Opaque cursor returned by a prior paginated response's `next_token` field. Requires `limit`. Not supported when `repo` is `[all]`.
         schema:
           type: string
         style: form
       responses:
         '200':
-          description: List of job baselines retrieved successfully.
+          description: |
+            Job baselines retrieved successfully. The response shape depends on whether pagination params were supplied — see the `oneOf` schemas below.
+          headers:
+            X-Truncated:
+              description: |
+                Present and set to `true` only on un-paginated responses where the result exceeded the 500-job hard cap and was truncated to fit Lambda's 6 MB response limit. Clients that see this header should opt into pagination via `limit` + `next_token` to retrieve the full result.
+              style: simple
+              schema:
+                type: string
+                enum:
+                - 'true'
+            X-Truncated-Cap:
+              description: |
+                Present only when `X-Truncated` is set. The numeric cap that was applied (currently `500`).
+              style: simple
+              schema:
+                type: integer
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/WorkflowJobRunEndpointAggregation'
+                oneOf:
+                - description: Legacy bare-array response. Returned when neither `limit` nor `next_token` is supplied.
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/WorkflowJobRunEndpointAggregation'
+                - description: Paginated envelope. Returned when `limit` or `next_token` is supplied.
+                  type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/WorkflowJobRunEndpointAggregation'
+                    has_more:
+                      description: True when more rows remain; pass `next_token` to fetch the next page.
+                      type: boolean
+                    next_token:
+                      description: Cursor for the next page. Empty when `has_more` is false.
+                      type: string
               examples:
-                job_baselines:
-                  summary: Job-level baselines response
-                  description: Example response showing baseline data for workflow jobs
+                job_baselines_legacy:
+                  summary: Bare array (un-paginated)
+                  description: Legacy response shape — returned when neither `limit` nor `next_token` is set.
                   value:
                   - baseline_status: Stable
                     change_log:
                       last_updated_at: 2024-01-14T09:15:00Z
                       logs:
-                      - full_repo_name: step-security/harden-runner
+                      - full_repo_name: acme-corp/widgets
                         new_endpoints:
-                        - actions-cache.github.com
+                        - cache.example.com
                         run_id: 6123456789
                         timestamp: 2024-01-14T09:15:00Z
                     endpoints:
                     - called_by:
                       - runner
-                      endpoint: api.github.com
+                      endpoint: api.example.com
                       first_seen: 2024-01-01T10:00:00Z
-                      friendlyName: GitHub API
+                      friendlyName: Example API
                       last_seen: 2024-01-15T14:30:00Z
                       total_calls: 45
                     - called_by:
                       - runner
-                      endpoint: registry.npmjs.org
+                      endpoint: registry.example.com
                       first_seen: 2024-01-01T10:05:00Z
-                      friendlyName: NPM Registry
+                      friendlyName: Example Package Registry
                       last_seen: 2024-01-15T14:25:00Z
                       total_calls: 23
                     - called_by:
                       - runner
-                      endpoint: actions-cache.github.com
+                      endpoint: cache.example.com
                       first_seen: 2024-01-14T09:15:00Z
-                      friendlyName: GitHub Actions Cache
+                      friendlyName: Example Cache
                       last_seen: 2024-01-14T09:15:00Z
                       total_calls: 1
                     job: build
-                    owner: step-security
-                    repo: harden-runner
+                    owner: acme-corp
+                    repo: widgets
                     total_workflow_runs: 156
                     total_workflow_runs_since_last_change: 12
                     workflow_file_name: ci.yml
+                job_baselines_paginated:
+                  summary: Paginated envelope
+                  description: |
+                    Returned when `limit` (and optionally `next_token`) is set. `has_more` indicates additional pages remain; pass `next_token` on the next call to continue.
+                  value:
+                    data:
+                    - baseline_status: Stable
+                      endpoints:
+                      - called_by:
+                        - runner
+                        endpoint: api.example.com
+                        first_seen: 2024-01-01T10:00:00Z
+                        friendlyName: Example API
+                        last_seen: 2024-01-15T14:30:00Z
+                        total_calls: 45
+                      job: build
+                      owner: acme-corp
+                      repo: widgets
+                      total_workflow_runs: 156
+                      total_workflow_runs_since_last_change: 12
+                      workflow_file_name: ci.yml
+                    has_more: true
+                    next_token: eyJyZXBvIjp7IkIiOm51bGwsIkJPT0wiOm51bGwsIkJTIjpudWxsfX0=
         '400':
-          description: Missing or invalid required parameters.
+          description: |
+            Missing or invalid parameters. New validation paths added with cursor pagination:
+
+            * `limit` is non-integer or non-positive.
+
+            * `next_token` is supplied without `limit` (the cursor came from a paginated response,
+              so the caller must repeat the page size).
+
+
+            * `limit` or `next_token` is supplied when `repo` is `[all]` (pagination is not supported on
+              the org-aggregate path).
         '401':
           description: Unauthorized.
         '500':
@@ -2632,6 +2771,200 @@ paths:
           description: Internal server error.
       security:
       - BearerAuth: []
+  /harden-runner-agent/{provider}/{os}/{topo}/releases/{tag}:
+    get:
+      tags:
+      - Harden Runner
+      summary: Get a Harden Runner agent release by tag.
+      description: |
+        Retrieves metadata for a specific Harden Runner agent release. The `tag` path parameter may be a concrete release tag such as `v1.8.12` or the special value `latest`, which resolves to the most recent release for the selected provider, operating system, and topology.
+      operationId: get_harden_runner_agent_provider_os_topo_releases_tag
+      parameters:
+      - in: path
+        name: provider
+        description: Source control provider.
+        required: true
+        schema:
+          type: string
+          enum:
+          - github
+          - gitlab
+          - ado
+        example: github
+        style: simple
+      - in: path
+        name: os
+        description: Target operating system.
+        required: true
+        schema:
+          type: string
+          enum:
+          - linux
+          - windows
+          - darwin
+        example: linux
+        style: simple
+      - in: path
+        name: topo
+        description: Target deployment topology.
+        required: true
+        schema:
+          type: string
+          enum:
+          - single
+          - multi
+          - k8s
+        example: single
+        style: simple
+      - in: path
+        name: tag
+        description: Release tag or `latest`.
+        required: true
+        schema:
+          type: string
+        example: latest
+        style: simple
+      responses:
+        '200':
+          description: Harden Runner agent release retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HardenRunnerAgentRelease'
+              examples:
+                latest_release:
+                  summary: Latest release
+                  value:
+                    assets:
+                    - asset_name: harden-runner-bravo_1.8.12_linux_amd64.tar.gz
+                      checksum: sha256:c986d0a19637325c9a8d4a331a6c4ed047e4cddb798f56b641d0e66f8bf9b1b2
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner-bravo_1.8.12_linux_amd64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner-bravo_1.8.12_linux_amd64.tar.gz
+                    - asset_name: harden-runner-bravo_1.8.12_linux_arm64.tar.gz
+                      checksum: sha256:5c3df17f82e317c8b288dfbbcee449c2a24a80deeeb3416dccabd0a61982c676
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner-bravo_1.8.12_linux_arm64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner-bravo_1.8.12_linux_arm64.tar.gz
+                    - asset_name: harden-runner_1.8.12_linux_amd64.tar.gz
+                      checksum: sha256:a54c4305b5665ba54bfdc46eb32aee1758699b994550ca3658d698367cc96a3f
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner_1.8.12_linux_amd64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner_1.8.12_linux_amd64.tar.gz
+                    - asset_name: harden-runner_1.8.12_linux_arm64.tar.gz
+                      checksum: sha256:3f401d508e1427b9ba205681d5abecde3b4a0f0a18542d198b6dc14cadd93ab5
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner_1.8.12_linux_arm64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner_1.8.12_linux_arm64.tar.gz
+                    os: linux
+                    provider: github
+                    published_at: 2026-06-30T03:53:19Z
+                    repo: step-security/agent-ebpf
+                    tag: v1.8.12
+                    topology: single
+        '400':
+          description: Missing or invalid required parameters, or release source configuration not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+              examples:
+                source_config_not_found:
+                  summary: Release source config not found
+                  value:
+                    error: agent release source config not found for scenario "ado#linux#k8s"
+        '500':
+          description: Internal server error.
+  /harden-runner-agent/{provider}/{os}/{topo}/releases:
+    get:
+      tags:
+      - Harden Runner
+      summary: List Harden Runner agent releases.
+      description: |
+        Retrieves all available Harden Runner agent releases for the selected provider, operating system, and topology.
+      operationId: get_harden_runner_agent_provider_os_topo_releases
+      parameters:
+      - in: path
+        name: provider
+        description: Source control provider.
+        required: true
+        schema:
+          type: string
+          enum:
+          - github
+          - gitlab
+          - ado
+        example: github
+        style: simple
+      - in: path
+        name: os
+        description: Target operating system.
+        required: true
+        schema:
+          type: string
+          enum:
+          - linux
+          - windows
+          - darwin
+        example: linux
+        style: simple
+      - in: path
+        name: topo
+        description: Target deployment topology.
+        required: true
+        schema:
+          type: string
+          enum:
+          - single
+          - multi
+          - k8s
+        example: single
+        style: simple
+      responses:
+        '200':
+          description: Harden Runner agent releases retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HardenRunnerAgentRelease'
+              examples:
+                releases:
+                  summary: Release list
+                  value:
+                  - assets:
+                    - asset_name: harden-runner-bravo_1.8.12_linux_amd64.tar.gz
+                      checksum: sha256:c986d0a19637325c9a8d4a331a6c4ed047e4cddb798f56b641d0e66f8bf9b1b2
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner-bravo_1.8.12_linux_amd64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner-bravo_1.8.12_linux_amd64.tar.gz
+                    - asset_name: harden-runner-bravo_1.8.12_linux_arm64.tar.gz
+                      checksum: sha256:5c3df17f82e317c8b288dfbbcee449c2a24a80deeeb3416dccabd0a61982c676
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner-bravo_1.8.12_linux_arm64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner-bravo_1.8.12_linux_arm64.tar.gz
+                    - asset_name: harden-runner_1.8.12_linux_amd64.tar.gz
+                      checksum: sha256:a54c4305b5665ba54bfdc46eb32aee1758699b994550ca3658d698367cc96a3f
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner_1.8.12_linux_amd64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner_1.8.12_linux_amd64.tar.gz
+                    - asset_name: harden-runner_1.8.12_linux_arm64.tar.gz
+                      checksum: sha256:3f401d508e1427b9ba205681d5abecde3b4a0f0a18542d198b6dc14cadd93ab5
+                      fallback_download_url: https://packages.stepsecurity.io/self-hosted/harden-runner_1.8.12_linux_arm64.tar.gz
+                      primary_download_url: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner_1.8.12_linux_arm64.tar.gz
+                    os: linux
+                    provider: github
+                    published_at: 2026-06-30T03:53:19Z
+                    repo: step-security/agent-ebpf
+                    tag: v1.8.12
+                    topology: single
+        '400':
+          description: Missing or invalid required parameters, or release source configuration not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+              examples:
+                source_config_not_found:
+                  summary: Release source config not found
+                  value:
+                    error: agent release source config not found for scenario "ado#linux#k8s"
+        '500':
+          description: Internal server error.
   /github/{owner}/{repo}/policy-driven-pr/configs:
     get:
       tags:
@@ -2684,6 +3017,8 @@ paths:
                           dorny/paths-filter: step-security/paths-filter
                           softprops/action-gh-release: step-security/action-gh-release
                         apply_issue_pr_config_for_all_repos: false
+                        custom_actions_to_replace:
+                          my-org/old-action: my-org/new-action
                         exempted_actions:
                         - actions/*
                         - github/*
@@ -2779,6 +3114,8 @@ paths:
                     actions_to_replace:
                       dorny/paths-filter: step-security/paths-filter
                       softprops/action-gh-release: step-security/action-gh-release
+                    custom_actions_to_replace:
+                      my-org/old-action: my-org/new-action
                     exempted_actions:
                     - actions/checkout
                     - actions/setup-node
@@ -2975,7 +3312,10 @@ paths:
       tags:
       - Orchestrate Security
       summary: Get security pull requests
-      description: Retrieve security-related pull requests for the organization
+      description: |
+        Retrieve security-related pull requests for the organization, ordered by `updated_at` descending (most recently updated first).
+
+        **Pagination.** Results are paginated. Each response includes `has_more` and `next_token`. To fetch the next page, pass the returned `next_token` back as the `next_token` query parameter on the next request, keeping `limit` and any filters the same. When `has_more` is `false`, `next_token` will be empty and there are no more results.
       operationId: get_github_owner_pull_requests
       parameters:
       - in: path
@@ -2985,9 +3325,146 @@ paths:
         schema:
           type: string
         style: simple
+      - in: query
+        name: repo
+        description: Filter to a single repository (the repo name only, without the org prefix).
+        schema:
+          type: string
+        example: example-repo
+        style: form
+      - in: query
+        name: state
+        description: Filter by pull request state. `merged` returns closed PRs that were merged.
+        schema:
+          type: string
+          enum:
+          - open
+          - closed
+          - merged
+        example: open
+        style: form
+      - in: query
+        name: limit
+        description: Maximum number of results to return per page.
+        schema:
+          default: 100
+          type: integer
+          minimum: 1
+        example: 100
+        style: form
+      - in: query
+        name: next_token
+        description: Pagination cursor returned as `next_token` from the previous response. Omit on the first request.
+        schema:
+          type: string
+        style: form
       responses:
         '200':
           description: Successfully retrieved pull requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    description: Page of pull requests.
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        full_repo_name:
+                          example: acme-corp/example-repo
+                          type: string
+                        id:
+                          example: 56
+                          type: integer
+                        pull_request_number:
+                          example: 56
+                          type: integer
+                        pull_Request_id:
+                          example: 3539744868
+                          description: GitHub's internal pull request ID. Note the unusual casing of this key (`pull_Request_id` with a capital `R`) — this is the actual JSON key returned by the API and clients must match it exactly.
+                          type: integer
+                        pull_request_state:
+                          example: open
+                          description: 'GitHub pull request state. Only `open` or `closed` ever appear here — merged PRs have `pull_request_state: "closed"` together with `is_pr_merged: true`. The `state=merged` query filter is just shorthand for that combination.'
+                          type: string
+                          enum:
+                          - open
+                          - closed
+                        pull_request_html_url:
+                          example: https://github.com/acme-corp/example-repo/pull/56
+                          type: string
+                        pull_request_created_at:
+                          example: 1776347230
+                          description: Unix epoch seconds when the pull request was created on GitHub.
+                          type: integer
+                          format: int64
+                        remediation_type:
+                          example: PullRequest
+                          type: string
+                        vulnerability_identifiers:
+                          example:
+                          - main::.github/workflows/codeql.yml::UnpinnedGitHubActions
+                          type: array
+                          items:
+                            type: string
+                        author_github_user:
+                          example: stepsecurity-app
+                          type: string
+                        fix_branch_name:
+                          type: string
+                        issue_id:
+                          example: 0
+                          description: GitHub issue number this remediation is associated with, if any. `0` when no issue is linked.
+                          type: integer
+                        is_pr_merged:
+                          example: false
+                          type: boolean
+                        updated_at:
+                          example: 1776347231
+                          description: Unix epoch seconds of the last update; results are sorted by this field descending.
+                          type: integer
+                          format: int64
+                        remediated_controls:
+                          description: Per-workflow list of controls remediated by this pull request.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              Workflow:
+                                example: codeql.yml
+                                type: string
+                              Controls:
+                                example:
+                                - ActionsShouldBePinned
+                                - GitHubHostedRunnerShouldBeHardened
+                                type: array
+                                items:
+                                  type: string
+                        status:
+                          example: ACTIVE
+                          type: string
+                        owner:
+                          example: acme-corp
+                          type: string
+                        customer:
+                          example: acme-corp
+                          type: string
+                  has_more:
+                    example: true
+                    description: '`true` if there are more results available; pass `next_token` to fetch them.'
+                    type: boolean
+                  next_token:
+                    example: eyJmdWxsX3JlcG9fbmFtZSI6...
+                    description: Pagination cursor for the next page. Empty when `has_more` is `false`.
+                    type: string
+        '400':
+          description: Bad Request — e.g., invalid `state` value or unparseable `limit`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
         '401':
           description: Unauthorized
         '500':
@@ -3036,18 +3513,124 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                policy:
-                  type: object
+              $ref: '#/components/schemas/RunPolicyRequest'
         required: true
       responses:
         '201':
           description: Policy created successfully
         '401':
           description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /github/{owner}/actions/run-policies/{policy_id}:
+    get:
+      tags:
+      - Workflow Run Policies
+      summary: Get run policy
+      description: Retrieve a single CI/CD run policy by its identifier for the organization
+      operationId: get_github_owner_actions_run_policies_policy_id
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: policy_id
+        description: Identifier of the run policy to retrieve
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Successfully retrieved run policy
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    put:
+      tags:
+      - Workflow Run Policies
+      summary: Update run policy
+      description: Update an existing CI/CD run policy for the organization. Updating a tenant-level (all-org) policy requires organization admin privileges.
+      operationId: put_github_owner_actions_run_policies_policy_id
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: policy_id
+        description: Identifier of the run policy to update
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunPolicyRequest'
+        required: true
+      responses:
+        '200':
+          description: Policy updated successfully
+        '400':
+          description: Bad Request - invalid payload or policy does not exist
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin privileges required to update tenant-level policies
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    delete:
+      tags:
+      - Workflow Run Policies
+      summary: Delete run policy
+      description: Delete a CI/CD run policy for the organization. Deleting an all-org policy requires organization admin privileges.
+      operationId: delete_github_owner_actions_run_policies_policy_id
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: policy_id
+        description: Identifier of the run policy to delete
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Policy deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: run policy deleted successfully
+                    type: string
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin privileges required to delete all-org policies
         '500':
           description: Internal Server Error
       security:
@@ -3307,6 +3890,49 @@ paths:
                 properties:
                   detections:
                     $ref: '#/components/schemas/ThreatIntelIncident'
+        '401':
+          description: Unauthorized. Invalid or missing token.
+        '404':
+          description: Incident not found
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /github/{owner}/threat-intel/incidents/{incidentId}/compromised-components:
+    get:
+      tags:
+      - OSS Package Security
+      summary: Get compromised components for a threat intel incident
+      description: Retrieve all compromised OSS components associated with a specific supply chain threat incident
+      operationId: getThreatIntelIncidentCompromisedComponents
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: incidentId
+        description: Unique incident identifier
+        required: true
+        schema:
+          type: string
+        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+        style: simple
+      responses:
+        '200':
+          description: Successfully retrieved compromised components
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  compromised_components:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OSSCompromisedComponent'
         '401':
           description: Unauthorized. Invalid or missing token.
         '404':
@@ -3840,6 +4466,226 @@ paths:
           description: Internal Server Error
       security:
       - BearerAuth: []
+  /{customer}/secure-registry/controls/{registry}:
+    get:
+      tags:
+      - Secure Registry
+      summary: Get secure registry configuration
+      description: Retrieve the secure registry configuration for a specific package ecosystem (npm or PyPI). Returns controls for cooldown period, compromised packages, and typosquatting detection.
+      operationId: getSecureRegistryConfig
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/organization identifier
+        required: true
+        schema:
+          type: string
+        example: myorg
+        style: simple
+      - in: path
+        name: registry
+        description: Package registry ecosystem
+        required: true
+        schema:
+          type: string
+          enum:
+          - npm
+          - pypi
+        example: npm
+        style: simple
+      responses:
+        '200':
+          description: Secure registry configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecureRegistryConfig'
+        '401':
+          description: Unauthorized - invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
+    put:
+      tags:
+      - Secure Registry
+      summary: Update secure registry configuration
+      description: Update the secure registry configuration for a specific package ecosystem (npm or PyPI). Configures controls for cooldown period, compromised package blocking, and typosquatting detection.
+      operationId: updateSecureRegistryConfig
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/organization identifier
+        required: true
+        schema:
+          type: string
+        example: myorg
+        style: simple
+      - in: path
+        name: registry
+        description: Package registry ecosystem
+        required: true
+        schema:
+          type: string
+          enum:
+          - npm
+          - pypi
+        example: npm
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecureRegistryConfigPayload'
+        required: true
+      responses:
+        '204':
+          description: Configuration updated successfully
+        '400':
+          description: Bad Request - invalid configuration payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
+  /{customer}/secure-registry/audit-logs:
+    get:
+      tags:
+      - Secure Registry
+      summary: Get secure registry audit logs (policy evaluations)
+      description: Retrieve paginated audit log entries for secure registry policy evaluations. Each entry records a package request and the outcome of each security control evaluated against it.
+      operationId: getSecureRegistryAuditLogs
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/organization identifier
+        required: true
+        schema:
+          type: string
+        example: myorg
+        style: simple
+      - in: query
+        name: status
+        description: Filter by request status
+        schema:
+          type: string
+          enum:
+          - allowed
+          - modified
+          - blocked
+        style: form
+      - in: query
+        name: ecosystem
+        description: Filter by package ecosystem
+        schema:
+          type: string
+          enum:
+          - javascript
+          - python
+        style: form
+      - in: query
+        name: request_type
+        description: Filter by request type
+        schema:
+          type: string
+          enum:
+          - metadata
+          - tarball_download
+        style: form
+      - in: query
+        name: package_name
+        description: Filter by package name
+        schema:
+          type: string
+        example: lodash
+        style: form
+      - in: query
+        name: versions
+        description: Filter by comma-separated version list
+        schema:
+          type: string
+        example: 4.17.21,4.17.20
+        style: form
+      - in: query
+        name: source
+        description: Filter by request source
+        schema:
+          type: string
+          enum:
+          - dev
+          - gha
+        style: form
+      - in: query
+        name: source_identifier
+        description: Filter by source identifier (device ID or workflow path)
+        schema:
+          type: string
+        example: myorg/my-repo/.github/workflows/ci.yml
+        style: form
+      - in: query
+        name: from
+        description: Start of time range (ISO 8601)
+        schema:
+          type: string
+          format: date-time
+        example: 2024-06-01T00:00:00Z
+        style: form
+      - in: query
+        name: to
+        description: End of time range (ISO 8601)
+        schema:
+          type: string
+          format: date-time
+        example: 2024-06-30T23:59:59Z
+        style: form
+      - in: query
+        name: next_token
+        description: Pagination token from a previous response
+        schema:
+          type: string
+        style: form
+      responses:
+        '200':
+          description: Paginated list of policy evaluation audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyEvaluationsResponse'
+        '401':
+          description: Unauthorized - invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
   /github/{owner}/actions/secrets:
     get:
       tags:
@@ -3862,6 +4708,156 @@ paths:
           description: Unauthorized
         '500':
           description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /github/{owner}/actions/api-keys:
+    get:
+      tags:
+      - Settings
+      summary: Get GitHub organization API keys
+      description: Retrieve the organization-level subscription keys (API key and self-hosted VM API key) and, when the caller has tenant-level permission, the tenant-level customer keys. Full key values are returned. When tenant-wide self-hosted VM settings are enabled for the tenant, the tenant self-hosted VM key is returned in subscription_keys.self_hosted_vm_api_key.
+      operationId: getGithubOrgApiKeys
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: API keys retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscription_keys:
+                    description: Organization-level keys. Requires the api-keys read permission; always present, but empty when the caller lacks the permission or no keys exist.
+                    type: object
+                    properties:
+                      api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      self_hosted_vm_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                  customer_keys:
+                    description: Tenant-level keys. Present only when the caller has the tenant-api-keys read permission.
+                    type: object
+                    properties:
+                      arc_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      self_hosted_vm_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      broker_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      tenant_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      tenant_read_only_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      secure_registry_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+        '400':
+          description: Bad Request - error getting subscription or customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden - missing api-keys read permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
+  /github/{owner}/actions/api-key:
+    put:
+      tags:
+      - Settings
+      summary: Rotate a GitHub organization or tenant API key
+      description: Rotates an organization-level or tenant-level API key. A new key is generated server-side for the chosen slot (Primary or Secondary) and returned; the sibling slot and all other keys are left untouched, so clients using the other slot are not disrupted. Rotating ApiKey or SelfHostedVMApiKey requires the api-keys write permission; rotating the tenant-level keys requires the tenant-api-keys write permission.
+      operationId: rotateGithubOrgApiKey
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                key_name:
+                  example: ApiKey
+                  description: Which key to rotate (matched case-insensitively). ApiKey and SelfHostedVMApiKey are organization-level; the rest are tenant-level.
+                  type: string
+                  enum:
+                  - ApiKey
+                  - SelfHostedVMApiKey
+                  - BrokerAPIKey
+                  - ARCApiKey
+                  - TenantAPIKey
+                  - TenantReadOnlyAPIKey
+                  - TenantWideSelfHostedVMAPIKeyName
+                type:
+                  example: Primary
+                  description: Which key slot to rotate
+                  type: string
+                  enum:
+                  - Primary
+                  - Secondary
+              required:
+              - key_name
+              - type
+        required: true
+      responses:
+        '200':
+          description: Key rotated successfully; the newly generated key is returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyDetails'
+        '400':
+          description: Bad Request - invalid payload or unknown key_name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden - missing api-keys write permission (organization keys) or tenant-api-keys write permission (tenant keys)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error - failed to update keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
       security:
       - BearerAuth: []
   /github/{owner}/actions/workflow-actions:
@@ -4919,6 +5915,84 @@ paths:
           description: Internal Server Error
       security:
       - BearerAuth: []
+  /{customer}/developer-mdm/telemetry-key:
+    put:
+      tags:
+      - Dev Machine Guard
+      summary: Rotate a Dev Machine Guard telemetry key
+      description: Rotates the tenant's Primary or Secondary Dev Machine Guard telemetry key. A new key is generated for the chosen slot and returned; the sibling key and all other configuration are left untouched, so devices using the other slot are not disrupted.
+      operationId: rotateDeveloperMdmTelemetryKey
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  example: Primary
+                  description: Which telemetry key slot to rotate
+                  type: string
+                  enum:
+                  - Primary
+                  - Secondary
+              required:
+              - type
+        required: true
+      responses:
+        '200':
+          description: Telemetry key rotated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    description: The newly generated telemetry key
+                    type: string
+                  timestamp:
+                    description: Unix timestamp (seconds) when the key was rotated
+                    type: integer
+                    format: int64
+        '400':
+          description: Bad Request - missing/invalid payload, or type not 'Primary'/'Secondary'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden - missing Dev Machine Guard telemetry-key rotate permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '409':
+          description: Conflict - Dev Machine Guard telemetry key not initialized for this tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
   /{customer}/developer-mdm/devices:
     get:
       tags:
@@ -4995,6 +6069,8 @@ paths:
                         ai_agents_count:
                           type: integer
                         mcp_servers_count:
+                          type: integer
+                        agent_skills_count:
                           type: integer
                         missing_tools:
                           type: boolean
@@ -5151,6 +6227,125 @@ paths:
                           type: boolean
                         typosquat_of:
                           type: string
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/devices/{device_id}/agent-skills:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: List agent skills on a device
+      description: List the AI agent skills installed on a specific device.
+      operationId: get_customer_developer_mdm_devices_device_id_agent_skills
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: device_id
+        description: Device identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: query
+        name: agent
+        description: Filter to a single agent (e.g. claude, cursor, codex)
+        schema:
+          type: string
+        style: form
+      - in: query
+        name: page
+        description: Page number
+        schema:
+          default: 1
+          type: integer
+        style: form
+      - in: query
+        name: page_size
+        description: Results per page (max 100)
+        schema:
+          default: 50
+          type: integer
+          maximum: 100
+        style: form
+      responses:
+        '200':
+          description: Device agent skills retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agent_skills:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        skill_key:
+                          example: managed:github:anthropics/skills/pdf
+                          type: string
+                        skill_name:
+                          type: string
+                        version:
+                          type: string
+                        agents:
+                          type: array
+                          items:
+                            type: string
+                        sources:
+                          type: array
+                          items:
+                            type: string
+                        scopes:
+                          type: array
+                          items:
+                            type: string
+                        project_paths:
+                          type: array
+                          items:
+                            type: string
+                        instance_count:
+                          type: integer
+                        skill_md_hashes:
+                          description: Distinct SKILL.md content hashes on this device
+                          type: array
+                          items:
+                            type: string
+                        has_code:
+                          type: boolean
+                        has_hooks:
+                          type: boolean
+                        has_shell_injection:
+                          type: boolean
+                        managed_by:
+                          type: string
+                        source_slug:
+                          type: string
+                        source_type:
+                          type: string
+                        ref:
+                          type: string
+                        updated_at:
+                          type: integer
+                          format: int64
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                  total_pages:
+                    type: integer
+        '400':
+          description: Invalid page or page_size parameter
         '401':
           description: Unauthorized
         '500':
@@ -5632,6 +6827,17 @@ paths:
                         is_compromised:
                           type: boolean
                         compromise_type:
+                          description: 'Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.'
+                          type: string
+                          enum:
+                          - malware
+                          - impersonation
+                          - untrustworthy
+                          - spam
+                          - deprecated
+                          - other
+                        compromise_description:
+                          description: Human-readable reason for the flag (e.g. removed from the marketplace on a given date).
                           type: string
                         is_typosquat_suspect:
                           type: boolean
@@ -5693,6 +6899,118 @@ paths:
       responses:
         '200':
           description: Extension details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    example: ms-python.python
+                    type: string
+                  name:
+                    type: string
+                  publisher:
+                    type: string
+                  ide_type:
+                    type: string
+                    enum:
+                    - vscode
+                    - cursor
+                  kind:
+                    type: string
+                  source:
+                    type: string
+                  device_count:
+                    description: Number of unique devices with this extension installed
+                    type: integer
+                  versions:
+                    description: Per-version breakdown, keyed by version string
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        version:
+                          type: string
+                        device_count:
+                          type: integer
+                        device_ids:
+                          description: IDs of devices running this version. Resolve each to hostname/username via GET /{customer}/developer-mdm/devices.
+                          type: array
+                          items:
+                            type: string
+                        device_install_paths:
+                          description: Map of device_id to the extension's on-disk install path
+                          type: object
+                          additionalProperties:
+                            type: string
+                  updated_at:
+                    type: integer
+                    format: int64
+                  marketplace_type:
+                    type: string
+                    enum:
+                    - vscode
+                    - openvsx
+                  security_score:
+                    type: number
+                    format: float
+                  is_score_available:
+                    type: boolean
+                  install_count:
+                    type: integer
+                  average_rating:
+                    type: number
+                    format: float
+                  is_verified:
+                    type: boolean
+                  display_name:
+                    type: string
+                  short_description:
+                    type: string
+                  is_compromised:
+                    type: boolean
+                  compromise_type:
+                    description: 'Reason the extension is flagged: malware, impersonation, untrustworthy, spam, deprecated, or other.'
+                    type: string
+                    enum:
+                    - malware
+                    - impersonation
+                    - untrustworthy
+                    - spam
+                    - deprecated
+                    - other
+                  compromise_description:
+                    description: Human-readable reason for the flag (e.g. removed from the marketplace on a given date).
+                    type: string
+                  compromise_records:
+                    description: Full catalog records matching this extension. Present when the extension is compromised.
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        compromise_type:
+                          type: string
+                        description:
+                          type: string
+                        source:
+                          type: string
+                        source_url:
+                          type: string
+                        removal_date:
+                          type: string
+                        version_constraint:
+                          type: string
+                        affected_versions:
+                          type: array
+                          items:
+                            type: string
+                  is_typosquat_suspect:
+                    type: boolean
+                  typosquat_of:
+                    type: string
+                  typosquat_score:
+                    type: number
+                    format: float
         '401':
           description: Unauthorized
         '404':
@@ -6163,6 +7481,323 @@ paths:
           description: Internal Server Error
       security:
       - BearerAuth: []
+  /{customer}/developer-mdm/agent-skills:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: List AI agent skills across devices
+      description: List all AI agent skills (Claude Code, Cursor, Codex, Copilot, and the shared .agents / skills.sh ecosystem) detected across devices, with provenance, per-skill device and instance counts, SKILL.md content-hash divergence, and content/risk flags. Served from a materialized index (filters, search, sort) with a cold-start fallback.
+      operationId: get_customer_developer_mdm_agent_skills
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: query
+        name: page
+        description: Page number
+        schema:
+          default: 1
+          type: integer
+        style: form
+      - in: query
+        name: page_size
+        description: Results per page (max 100)
+        schema:
+          default: 50
+          type: integer
+          maximum: 100
+        style: form
+      - in: query
+        name: search
+        description: Filter by skill name
+        schema:
+          type: string
+        style: form
+      - in: query
+        name: agent
+        description: Comma-separated agent filter (e.g. claude,cursor,codex); OR within the list
+        schema:
+          type: string
+        style: form
+      - in: query
+        name: scope
+        description: Filter by install scope (e.g. project, user, system)
+        schema:
+          type: string
+        style: form
+      - in: query
+        name: managed_by
+        description: Filter by manager (e.g. skills.sh)
+        schema:
+          type: string
+        style: form
+      - in: query
+        name: source_type
+        description: Filter by provenance source type (e.g. github, gitlab, well-known, local)
+        schema:
+          type: string
+        style: form
+      - in: query
+        name: has_code
+        description: When true, only skills that bundle executable code files
+        schema:
+          type: boolean
+        style: form
+      - in: query
+        name: has_hooks
+        description: When true, only skills that define hooks
+        schema:
+          type: boolean
+        style: form
+      - in: query
+        name: has_shell_injection
+        description: When true, only skills flagged for shell-injection risk
+        schema:
+          type: boolean
+        style: form
+      - in: query
+        name: sort_by
+        description: Sort field (default name / alphabetical)
+        schema:
+          default: name
+          type: string
+          enum:
+          - name
+          - device_count
+        style: form
+      - in: query
+        name: sort_order
+        description: Sort direction (defaults to asc for name, desc for device_count)
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+        style: form
+      - in: query
+        name: next_token
+        description: Opaque cursor for the cold-start fallback path; ignored when sort_by is set
+        schema:
+          type: string
+        style: form
+      responses:
+        '200':
+          description: Agent skills retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agent_skills:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        skill_key:
+                          example: managed:github:anthropics/skills/pdf
+                          description: 'Canonical composite identity: managed:<source_type>:<source_slug>[/<skill_path>] or local:<name>'
+                          type: string
+                        skill_name:
+                          type: string
+                        agents:
+                          type: array
+                          items:
+                            type: string
+                        scopes:
+                          type: array
+                          items:
+                            type: string
+                        managed_by:
+                          description: Manager that installs and updates the skill (e.g. skills.sh); absent for unmanaged skills
+                          type: string
+                        source_slug:
+                          type: string
+                        source_type:
+                          type: string
+                        has_code:
+                          description: Some device bundles executable code with the skill (ORed fleet-wide)
+                          type: boolean
+                        has_hooks:
+                          type: boolean
+                        has_shell_injection:
+                          type: boolean
+                        device_count:
+                          type: integer
+                        skill_md_hash_count:
+                          description: Distinct SKILL.md content hashes across the fleet; greater than 1 means the content diverges between devices
+                          type: integer
+                        updated_at:
+                          description: Unix seconds; most recent scan reporting this skill
+                          type: integer
+                          format: int64
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                  total_pages:
+                    type: integer
+                  next_token:
+                    nullable: true
+                    description: Present only on the cold-start fallback path
+                    type: string
+                  facets:
+                    nullable: true
+                    description: Provenance filter-pill counts over the full unfiltered tenant index; present only on the warm/index path
+                    type: object
+                    properties:
+                      managed_by:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                      source_type:
+                        type: object
+                        additionalProperties:
+                          type: integer
+        '400':
+          description: Invalid page or page_size parameter
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/agent-skills/{skill_key}:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: Get agent skill details
+      description: Retrieve identity, provenance, and per-device install instances for one skill. skill_key is a composite carrying '/' and ':'; URL-encode it in the path (e.g. %2F for '/') or pass it unencoded via the skill_key query parameter, which takes precedence.
+      operationId: get_customer_developer_mdm_agent_skills_skill_key
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: skill_key
+        description: Canonical composite key, URL-encoded (e.g. managed:well-known:mintlify.com%2Fmintlify-api)
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: query
+        name: skill_key
+        description: Unencoded composite key; takes precedence over the path parameter and avoids path-encoding issues with '/'
+        schema:
+          type: string
+        style: form
+      responses:
+        '200':
+          description: Agent skill details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  skill_key:
+                    type: string
+                  skill_name:
+                    type: string
+                  description:
+                    type: string
+                  version:
+                    type: string
+                  agents:
+                    type: array
+                    items:
+                      type: string
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                  has_code:
+                    type: boolean
+                  skill_md_hash_count:
+                    description: Distinct SKILL.md content hashes across the fleet; greater than 1 means the content diverges between devices
+                    type: integer
+                  device_count:
+                    type: integer
+                  device_ids:
+                    description: Resolve each to hostname/user via GET /{customer}/developer-mdm/devices
+                    type: array
+                    items:
+                      type: string
+                  devices:
+                    description: Per-device folded view of the skill's installs
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        device_id:
+                          type: string
+                        sources:
+                          type: array
+                          items:
+                            type: string
+                        scopes:
+                          type: array
+                          items:
+                            type: string
+                        project_paths:
+                          type: array
+                          items:
+                            type: string
+                        skill_md_hashes:
+                          description: Distinct SKILL.md hashes on this device; greater than 1 means multiple installs disagree
+                          type: array
+                          items:
+                            type: string
+                        version:
+                          type: string
+                        instance_count:
+                          type: integer
+                        has_code:
+                          type: boolean
+                        has_hooks:
+                          type: boolean
+                        has_shell_injection:
+                          type: boolean
+                        updated_at:
+                          type: integer
+                          format: int64
+                  managed_by:
+                    type: string
+                  source_slug:
+                    type: string
+                  source_type:
+                    type: string
+                  source_url:
+                    type: string
+                  ref:
+                    description: Git ref (branch/tag) the skill was installed from, when known
+                    type: string
+                  plugin_name:
+                    type: string
+                  upstream_folder_hash:
+                    description: Hash of the upstream skill folder recorded at install (managed skills)
+                    type: string
+                  updated_at:
+                    type: integer
+                    format: int64
+        '400':
+          description: skill_key is required
+        '401':
+          description: Unauthorized
+        '404':
+          description: Agent skill not found
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
   /{customer}/developer-mdm/install-scripts:
     get:
       tags:
@@ -6547,6 +8182,604 @@ paths:
                     type: boolean
         '400':
           description: Bad Request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/policies:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: List device policies
+      description: List all Developer MDM policies for the customer. v1 ships the ide_extension category (compiled to VS Code's extensions.allowed managed setting).
+      operationId: get_customer_developer_mdm_policies
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Policies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DevicePolicy'
+                  count:
+                    type: integer
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    post:
+      tags:
+      - Dev Machine Guard
+      summary: Create a device policy
+      description: 'Create a new policy. The spec is validated for the category (ide_extension): publisher/name must be valid marketplace identifiers, versions are allow-list only and must be exact, and stable conflicts with versions.'
+      operationId: post_customer_developer_mdm_policies
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DevicePolicyRequest'
+        required: true
+      responses:
+        '201':
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePolicy'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/policies/{policy_id}:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: Get a device policy
+      description: Retrieve a single policy by id.
+      operationId: get_customer_developer_mdm_policies_policy_id
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: policy_id
+        description: Policy identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Policy retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePolicy'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    put:
+      tags:
+      - Dev Machine Guard
+      summary: Update a device policy
+      description: Replace a policy's fields. The spec is re-validated for the category.
+      operationId: put_customer_developer_mdm_policies_policy_id
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: policy_id
+        description: Policy identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DevicePolicyRequest'
+        required: true
+      responses:
+        '200':
+          description: Policy updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePolicy'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    delete:
+      tags:
+      - Dev Machine Guard
+      summary: Delete a device policy
+      description: Delete a policy. A policy referenced by one or more profiles cannot be deleted; remove it from those profiles first.
+      operationId: delete_customer_developer_mdm_policies_policy_id
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: policy_id
+        description: Policy identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Policy deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: policy deleted
+                    type: string
+                  policy_id:
+                    type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '409':
+          description: Policy is referenced by one or more profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  referenced_by:
+                    description: Profile ids that reference this policy.
+                    type: array
+                    items:
+                      type: string
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/profiles:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: List profiles
+      description: List all profiles for the customer. A profile bundles one or more policies (at most one per category) and assigns them to devices.
+      operationId: get_customer_developer_mdm_profiles
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Profiles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeviceProfile'
+                  count:
+                    type: integer
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    post:
+      tags:
+      - Dev Machine Guard
+      summary: Create a profile
+      description: Create a profile. Every referenced policy must exist, a profile must reference at least one policy, and it may hold at most one policy per category.
+      operationId: post_customer_developer_mdm_profiles
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceProfileRequest'
+        required: true
+      responses:
+        '201':
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceProfile'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/profiles/{profile_id}:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: Get a profile
+      description: Retrieve a single profile by id.
+      operationId: get_customer_developer_mdm_profiles_profile_id
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: profile_id
+        description: Profile identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceProfile'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    put:
+      tags:
+      - Dev Machine Guard
+      summary: Update a profile
+      description: Replace a profile's fields, including its policy bundle and device assignment.
+      operationId: put_customer_developer_mdm_profiles_profile_id
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: profile_id
+        description: Profile identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceProfileRequest'
+        required: true
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceProfile'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+    delete:
+      tags:
+      - Dev Machine Guard
+      summary: Delete a profile
+      description: Delete a profile. On-device enforcement for its assigned devices stops on their next cycle.
+      operationId: delete_customer_developer_mdm_profiles_profile_id
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: profile_id
+        description: Profile identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Profile deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    example: profile deleted
+                    type: string
+                  profile_id:
+                    type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/profiles/{profile_id}/export:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: Export a profile as an MDM artifact
+      description: Compile the profile's policy for the category and render an importable MDM artifact for the requested OS. The compiled policy and its hash are identical to what the agent enforces; only the per-OS packaging differs.
+      operationId: get_customer_developer_mdm_profiles_profile_id_export
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: profile_id
+        description: Profile identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: query
+        name: os
+        description: Target OS for the artifact
+        required: true
+        schema:
+          type: string
+          enum:
+          - windows
+          - macos
+          - linux
+        style: form
+      - in: query
+        name: category
+        description: Policy category to export (defaults to ide_extension)
+        schema:
+          default: ide_extension
+          type: string
+          enum:
+          - ide_extension
+        style: form
+      responses:
+        '200':
+          description: Artifact generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceExportArtifact'
+        '400':
+          description: Unknown category or unsupported OS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/profiles/{profile_id}/compliance:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: Get profile compliance
+      description: Per-device compliance for every device the profile governs. desired_hash is recomputed on read and reconciled with each device's last applied_hash, so a profile change never shows a stale compliant state.
+      operationId: get_customer_developer_mdm_profiles_profile_id_compliance
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: profile_id
+        description: Profile identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: Compliance retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profile_id:
+                    type: string
+                  compliance:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeviceComplianceView'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+  /{customer}/developer-mdm/devices/{device_id}/compliance:
+    get:
+      tags:
+      - Dev Machine Guard
+      summary: Get device compliance
+      description: Per-category compliance for a single device, derived from its assignment and last agent report.
+      operationId: get_customer_developer_mdm_devices_device_id_compliance
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: device_id
+        description: Device UUID
+        required: true
+        schema:
+          type: string
+          format: uuid
+        style: simple
+      responses:
+        '200':
+          description: Compliance retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                  compliance:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeviceComplianceView'
         '401':
           description: Unauthorized
         '500':
@@ -7831,6 +10064,117 @@ paths:
                 $ref: '#/components/schemas/APIError'
       security:
       - BearerAuth: []
+  /github/{owner}/refresh/apps-pats:
+    post:
+      tags:
+      - Apps & PATs
+      summary: Trigger an on-demand Apps & PATs refresh
+      description: Re-runs the GitHub Apps & PATs posture scan for the organization. The scan runs asynchronously, so the response returns immediately (202) and the posture data updates in the background.
+      operationId: triggerAppsPatsRefresh
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization Name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '202':
+          description: Refresh accepted and enqueued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    example: refresh triggered
+                    type: string
+        '400':
+          description: Bad Request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden - missing apps-pats read permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
+  /github/{owner}/{repo}/refresh/controls:
+    post:
+      tags:
+      - Overview
+      summary: Trigger an on-demand controls refresh for a repository
+      description: Re-runs control evaluation (workflow security controls analysis) for a specific repository. The analysis runs asynchronously, so the response returns immediately (202) and control results update in the background.
+      operationId: triggerControlsRefresh
+      parameters:
+      - in: path
+        name: owner
+        description: GitHub Organization Name
+        required: true
+        schema:
+          type: string
+        style: simple
+      - in: path
+        name: repo
+        description: GitHub Repository Name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '202':
+          description: Refresh accepted and enqueued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    example: refresh triggered
+                    type: string
+        '400':
+          description: Bad Request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden - missing controls read permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
   /github/{owner}/apps:
     get:
       tags:
@@ -8381,6 +10725,159 @@ paths:
                 $ref: '#/components/schemas/APIError'
       security:
       - BearerAuth: []
+  /{customer}/api-keys:
+    get:
+      tags:
+      - Admin Console
+      summary: Get customer API keys
+      description: Retrieve the tenant-level API keys for a customer. Requires admin privileges or the tenant-api-keys read permission. Full key values are returned.
+      operationId: getCustomerApiKeys
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        '200':
+          description: API keys retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_keys:
+                    description: Tenant-level keys
+                    type: object
+                    properties:
+                      arc_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      self_hosted_vm_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      broker_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      tenant_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      tenant_read_only_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+                      secure_registry_api_key:
+                        $ref: '#/components/schemas/ApiKeyConfig'
+        '400':
+          description: Bad Request - customer parameter is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden - requires admin privileges or the tenant-api-keys read permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not Found - customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
+  /{customer}/api-key:
+    put:
+      tags:
+      - Admin Console
+      summary: Rotate a customer API key
+      description: Rotates one of the customer's tenant-level API keys. A new key is generated server-side for the chosen slot (Primary or Secondary) and returned; the sibling slot and all other keys are left untouched, so clients using the other slot are not disrupted. Requires admin privileges or the tenant-api-keys write permission.
+      operationId: rotateCustomerApiKey
+      parameters:
+      - in: path
+        name: customer
+        description: Customer/tenant identifier
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                key_name:
+                  example: TenantAPIKey
+                  description: Which tenant-level key to rotate (matched case-insensitively)
+                  type: string
+                  enum:
+                  - BrokerAPIKey
+                  - ARCApiKey
+                  - TenantAPIKey
+                  - TenantReadOnlyAPIKey
+                  - TenantWideSelfHostedVMAPIKeyName
+                  - SecureRegistryAPIKey
+                type:
+                  example: Primary
+                  description: Which key slot to rotate
+                  type: string
+                  enum:
+                  - Primary
+                  - Secondary
+              required:
+              - key_name
+              - type
+        required: true
+      responses:
+        '200':
+          description: Key rotated successfully; the newly generated key is returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyDetails'
+        '400':
+          description: Bad Request - invalid payload or invalid key_name or type parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '403':
+          description: Forbidden - requires admin privileges or the tenant-api-keys write permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '404':
+          description: Not Found - customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+        '500':
+          description: Internal Server Error - failed to update customer keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+      security:
+      - BearerAuth: []
 components:
   schemas:
     APIError:
@@ -8389,6 +10886,245 @@ components:
         error:
           type: string
         message:
+          type: string
+    ApiKeyDetails:
+      type: object
+      properties:
+        key:
+          description: The API key value
+          type: string
+        timestamp:
+          description: Unix timestamp (seconds) when the key was generated
+          type: integer
+          format: int64
+    ApiKeyConfig:
+      type: object
+      properties:
+        primary_key:
+          $ref: '#/components/schemas/ApiKeyDetails'
+        secondary_key:
+          $ref: '#/components/schemas/ApiKeyDetails'
+        disable_key:
+          description: Whether this key is disabled
+          type: boolean
+    DevicePolicyRule:
+      description: Matches by publisher, optionally a specific extension name. Allow-list rules may further restrict to exact versions or stable releases only; deny-list rules block the whole match.
+      type: object
+      properties:
+        publisher:
+          example: ms-python
+          description: VS Code marketplace publisher id (alphanumeric start, then alphanumerics or hyphens).
+          type: string
+        name:
+          example: python
+          description: Specific extension name; omit to match the whole publisher.
+          type: string
+        versions:
+          example:
+          - 2024.2.1
+          - 2024.2.1@win32-x64
+          description: Allow-list only. Exact versions (major.minor.patch, optional @platform). Mutually exclusive with stable.
+          type: array
+          items:
+            type: string
+        stable:
+          description: Allow-list only. Restrict to stable releases. Mutually exclusive with versions.
+          type: boolean
+      required:
+      - publisher
+    DevicePolicySpec:
+      description: Typed policy body for the ide_extension category (spec_version 1).
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DevicePolicyRule'
+    DevicePolicy:
+      type: object
+      properties:
+        customer_id:
+          type: string
+        policy_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum:
+          - ide_extension
+        spec_version:
+          example: 1
+          type: integer
+        mode:
+          type: string
+          enum:
+          - allowlist
+          - blocklist
+        spec:
+          $ref: '#/components/schemas/DevicePolicySpec'
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_by:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    DevicePolicyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum:
+          - ide_extension
+        spec_version:
+          type: integer
+          enum:
+          - 1
+        mode:
+          type: string
+          enum:
+          - allowlist
+          - blocklist
+        spec:
+          $ref: '#/components/schemas/DevicePolicySpec'
+      required:
+      - name
+      - category
+      - spec_version
+      - mode
+      - spec
+    DeviceAssignment:
+      description: 'Activates on-device enforcement: either all current and future devices, or an explicit device list.'
+      type: object
+      properties:
+        all_devices:
+          type: boolean
+        device_ids:
+          description: Used only when all_devices is false.
+          type: array
+          items:
+            type: string
+    DeviceProfile:
+      type: object
+      properties:
+        customer_id:
+          type: string
+        profile_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        policy_ids:
+          type: array
+          items:
+            type: string
+        assignment:
+          $ref: '#/components/schemas/DeviceAssignment'
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_by:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    DeviceProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        policy_ids:
+          description: One or more policy ids; at most one policy per category.
+          type: array
+          items:
+            type: string
+        assignment:
+          $ref: '#/components/schemas/DeviceAssignment'
+      required:
+      - name
+      - policy_ids
+      - assignment
+    DeviceComplianceView:
+      description: Per-device, per-category compliance row. desired_hash is recomputed on read so a profile change never shows a stale compliant state.
+      type: object
+      properties:
+        device_id:
+          type: string
+        category:
+          example: ide_extension
+          type: string
+        profile_id:
+          type: string
+        state:
+          type: string
+          enum:
+          - not_assigned
+          - pending
+          - compliant
+          - drift_detected
+          - mdm_managed
+          - policy_not_applied
+          - write_failed
+          - verification_failed
+          - agent_unsupported
+          - agent_stale
+        desired_hash:
+          type: string
+        applied_hash:
+          type: string
+        last_seen_at:
+          description: Epoch seconds the device last checked in.
+          type: integer
+          format: int64
+        agent_version:
+          type: string
+        platform:
+          example: darwin
+          type: string
+        evaluated_at:
+          type: string
+          format: date-time
+    DeviceExportArtifact:
+      description: Per-OS MDM-importable rendering of a profile's compiled policy.
+      type: object
+      properties:
+        os:
+          type: string
+          enum:
+          - windows
+          - macos
+          - linux
+        category:
+          example: ide_extension
+          type: string
+        filename:
+          example: vscode-allowed-extensions.mobileconfig
+          type: string
+        content_type:
+          example: application/x-apple-aspen-config; charset=utf-8
+          type: string
+        content:
+          description: 'Rendered artifact: Intune PowerShell remediation (Windows), .mobileconfig (macOS), or policy.json (Linux).'
+          type: string
+        hash:
+          example: sha256:...
+          type: string
+        notes:
           type: string
     WorkflowRun:
       type: object
@@ -8578,6 +11314,140 @@ components:
         disable_file_monitoring:
           description: Whether to disable file system monitoring
           type: boolean
+    PolicyDetails:
+      example:
+        allowed_endpoints:
+        - api.github.com
+        - objects.githubusercontent.com
+        egress_policy: audit
+        lockdown:
+          detections:
+          - Privileged-Container
+          - Reverse-Shell
+          enabled: true
+      description: Policy configuration fields.
+      type: object
+      properties:
+        allowed_endpoints:
+          example:
+          - api.github.com
+          - objects.githubusercontent.com
+          description: List of allowed egress endpoints (FQDNs or IPs)
+          type: array
+          items:
+            type: string
+        egress_policy:
+          example: audit
+          description: Egress traffic policy mode
+          type: string
+          enum:
+          - audit
+          - block
+        lockdown:
+          $ref: '#/components/schemas/LockdownConfig'
+    LockdownConfig:
+      description: Lockdown mode configuration.
+      type: object
+      properties:
+        enabled:
+          description: Enable lockdown mode
+          type: boolean
+        detections:
+          example:
+          - Privileged-Container
+          - Reverse-Shell
+          - Runner-Worker-Memory-Read
+          description: Detection types to enable during lockdown
+          type: array
+          items:
+            type: string
+            enum:
+            - Privileged-Container
+            - Reverse-Shell
+            - Runner-Worker-Memory-Read
+      required:
+      - enabled
+    RunPolicyRequest:
+      example:
+        all_orgs: false
+        all_repos: false
+        name: Harden-Runner Policy
+        policy_config:
+          enable_harden_runner_policy: true
+          is_dry_run: false
+        repositories:
+        - example-repo
+      type: object
+      properties:
+        name:
+          example: Harden-Runner Policy
+          description: Human-readable name of the run policy
+          type: string
+        policy_config:
+          description: Policy configuration. Enable one or more policy types and provide their settings.
+          type: object
+          properties:
+            enable_action_policy:
+              description: Restrict which GitHub Actions may be used
+              type: boolean
+            allowed_actions:
+              example:
+                actions/checkout: allow
+              description: Map of action reference to allow/block decision (used with enable_action_policy)
+              type: object
+              additionalProperties:
+                type: string
+            enable_runs_on_policy:
+              description: Restrict which runner labels workflows may run on
+              type: boolean
+            disallowed_runner_labels:
+              description: Set of runner labels that are not allowed (used with enable_runs_on_policy)
+              type: object
+              additionalProperties:
+                type: object
+            enable_secrets_policy:
+              description: Detect and block secret exfiltration
+              type: boolean
+            bulk_secrets_only_mode:
+              description: Restrict secret-exfiltration detection to the bulk-dump pattern only
+              type: boolean
+            exempted_users:
+              description: Users/bots exempted from the secrets policy
+              type: array
+              items:
+                type: string
+            enable_compromised_actions_policy:
+              description: Block usage of known-compromised actions
+              type: boolean
+            enable_harden_runner_policy:
+              description: Require Harden-Runner in workflows
+              type: boolean
+            require_pinned_actions:
+              description: Require actions to be pinned to a full commit SHA
+              type: boolean
+            pinned_actions_exemptions:
+              description: Actions exempt from the pinned-actions requirement
+              type: array
+              items:
+                type: string
+            is_dry_run:
+              description: Evaluate the policy without blocking (report-only)
+              type: boolean
+        all_repos:
+          description: Apply the policy to all repositories in the organization
+          type: boolean
+        all_orgs:
+          description: Apply the policy across all organizations in the tenant (requires admin privileges)
+          type: boolean
+        repositories:
+          nullable: true
+          description: Specific repositories the policy applies to (when all_repos is false)
+          type: array
+          items:
+            type: string
+      required:
+      - name
+      - policy_config
     RunPolicyEvaluation:
       type: object
       properties:
@@ -9119,6 +11989,72 @@ components:
           type: string
         run_id:
           type: string
+    HardenRunnerAgentReleaseAsset:
+      type: object
+      properties:
+        asset_name:
+          example: harden-runner_1.8.12_linux_amd64.tar.gz
+          description: Release asset file name.
+          type: string
+        checksum:
+          example: sha256:a54c4305b5665ba54bfdc46eb32aee1758699b994550ca3658d698367cc96a3f
+          description: Artifact checksum including algorithm prefix.
+          type: string
+        primary_download_url:
+          example: https://github.com/step-security/agent-ebpf/releases/download/v1.8.12/harden-runner_1.8.12_linux_amd64.tar.gz
+          description: Primary download URL for the release asset.
+          type: string
+          format: uri
+        fallback_download_url:
+          example: https://packages.stepsecurity.io/self-hosted/harden-runner_1.8.12_linux_amd64.tar.gz
+          description: Fallback download URL for the release asset.
+          type: string
+          format: uri
+    HardenRunnerAgentRelease:
+      type: object
+      properties:
+        provider:
+          example: github
+          description: Source control provider for the release.
+          type: string
+          enum:
+          - github
+          - gitlab
+          - ado
+        os:
+          example: linux
+          description: Operating system for the release artifacts.
+          type: string
+          enum:
+          - linux
+          - windows
+          - darwin
+        topology:
+          example: single
+          description: Deployment topology for the release.
+          type: string
+          enum:
+          - single
+          - multi
+          - k8s
+        tag:
+          example: v1.8.12
+          description: Release tag resolved by the API.
+          type: string
+        repo:
+          example: step-security/agent-ebpf
+          description: Upstream repository containing the release.
+          type: string
+        published_at:
+          example: 2026-06-30T03:53:19Z
+          description: Release publish timestamp.
+          type: string
+          format: date-time
+        assets:
+          description: Artifacts available for this release.
+          type: array
+          items:
+            $ref: '#/components/schemas/HardenRunnerAgentReleaseAsset'
     JobTokenPermissions:
       type: object
       properties:
@@ -9478,6 +12414,261 @@ components:
           description: When the incident record was last updated
           type: string
           format: date-time
+    OSSCompromisedComponent:
+      description: A compromised OSS component linked to a threat intel incident
+      type: object
+      properties:
+        type:
+          example: npm
+          description: Package ecosystem type
+          type: string
+          enum:
+          - npm
+          - pypi
+        component_name:
+          example: malicious-pkg
+          description: Plain package name
+          type: string
+        version:
+          example: 1.2.3
+          description: Affected version, or '*' for all versions
+          type: string
+        incident_group_id:
+          nullable: true
+          example: ig-001
+          description: Associated incident group identifier
+          type: string
+        description:
+          nullable: true
+          example: Package contains malicious code that exfiltrates credentials
+          description: Description of the compromise
+          type: string
+        severity:
+          example: critical
+          description: Severity level
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - critical
+        verified:
+          example: true
+          description: Whether the compromise has been verified
+          type: boolean
+        added_at:
+          example: 2024-01-15T10:00:00Z
+          description: When this record was added
+          type: string
+          format: date-time
+        threat_intel_id:
+          nullable: true
+          example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+          description: Associated threat intel incident identifier
+          type: string
+    SecureRegistryConfig:
+      type: object
+      properties:
+        customer:
+          example: myorg
+          type: string
+        registry:
+          example: npm
+          type: string
+          enum:
+          - npm
+          - pypi
+        cooldown_period:
+          type: object
+          properties:
+            enabled:
+              example: true
+              type: boolean
+            period_in_days:
+              example: 7
+              type: integer
+            exemption_list:
+              example:
+              - lodash@1.2.3
+              - '@company/*'
+              type: array
+              items:
+                type: string
+        compromised_packages:
+          type: object
+          properties:
+            enabled:
+              example: true
+              type: boolean
+        typosquatting:
+          type: object
+          properties:
+            enabled:
+              example: true
+              type: boolean
+            whitelist:
+              example: []
+              type: array
+              items:
+                type: string
+        updated_by:
+          example: user@example.com
+          type: string
+        updated_at:
+          example: 2024-06-01T12:00:00Z
+          type: string
+          format: date-time
+    SecureRegistryConfigPayload:
+      type: object
+      properties:
+        cooldown_period:
+          type: object
+          properties:
+            enabled:
+              example: true
+              type: boolean
+            period_in_days:
+              example: 7
+              type: integer
+            exemption_list:
+              example:
+              - lodash
+              type: array
+              items:
+                type: string
+          required:
+          - enabled
+          - period_in_days
+          - exemption_list
+        compromised_packages:
+          type: object
+          properties:
+            enabled:
+              example: true
+              type: boolean
+          required:
+          - enabled
+        typosquatting:
+          type: object
+          properties:
+            enabled:
+              example: true
+              type: boolean
+            whitelist:
+              example: []
+              type: array
+              items:
+                type: string
+          required:
+          - enabled
+          - whitelist
+      required:
+      - cooldown_period
+      - compromised_packages
+      - typosquatting
+    EvaluatedControl:
+      type: object
+      properties:
+        Name:
+          example: cooldown_period
+          type: string
+        Status:
+          example: allowed
+          type: string
+          enum:
+          - allowed
+          - modified
+          - blocked
+          - skipped
+        Reason:
+          example: Package is in exemption list
+          type: string
+    PolicyEvaluationItem:
+      type: object
+      properties:
+        Customer:
+          example: acme
+          type: string
+        Ecosystem:
+          example: javascript
+          type: string
+          enum:
+          - javascript
+          - python
+        RequestType:
+          example: tarball_download
+          type: string
+          enum:
+          - metadata
+          - tarball_download
+        RequestStatus:
+          example: allowed
+          type: string
+          enum:
+          - allowed
+          - modified
+          - blocked
+        RequestID:
+          example: req-abc123
+          type: string
+        EvaluatedControls:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluatedControl'
+        Timestamp:
+          example: 2024-06-01T12:00:00Z
+          type: string
+          format: date-time
+        SourceIP:
+          example: 203.0.113.42
+          type: string
+        PackageVersions:
+          example:
+          - 1.0.0
+          - 1.0.1
+          type: array
+          items:
+            type: string
+        RequestMetadata:
+          type: object
+          properties:
+            PackageName:
+              example: lodash
+              type: string
+            Version:
+              example: 4.17.21
+              type: string
+            ModifiedVersions:
+              example: []
+              type: array
+              items:
+                type: string
+        Source:
+          example: gha
+          type: string
+          enum:
+          - dev
+          - gha
+        SourceIdentifier:
+          example: myorg/my-repo/.github/workflows/ci.yml
+          type: string
+        UserAgentType:
+          example: npm
+          type: string
+    PolicyEvaluationsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyEvaluationItem'
+        has_more:
+          example: false
+          type: boolean
+        next_token:
+          nullable: true
+          example: eyJsYXN0S2V5IjogImFiYzEyMyJ9
+          type: string
     GitHubOwnerHardenRunnerCoverageResponse:
       description: Daily coverage metrics for a specific GitHub organization/owner
       type: object
@@ -10022,6 +13213,13 @@ components:
           type: object
           additionalProperties:
             type: string
+        custom_actions_to_replace:
+          example:
+            my-org/old-action: my-org/new-action
+          description: Map of custom action replacement mappings
+          type: object
+          additionalProperties:
+            type: string
         labels_to_replace:
           example:
             self-hosted: ubuntu-latest
@@ -10162,6 +13360,11 @@ components:
           type: object
           additionalProperties:
             type: string
+        custom_actions_to_replace:
+          description: Map of custom action replacement mappings
+          type: object
+          additionalProperties:
+            type: string
         labels_to_replace:
           description: Map of runner labels to replace
           type: object
@@ -10222,6 +13425,8 @@ tags:
   description: CI/CD workflow run policy management and evaluation
 - name: OSS Package Security
   description: Open source package and supply chain monitoring
+- name: Secure Registry
+  description: Secure package registry controls and audit logs
 - name: Apps & PATs
   description: GitHub Apps and Personal Access Tokens management
 - name: Actions Secrets

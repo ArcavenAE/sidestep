@@ -103,6 +103,12 @@ fn regen() -> Result<()> {
             "xtask: collapsed {collapsed_success} multi-success and {collapsed_error} multi-error response(s) (progenitor requires at most one body per class)"
         );
     }
+    let shadowed = drop_shadowing_non_path_params(&mut spec);
+    if shadowed > 0 {
+        eprintln!(
+            "xtask: dropped {shadowed} non-path parameter(s) shadowing a same-name path parameter (progenitor cannot map colliding names)"
+        );
+    }
 
     eprintln!("xtask: generating client");
     let mut generator = progenitor::Generator::default();
@@ -269,6 +275,59 @@ enum ResponseClass {
 /// unbodied; within bodied, lowest specific code beats Range/Default.
 /// Dropped responses lose their schema in the generated client; CLI
 /// verbs that need richer multi-status handling can read raw responses.
+/// Pre-pass 4 (2026-07 spec update): some operations declare a query
+/// parameter with the same name as a path parameter — e.g.
+/// `GET /{customer}/developer-mdm/agent-skills/{skill_key}` carries both a
+/// required `skill_key` path param and an optional `skill_key` query param
+/// (an upstream escape hatch for keys containing `/` that URL-encode
+/// poorly in paths). Progenitor panics on the name collision
+/// ("missing path name mapping"). We keep the canonical required path
+/// parameter and drop the colliding non-path duplicate; renaming instead
+/// would change the on-wire query name, which is worse. Callers needing
+/// the query-string escape hatch lose it in the generated client — if a
+/// real key defeats path encoding, revisit with a progenitor-side rename.
+fn drop_shadowing_non_path_params(spec: &mut openapiv3::OpenAPI) -> usize {
+    use std::collections::HashSet;
+    let mut dropped = 0;
+    for (_path, path_item) in spec.paths.paths.iter_mut() {
+        let openapiv3::ReferenceOr::Item(item) = path_item else {
+            continue;
+        };
+        let base_path_names: Vec<String> = item
+            .parameters
+            .iter()
+            .filter_map(|p| match p {
+                openapiv3::ReferenceOr::Item(openapiv3::Parameter::Path {
+                    parameter_data, ..
+                }) => Some(parameter_data.name.clone()),
+                _ => None,
+            })
+            .collect();
+        for (_method, op) in operations_mut(item) {
+            let mut path_names: HashSet<String> = base_path_names.iter().cloned().collect();
+            for p in &op.parameters {
+                if let openapiv3::ReferenceOr::Item(openapiv3::Parameter::Path {
+                    parameter_data,
+                    ..
+                }) = p
+                {
+                    path_names.insert(parameter_data.name.clone());
+                }
+            }
+            let before = op.parameters.len();
+            op.parameters.retain(|p| match p {
+                openapiv3::ReferenceOr::Item(openapiv3::Parameter::Path { .. }) => true,
+                openapiv3::ReferenceOr::Item(param) => {
+                    !path_names.contains(&param.parameter_data_ref().name)
+                }
+                openapiv3::ReferenceOr::Reference { .. } => true,
+            });
+            dropped += before - op.parameters.len();
+        }
+    }
+    dropped
+}
+
 fn collapse_multi_responses(spec: &mut openapiv3::OpenAPI, class: ResponseClass) -> usize {
     use openapiv3::StatusCode;
     let mut collapsed = 0;
