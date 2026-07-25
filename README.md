@@ -4,10 +4,11 @@ Rust CLI for the [StepSecurity](https://www.stepsecurity.io/) API. Built
 from a vendored OpenAPI spec, designed for LLM-driven workflows, with a
 local audit trail intended to be mined for meta-action patterns.
 
-> Status: usable. Auth (env / keyring / config), spec-aware operation
-> dispatch, and the audit trail are all wired. Curated CLI verbs are
-> follow-on work; today every operation is reachable via
-> `sidestep api <operationId>`.
+> Status: usable. Auth (env / keyring / config), the v0.1 primitive verb
+> set (`list` / `get` / `search` / `filter` / `enrich` / `emit`) with
+> transparent pagination, spec-aware operation dispatch
+> (`sidestep api <operationId>` reaches all 130 spec operations), and
+> the audit trail are all wired.
 
 ## Why sidestep
 
@@ -16,8 +17,9 @@ local audit trail intended to be mined for meta-action patterns.
 - **SDK-backed.** The same SDK that powers the CLI will power a future
   MCP server. Auth, retries, pagination, audit, and redaction live in
   one place.
-- **Agent-first.** JSON output for non-TTY, predictable verb shape,
-  stable operation IDs, structured audit trail.
+- **Agent-first.** JSON-lines output, predictable verb shape, stable
+  operation IDs, structured audit trail, and a documented permission
+  model for agent harnesses ([docs/permissions.md](docs/permissions.md)).
 - **Audit as feature.** Every API call emits a JSONL line locally; a
   future tooling pass can mine those traces to propose meta-actions
   that compose multiple primitive calls.
@@ -129,6 +131,23 @@ Resolution order is **env → keychain → config file → error**. A missing
 config file is silent; a malformed config file fails fast with a TOML
 parser diagnostic so a typo doesn't quietly fall through.
 
+### Set your org once
+
+Most StepSecurity endpoints take an `{owner}` (GitHub org) or
+`{customer}` path parameter, and both are constant for the lifetime of
+a token. Set them once instead of passing a flag on every call:
+
+```sh
+sidestep auth login --owner your-org          # persisted in config
+# or per-shell:
+export SIDESTEP_OWNER=your-org
+```
+
+Every verb (including `sidestep api`) then resolves them through
+**flag → `SIDESTEP_OWNER`/`SIDESTEP_CUSTOMER` env → config**, and the
+audit trail records which source supplied the value. `sidestep config
+show` reports the current defaults.
+
 ## Quick verification
 
 After `sidestep auth status` reports `authenticated`, confirm the wiring
@@ -159,27 +178,74 @@ and where the token was resolved from — never the token itself.
 
 ## Usage
 
+### Primitives — compose by stream
+
+The v0.1 surface is a primitive algebra: each verb reads or writes
+`_kind`-tagged JSON-lines, so verbs compose with `|`. Nine kinds:
+`run`, `detection`, `check`, `policy`, `rule`, `incident`, `audit_log`,
+`repo`, `threat_intel`.
+
 ```sh
-sidestep --version
-sidestep --help
+sidestep list <kind> [--limit N] [--since 24h]   # fetch → JSONL stream
+sidestep get <kind> <id>                         # one record by id
+sidestep search <kind> <text>                    # substring match on name field
+sidestep filter --where '<CEL>' [--explain]      # predicate over stdin stream
+sidestep enrich --with <recipe> [--policies f]   # join/derive fields
+sidestep emit --format {jsonl|md}                # sink / render
+```
 
-sidestep auth login --token <v>            # store in keychain
-sidestep auth login --stdin                # read token from stdin
-sidestep auth status                       # report source + length
-sidestep auth logout                       # remove from keychain
+`list` and `search` follow the API's pagination transparently — you get
+the full result set (or stop early with `--limit N`), never a silently
+truncated first page.
 
+Real composition, from the triage recipe:
+
+```sh
+sidestep list detection --since 168h \
+  | sidestep filter --where 'severity in ["critical", "high"] && status == "open"' \
+  | sidestep emit --format md
+```
+
+Predicates are [CEL](https://cel.dev/): fields bind at the top level
+(`severity == "critical"`), `*_at` fields compare as timestamps
+(`created_at > now - duration("24h")`), and `filter --explain` shows the
+available columns for a kind when a predicate doesn't parse.
+
+### Spec escape hatch — every operation, by id
+
+```sh
 sidestep ops list [--filter <substring>]   # list operationIds
 sidestep ops show <operationId>            # path, params, body shape
 
-sidestep api <operationId> \                # invoke any spec operation
+sidestep api <operationId> \               # invoke any spec operation
     [--param key=value ...]
     [--body '<json>']
     [--no-audit]
 ```
 
-The `sidestep api` command reaches every operation in the StepSecurity
-OpenAPI spec. Curated verbs (`sidestep runs list`, `detections suppress`,
-etc.) are follow-on work; for now any operation is one `--param` away.
+`sidestep api` reaches all 130 operations in the vendored spec —
+including surfaces the curated kinds don't cover yet (developer-mdm,
+secure-registry, api-keys, run-policies). It resolves `owner`/`customer`
+through the same chain as the curated verbs. Composite verbs (`triage`,
+`inventory`, …) are v0.2 work, designed from audit-trail evidence
+rather than intuition — see `docs/research/`.
+
+### Auth & config
+
+```sh
+sidestep auth login --token <v>            # store token in keychain
+sidestep auth login --stdin                # read token from stdin
+sidestep auth login --owner <slug>         # persist org default
+sidestep auth status                       # token + owner/customer + sources
+sidestep auth logout                       # remove from keychain
+sidestep config show|path|set|unset        # manage config.toml
+```
+
+### Agent harnesses
+
+Running sidestep under Claude Code or another agent harness? See
+[docs/permissions.md](docs/permissions.md) for recommended permission
+patterns (read-only allowlist vs. gated mutations).
 
 ## Development
 
