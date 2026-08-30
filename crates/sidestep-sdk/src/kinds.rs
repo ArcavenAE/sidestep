@@ -245,6 +245,30 @@ pub fn extract_next_token(response: &Value) -> Option<String> {
     None
 }
 
+/// Whether a list response advertises a continuation cursor under some
+/// key *other* than the forwardable `next_token`
+/// (`nextToken`, `next_cursor`, `next`, `cursor`, `next_page`). Such a
+/// cursor cannot be paged (the SDK only forwards the spec-declared
+/// `next_token` query param), but its presence means the listing is
+/// incomplete — the caller must warn rather than truncate silently
+/// (aae-orc-r4pt). Mirrors the wider key set the audit trail's
+/// `extract_cursor` already records, closing the gap where a non-
+/// `next_token` cursor was logged but never surfaced. Empty strings do
+/// not count.
+pub fn response_has_unfollowable_cursor(response: &Value) -> bool {
+    const CURSOR_KEYS: [&str; 5] = ["nextToken", "next_cursor", "next", "cursor", "next_page"];
+    for scope in [Some(response), response.get("data")].into_iter().flatten() {
+        for key in CURSOR_KEYS {
+            if let Some(t) = scope.get(key).and_then(|v| v.as_str())
+                && !t.is_empty()
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -351,5 +375,36 @@ mod tests {
         assert!(extract_next_token(&json!({"data": {"next_token": ""}})).is_none());
         assert!(extract_next_token(&json!({"items": []})).is_none());
         assert!(extract_next_token(&json!({"next_token": null})).is_none());
+    }
+
+    #[test]
+    fn unfollowable_cursor_detects_non_next_token_keys() {
+        // Non-`next_token` cursor keys (top-level and nested) are the
+        // silent-truncation gap the r4pt guard closes.
+        assert!(response_has_unfollowable_cursor(
+            &json!({"rules": [], "next_cursor": "x"})
+        ));
+        assert!(response_has_unfollowable_cursor(
+            &json!({"rules": [], "nextToken": "x"})
+        ));
+        assert!(response_has_unfollowable_cursor(
+            &json!({"rules": [], "cursor": "x"})
+        ));
+        assert!(response_has_unfollowable_cursor(
+            &json!({"data": {"next_page": "x"}})
+        ));
+    }
+
+    #[test]
+    fn unfollowable_cursor_false_when_absent_empty_or_only_next_token() {
+        assert!(!response_has_unfollowable_cursor(&json!({"rules": []})));
+        assert!(!response_has_unfollowable_cursor(
+            &json!({"next_cursor": ""})
+        ));
+        // `next_token` is followable, not "unfollowable" — it is handled
+        // by extract_next_token, so this predicate must ignore it.
+        assert!(!response_has_unfollowable_cursor(
+            &json!({"next_token": "x"})
+        ));
     }
 }
