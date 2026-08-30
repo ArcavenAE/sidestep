@@ -22,5 +22,5 @@ regex = "1"
 progenitor = "0.14"
 openapiv3 = "2"
 serde_yaml = "0.9"
-syn = { version = "2", features = ["full"] }
+syn = { version = "3", features = ["full"] }
 prettyplease = "0.3"
