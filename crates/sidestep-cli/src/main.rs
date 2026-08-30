@@ -913,8 +913,17 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
                 break 'pages;
             }
         }
-        if !pager.advance(&response, &mut params) {
-            break;
+        match pager.advance(&response, &mut params) {
+            PageStep::Advance => {}
+            PageStep::Done => break,
+            // Never let an incomplete listing be silent: a security-
+            // inventory caller must not conclude "not present" from a
+            // truncated page (aae-orc-r4pt). Diagnostics go to stderr so
+            // stdout stays a clean JSONL stream (cli-philosophy.md).
+            PageStep::Truncated(reason) => {
+                eprintln!("{}", reason.warning(op_id));
+                break;
+            }
         }
     }
     Ok(())
@@ -957,12 +966,65 @@ fn validate_enum_query_param(
 /// worst failure mode for a stream that feeds triage decisions
 /// (aae-orc-u7hy). Endpoints that declare a `next_token` query
 /// parameter in the spec are followed to exhaustion (or `--limit`);
-/// endpoints without one are single-shot exactly as before. Repeated
-/// tokens and a hard page cap guard against a server that never
-/// terminates the cursor chain.
+/// endpoints without one are single-shot. Repeated tokens and a hard
+/// page cap guard against a server that never terminates the cursor
+/// chain.
+///
+/// When a response still advertises a continuation cursor that the
+/// client cannot (or will not) follow, `advance` reports the reason so
+/// the caller can warn — truncation must never be silent (aae-orc-r4pt).
 struct Pager {
     paginates: bool,
     seen: std::collections::HashSet<String>,
+}
+
+/// Outcome of inspecting one response for a continuation cursor.
+enum PageStep {
+    /// A fresh cursor was written into `params`; fetch the next page.
+    Advance,
+    /// No continuation cursor — the listing drained cleanly.
+    Done,
+    /// A cursor is present but cannot be followed; carries why.
+    Truncated(Truncation),
+}
+
+/// Why a paginated listing stopped short of exhaustion.
+enum Truncation {
+    /// The response carries a cursor but this operation does not accept
+    /// `next_token` back as a query parameter, so pages cannot be
+    /// fetched (spec/server request-param mismatch — the r4pt core).
+    CursorNotAccepted,
+    /// The server kept returning a cursor already seen; following it
+    /// would loop, so paging stopped.
+    RepeatedCursor,
+    /// Hit the page-count safety cap with a cursor still present.
+    PageCap,
+}
+
+impl Truncation {
+    /// A loud, actionable stderr line. Every variant contains the
+    /// stable phrase "results may be incomplete" so callers (and tests)
+    /// can detect truncation without matching the exact wording.
+    fn warning(&self, op_id: &str) -> String {
+        match self {
+            Truncation::CursorNotAccepted => format!(
+                "warning: results may be incomplete — the server returned a pagination cursor \
+                 (next_token) but operation `{op_id}` does not accept it back as a query \
+                 parameter, so further pages cannot be fetched. Narrow the query with \
+                 server-side filters (e.g. --type/--status/--repo) to avoid silent truncation."
+            ),
+            Truncation::RepeatedCursor => format!(
+                "warning: results may be incomplete — `{op_id}` kept returning the same \
+                 pagination cursor (next_token), so paging stopped to avoid a loop. Some \
+                 results may be missing; narrow the query to retrieve the full set."
+            ),
+            Truncation::PageCap => format!(
+                "warning: results may be incomplete — stopped paging `{op_id}` at the {}-page \
+                 safety cap with more pages available. Narrow the query to retrieve the full set.",
+                Pager::MAX_PAGES
+            ),
+        }
+    }
 }
 
 impl Pager {
@@ -979,23 +1041,33 @@ impl Pager {
         }
     }
 
-    /// Inspect `response` for a continuation token; when present and
-    /// fresh, write it into `params` and return true (fetch another
-    /// page).
-    fn advance(&mut self, response: &Value, params: &mut Value) -> bool {
-        if !self.paginates || self.seen.len() >= Self::MAX_PAGES {
-            return false;
+    /// Inspect `response` for a continuation token. A non-empty cursor
+    /// that is fresh and forwardable is written into `params`
+    /// (`PageStep::Advance`); the absence of a cursor is a clean end
+    /// (`PageStep::Done`); a cursor present but unfollowable reports the
+    /// reason (`PageStep::Truncated`) so the listing is never silently
+    /// cut short.
+    fn advance(&mut self, response: &Value, params: &mut Value) -> PageStep {
+        // No cursor (absent or empty) means the listing drained.
+        let Some(token) = kinds::extract_next_token(response) else {
+            return PageStep::Done;
+        };
+        // A cursor is present. Determine whether we can follow it.
+        if !self.paginates {
+            return PageStep::Truncated(Truncation::CursorNotAccepted);
         }
-        match kinds::extract_next_token(response) {
-            Some(token) if self.seen.insert(token.clone()) => {
-                if let Some(obj) = params.as_object_mut() {
-                    obj.insert("next_token".to_string(), Value::String(token));
-                    true
-                } else {
-                    false
-                }
+        if self.seen.len() >= Self::MAX_PAGES {
+            return PageStep::Truncated(Truncation::PageCap);
+        }
+        if !self.seen.insert(token.clone()) {
+            return PageStep::Truncated(Truncation::RepeatedCursor);
+        }
+        match params.as_object_mut() {
+            Some(obj) => {
+                obj.insert("next_token".to_string(), Value::String(token));
+                PageStep::Advance
             }
-            _ => false,
+            None => PageStep::Truncated(Truncation::CursorNotAccepted),
         }
     }
 }
@@ -1116,8 +1188,17 @@ fn run_search(args: SearchArgs) -> anyhow::Result<()> {
                 break 'pages;
             }
         }
-        if !pager.advance(&response, &mut params) {
-            break;
+        match pager.advance(&response, &mut params) {
+            PageStep::Advance => {}
+            PageStep::Done => break,
+            // Never let an incomplete listing be silent: a security-
+            // inventory caller must not conclude "not present" from a
+            // truncated page (aae-orc-r4pt). Diagnostics go to stderr so
+            // stdout stays a clean JSONL stream (cli-philosophy.md).
+            PageStep::Truncated(reason) => {
+                eprintln!("{}", reason.warning(op_id));
+                break;
+            }
         }
     }
     Ok(())
