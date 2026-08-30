@@ -71,6 +71,20 @@ fn detections_page(ids: &[&str], next_token: &str) -> Value {
     json!({ "detections": items, "next_token": next_token, "has_more": !next_token.is_empty() })
 }
 
+/// A `rules` listing wrapping a single item plus whatever cursor
+/// fields the caller injects. The `rule` kind's list operation does NOT
+/// declare a `next_token` query parameter, so any cursor it returns is
+/// unfollowable and must surface as a warning (aae-orc-r4pt).
+fn rules_body(cursor_fields: Value) -> Value {
+    let mut body = json!({ "rules": [{"id": "rule_1", "severity": "high"}] });
+    if let (Some(obj), Some(extra)) = (body.as_object_mut(), cursor_fields.as_object()) {
+        for (k, v) in extra {
+            obj.insert(k.clone(), v.clone());
+        }
+    }
+    body
+}
+
 /// The ticket's exact scenario: the server returns the same page and
 /// the same `next_token` every time, so the cursor never advances. The
 /// client must NOT silently return a truncated list — it must warn.
@@ -110,6 +124,119 @@ async fn stuck_cursor_warns_instead_of_silently_truncating() {
         stderr.contains("results may be incomplete"),
         "a stuck/never-advancing cursor must warn about incomplete results, \
          so truncation is never silent (aae-orc-r4pt); stderr was: {stderr:?}"
+    );
+}
+
+/// The ticket's stated root-cause variant: an operation whose response
+/// carries `next_token` but which does NOT declare it as a request
+/// query parameter (so the SDK cannot forward it). The cursor is
+/// unfollowable and must warn, not truncate silently.
+#[tokio::test]
+async fn unaccepted_next_token_param_warns() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/rules"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(rules_body(json!({"next_token": "MORE"}))),
+        )
+        .expect(1) // paginates=false -> exactly one request, no follow-up
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["list", "rule", "--owner", "arcaven"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("results may be incomplete"),
+        "a cursor the operation cannot page back must warn; stderr was: {stderr:?}"
+    );
+}
+
+/// A cursor advertised under a non-`next_token` key (`next_cursor`,
+/// here) must also be detected. The audit trail already records these
+/// wider keys, so ignoring them in the CLI is the silent-truncation gap
+/// the fix must close (aae-orc-r4pt).
+#[tokio::test]
+async fn unfollowable_cursor_key_warns() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/rules"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(rules_body(json!({"next_cursor": "MORE"}))),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["list", "rule", "--owner", "arcaven"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("results may be incomplete"),
+        "a non-next_token continuation cursor must still warn; stderr was: {stderr:?}"
+    );
+}
+
+/// A rule listing with no cursor at all is a clean, complete result —
+/// it must not emit a false truncation warning.
+#[tokio::test]
+async fn no_cursor_does_not_warn() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/github/arcaven/actions/rules"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(rules_body(json!({}))))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let audit_dir = tempdir("audit");
+    let mut c = cmd();
+    scrub_resolution_env(&mut c);
+    let out = c
+        .args(["list", "rule", "--owner", "arcaven"])
+        .env("SIDESTEP_API_TOKEN", "fake-tok")
+        .env("SIDESTEP_BASE_URL", server.uri())
+        .env("SIDESTEP_AUDIT_DIR", &audit_dir)
+        .output()
+        .unwrap();
+
+    assert!(
+        out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        !stderr.contains("results may be incomplete"),
+        "a cursorless complete listing must not warn; stderr was: {stderr:?}"
     );
 }
 

@@ -966,9 +966,10 @@ fn validate_enum_query_param(
 /// worst failure mode for a stream that feeds triage decisions
 /// (aae-orc-u7hy). Endpoints that declare a `next_token` query
 /// parameter in the spec are followed to exhaustion (or `--limit`);
-/// endpoints without one are single-shot. Repeated tokens and a hard
-/// page cap guard against a server that never terminates the cursor
-/// chain.
+/// endpoints without one are single-shot, but a continuation cursor in
+/// their response is reported as a truncation rather than dropped.
+/// Repeated tokens and a hard page cap guard against a server that
+/// never terminates the cursor chain.
 ///
 /// When a response still advertises a continuation cursor that the
 /// client cannot (or will not) follow, `advance` reports the reason so
@@ -1008,10 +1009,10 @@ impl Truncation {
     fn warning(&self, op_id: &str) -> String {
         match self {
             Truncation::CursorNotAccepted => format!(
-                "warning: results may be incomplete — the server returned a pagination cursor \
-                 (next_token) but operation `{op_id}` does not accept it back as a query \
-                 parameter, so further pages cannot be fetched. Narrow the query with \
-                 server-side filters (e.g. --type/--status/--repo) to avoid silent truncation."
+                "warning: results may be incomplete — the server advertised a pagination cursor \
+                 that operation `{op_id}` cannot follow (it does not accept a `next_token` query \
+                 parameter), so further pages cannot be fetched. Narrow the query with \
+                 server-side filters to retrieve the full set."
             ),
             Truncation::RepeatedCursor => format!(
                 "warning: results may be incomplete — `{op_id}` kept returning the same \
@@ -1048,9 +1049,18 @@ impl Pager {
     /// reason (`PageStep::Truncated`) so the listing is never silently
     /// cut short.
     fn advance(&mut self, response: &Value, params: &mut Value) -> PageStep {
-        // No cursor (absent or empty) means the listing drained.
+        // The normal case: a non-empty, forwardable `next_token` cursor.
         let Some(token) = kinds::extract_next_token(response) else {
-            return PageStep::Done;
+            // No forwardable cursor. If the server nonetheless advertised
+            // a continuation cursor under some other key
+            // (nextToken/next_cursor/cursor/...), the listing is
+            // incomplete and cannot be paged — warn rather than truncate
+            // silently (aae-orc-r4pt). Otherwise the listing drained.
+            return if kinds::response_has_unfollowable_cursor(response) {
+                PageStep::Truncated(Truncation::CursorNotAccepted)
+            } else {
+                PageStep::Done
+            };
         };
         // A cursor is present. Determine whether we can follow it.
         if !self.paginates {
