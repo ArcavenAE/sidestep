@@ -1421,7 +1421,19 @@ fn predicate_ast_shape(program: &cel_interpreter::Program) -> String {
     let stripped = strip_literals(&debug);
     let mut hasher = Sha256::new();
     hasher.update(stripped.as_bytes());
-    format!("sha256:{:x}", hasher.finalize())
+    format!("sha256:{}", hex_encode(&hasher.finalize()))
+}
+
+/// Lowercase hex encoding without separators. Mirrors the SDK's audit
+/// `hex_encode` (sha2 0.11's `finalize()` returns a `hybrid_array::Array`
+/// that no longer implements `LowerHex`, so `{:x}` no longer applies).
+fn hex_encode(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        write!(s, "{b:02x}").expect("write to String");
+    }
+    s
 }
 
 fn strip_literals(s: &str) -> String {
