@@ -109,10 +109,13 @@ measurement, not assertion:
   is acceptable for a credential CLI but must be documented as a one-line upgrade
   note.
 
-RESULT: pending. Measured by the director's read-only smoke test on the built v4
-binary (the operator holds the credential; the agent does not touch it). Update
-this line with the observed result once measured; bloomctl and stave carry the
-same measurement step.
+RESULT: transparent upgrade (measured 2026-09-18). The director ran a read-only
+`auth status` on the built v4 binary with env isolated (`SIDESTEP_API_TOKEN`
+unset, `SIDESTEP_CONFIG` nonexistent). It reported `source: keyring` (token
+length only, secret never surfaced). The v3-written Keychain entry reads back
+under v4 with no re-authentication and no macOS Keychain prompt. No upgrade note
+is needed. bloomctl and stave carry the same measurement step; each holds a
+different vendor credential, so each is measured on its own.
 
 ## Linux caveat (recorded, not chased)
 
