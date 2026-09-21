@@ -41,7 +41,7 @@ clap = { version = "4", features = ["derive", "env", "wrap_help"] }
 clap_complete = "4"
 figment = { version = "0.10", features = ["toml", "env"] }
 toml = "1"
-dirs = "6"
+dirs = "7"
 keyring = "4"
 
 # Codegen runtime (progenitor's runtime crate, used by sidestep-api)
