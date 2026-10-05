@@ -50,7 +50,7 @@ jobs:
         with:
           toolchain: nightly
           components: rustfmt
-      - uses: step-security/rust-cache@851174d9a2fdc03e0896e02844dcc61d81dd7851 # v2.9.1
+      - uses: step-security/rust-cache@8871c8ba063416da7c32246932ea6ae08700453e # v2.9.2
         with:
           cache-on-failure: true
       - run: cargo +nightly fmt --all -- --check
@@ -72,7 +72,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - uses: step-security/rust-cache@851174d9a2fdc03e0896e02844dcc61d81dd7851 # v2.9.1
+      - uses: step-security/rust-cache@8871c8ba063416da7c32246932ea6ae08700453e # v2.9.2
         with:
           cache-on-failure: true
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -93,7 +93,7 @@ jobs:
       - uses: step-security/dtolnay-rust-toolchain@8dd607977d06adf4ed49b190381e74c17a9dd25f # v1.0.0
         with:
           toolchain: stable
-      - uses: step-security/rust-cache@851174d9a2fdc03e0896e02844dcc61d81dd7851 # v2.9.1
+      - uses: step-security/rust-cache@8871c8ba063416da7c32246932ea6ae08700453e # v2.9.2
         with:
           cache-on-failure: true
       - run: cargo test --workspace --all-targets
@@ -120,7 +120,7 @@ jobs:
       - uses: step-security/dtolnay-rust-toolchain@8dd607977d06adf4ed49b190381e74c17a9dd25f # v1.0.0
         with:
           toolchain: stable
-      - uses: step-security/rust-cache@851174d9a2fdc03e0896e02844dcc61d81dd7851 # v2.9.1
+      - uses: step-security/rust-cache@8871c8ba063416da7c32246932ea6ae08700453e # v2.9.2
         with:
           cache-on-failure: true
       - run: cargo test --workspace --all-targets
