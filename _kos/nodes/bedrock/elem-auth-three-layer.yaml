@@ -32,6 +32,11 @@ content: |
 
   Evidence: end-to-end verified across all three sources, including
   malformed-config rejection. Promoted from F4.
+
+  The keychain layer rides the keyring crate; the v3 to v4 move is a crate
+  split, not a feature rename. See
+  `_kos/findings/finding-010-keyring-v3-to-v4-crate-split-migration.md`
+  (finding-010).
 edges:
   - target: elem-sdk-backed-cli
     type: implements

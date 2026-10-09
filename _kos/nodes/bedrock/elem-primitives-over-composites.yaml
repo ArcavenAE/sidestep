@@ -49,6 +49,10 @@ content: |
 
   See `_kos/findings/finding-001-primitives-over-composites.md`,
   `_kos/probes/brief-primitive-layer-v01.md`, charter B6.
+
+  The ship trace for the v0.1 layer, with its caveats and the v0.2-deferred
+  items, is `_kos/findings/finding-006-v01-primitive-layer-shipped.md`
+  (finding-006).
 edges:
   - target: elem-sdk-backed-cli
     type: derives
