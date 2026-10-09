@@ -64,13 +64,16 @@ content: |
 
   One says "don't decide too early"; the other says "don't ask too
   often." Together they shape sidestep's CLI ergonomics axis.
+
+  The chain's error message names every layer and one next step for each; see
+  `_kos/findings/finding-005-chain-naming-error.md` (finding-005).
 edges:
   - target: elem-auth-three-layer
     type: instantiates
     note: "B5 is the canonical instance of this value"
   - target: val-evidence-driven-design
-    type: cousin
-    note: "Both refuse ergonomic costs that infrastructure could bear"
+    type: supports
+    note: "Sibling value: both refuse ergonomic costs that infrastructure could bear"
 provenance:
   created_by: human
   created_at: 2026-05-03
