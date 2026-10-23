@@ -54,7 +54,16 @@ db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # RUSTSEC-2024-0436 (paste, via cel-interpreter 0.10) was ignored here
 # until the cel 0.13 upgrade dropped paste from the tree entirely.
-ignore = []
+ignore = [
+    # zvariant, zbus_names and zvariant_derive are unmaintained per
+    # RUSTSEC-2026-0370, 0371 and 0372, with no patched version. All three come
+    # from zbus 5, which keyring pulls through secret-service and
+    # zbus-secret-service-keyring-store (the Linux secret store). zbus 6 is the
+    # migration. Re-check 2026-11-06.
+    { id = "RUSTSEC-2026-0370", reason = "zvariant unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
+    { id = "RUSTSEC-2026-0371", reason = "zbus_names unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
+    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
+]
 
 [sources]
 unknown-registry = "deny"
