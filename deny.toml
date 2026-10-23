@@ -63,6 +63,10 @@ ignore = [
     { id = "RUSTSEC-2026-0370", reason = "zvariant unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
     { id = "RUSTSEC-2026-0371", reason = "zbus_names unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
     { id = "RUSTSEC-2026-0372", reason = "zvariant_derive unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
+    # unsafe-libyaml 0.2.11 is unmaintained per RUSTSEC-2024-0449, with no safe
+    # upgrade. It comes from serde_yaml 0.9.34+deprecated, which sidestep-sdk,
+    # progenitor-macro and xtask pull. Re-check 2026-11-06.
+    { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml unmaintained, no safe upgrade; via serde_yaml 0.9 from sidestep-sdk, progenitor-macro and xtask; re-check 2026-11-06" },
 ]
 
 [sources]
