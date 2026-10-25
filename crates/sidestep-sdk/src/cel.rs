@@ -94,7 +94,7 @@ pub fn compile(expression: &str) -> Result<Program> {
 ///
 /// `*_at` strings are promoted to `Value::Timestamp` in both views so
 /// `created_at < now` and `record.created_at < now` both work.
-pub fn build_context(record: &Record, now: DateTime<Utc>) -> Result<Context<'static>> {
+pub fn build_context(record: &Record, now: DateTime<Utc>) -> Result<Context<'static, 'static>> {
     let mut ctx = Context::default();
 
     // Re-expose `_kind` and `_source` so predicates can reference them.
