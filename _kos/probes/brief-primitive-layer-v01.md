@@ -1,5 +1,7 @@
 # sidestep v0.1 Primitive Layer — Exploration Brief
 
+Closed 2026-10-25: sidestep shipped past v0.1
+
 Session: 041 (2026-05-01)
 Supersedes: `brief-curated-cli-verbs-v01.md`
 Related: `_kos/findings/finding-001-primitives-over-composites.md`,
