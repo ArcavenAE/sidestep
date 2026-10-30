@@ -14,6 +14,7 @@
 #![forbid(unsafe_code)]
 
 pub mod audit;
+pub mod audit_query;
 pub mod auth;
 pub mod cel;
 pub mod client;

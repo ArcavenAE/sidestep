@@ -151,12 +151,32 @@ each response, not the records: the trail stores no payloads (see
 with no spans is an error. The trail is read even when `SIDESTEP_AUDIT=off`,
 which only stops new lines being written.
 
+## Mining the trail: `sidestep audit query`
+
+`sidestep audit query` is the reader for pattern mining. It reads the whole
+trail and emits a JSON-line stream, so the other verbs compose with it:
+
+- no options: one `audit_corpus` record (spans, active days, first and last
+  `ts_start`, files read, unparseable lines, spans with no usable time);
+- `--group-by FIELD`: one `audit_group` record per value, highest count
+  first, ties by key. FIELD is a dotted path (`operation.id`,
+  `response.status`, `verb_phase`, `result`) or `_day`, the UTC date. A span
+  without the field groups under `<none>`;
+- `--cooccur WINDOW`: one `audit_pair` record per unordered pair of distinct
+  values that occur within WINDOW of each other, over the `--group-by` field
+  or `operation.id`;
+- `--since WHEN` keeps spans at or after a duration back from now (`30m`,
+  `12h`, `7d`, `2w`), an RFC 3339 timestamp or a `YYYY-MM-DD` date;
+  `--top N` keeps the first N groups and N pairs.
+
+It counts what was called and how it ended; the trail holds no payloads, so it
+cannot say what came back. It makes no API call and reads the trail even when
+`SIDESTEP_AUDIT=off`.
+
 ## Future analysis surface
 
 Out of scope for v0.1. Charter F3 tracks this. Likely shapes:
 
-- `sidestep audit query --since 7d --group-by operation.id` — local
-  aggregation.
 - `sidestep audit traces` — render trace_id trees.
 - `sidestep meta propose` — LLM call against a window of trail to
   suggest curated verbs.

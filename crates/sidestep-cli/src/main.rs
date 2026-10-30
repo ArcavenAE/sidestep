@@ -10,8 +10,8 @@ use anyhow::{Context, anyhow};
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value, json};
 use sidestep_sdk::{
-    CallOptions, Client, ParamSource, Record, SourceRef, audit, auth, cel, diff, enrich, kind_spec,
-    kinds, rank, read_stream, registry, replay, write_record,
+    CallOptions, Client, ParamSource, Record, SourceRef, audit, audit_query, auth, cel, diff,
+    enrich, kind_spec, kinds, rank, read_stream, registry, replay, write_record,
 };
 
 #[derive(Parser, Debug)]
@@ -52,6 +52,8 @@ enum Cmd {
     Diff(DiffArgs),
     /// Emit the audit spans one trace id produced (what was called, not the records).
     Replay(ReplayArgs),
+    /// Mine the local audit trail: corpus summary, counts, co-occurrence.
+    Audit(AuditArgs),
     /// Inspect or modify the persisted config.
     Config(ConfigArgs),
 }
@@ -402,6 +404,59 @@ struct ReplayArgs {
     trace_id: String,
 }
 
+#[derive(clap::Args, Debug)]
+struct AuditArgs {
+    #[command(subcommand)]
+    cmd: AuditCmd,
+}
+
+#[derive(Subcommand, Debug)]
+enum AuditCmd {
+    /// Summarize, count and pair up the spans in the local audit trail.
+    #[command(
+        long_about = "Read the local audit trail and emit what it holds, as a JSON-line stream.\n\n\
+                      With no options it emits one `audit_corpus` record: spans, active days, the \
+                      first and last time, and how many lines or spans could not be used. \
+                      --group-by FIELD emits one `audit_group` record per value (highest count \
+                      first). --cooccur WINDOW emits one `audit_pair` record per pair of distinct \
+                      values that occur within WINDOW of each other.\n\n\
+                      It reads the trail only and makes no API call. The trail stores no \
+                      payloads, so it counts what was called and how it ended, not the records.\n\n\
+                      FIELD is a dotted path into the span (operation.id, response.status, \
+                      verb_phase, result) or `_day`, the UTC date. A span without the field \
+                      groups under <none>. Spans with no usable ts_start are left out and \
+                      counted in the corpus record.\n\n\
+                      The trail is read from SIDESTEP_AUDIT_DIR, or the default location, even \
+                      when SIDESTEP_AUDIT=off.\n\n\
+                      Examples:\n  \
+                      sidestep audit query --since 30d\n  \
+                      sidestep audit query --since 30d --group-by operation.id --top 20\n  \
+                      sidestep audit query --since 7d --cooccur 5m"
+    )]
+    Query(AuditQueryArgs),
+}
+
+#[derive(clap::Args, Debug)]
+struct AuditQueryArgs {
+    /// Keep spans at or after this: a duration (30m, 12h, 7d, 2w), an RFC 3339
+    /// timestamp or a YYYY-MM-DD date.
+    #[arg(long, value_name = "WHEN")]
+    since: Option<String>,
+
+    /// Count spans by the value of this field.
+    #[arg(long, value_name = "FIELD")]
+    group_by: Option<String>,
+
+    /// Count pairs of distinct values that occur within this window
+    /// (60s, 5m, 1h). Uses the --group-by field, or operation.id.
+    #[arg(long, value_name = "WINDOW")]
+    cooccur: Option<String>,
+
+    /// Keep only the first N groups and the first N pairs (at least 1).
+    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u64).range(1..))]
+    top: Option<u64>,
+}
+
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum DiffSemantics {
     /// Records in stdin whose key is not in the prior stream.
@@ -619,6 +674,7 @@ fn main() -> ExitCode {
         Cmd::Rank(args) => run_rank(args),
         Cmd::Diff(args) => run_diff(args),
         Cmd::Replay(args) => run_replay(args),
+        Cmd::Audit(args) => run_audit(args),
         Cmd::Config(args) => run_config(args),
     };
 
@@ -1963,6 +2019,99 @@ fn run_replay(args: ReplayArgs) -> anyhow::Result<()> {
     );
     span.finish_as_verb(extra);
 
+    match last_error {
+        Some(e) => Err(e),
+        None => Ok(()),
+    }
+}
+
+fn run_audit(args: AuditArgs) -> anyhow::Result<()> {
+    match args.cmd {
+        AuditCmd::Query(q) => run_audit_query(q),
+    }
+}
+
+fn run_audit_query(args: AuditQueryArgs) -> anyhow::Result<()> {
+    let since = match &args.since {
+        Some(s) => {
+            Some(audit_query::parse_since(s, chrono::Utc::now()).map_err(|e| anyhow!("{e}"))?)
+        }
+        None => None,
+    };
+    let window = match &args.cooccur {
+        Some(w) => Some(audit_query::parse_window(w).map_err(|e| anyhow!("{e}"))?),
+        None => None,
+    };
+    if let Some(f) = &args.group_by {
+        audit_query::validate_field(f).map_err(|e| anyhow!("{e}"))?;
+    }
+    let dir =
+        audit::trail_dir().ok_or_else(|| anyhow!("no audit trail directory is configured"))?;
+    let top = args.top.map(|n| n as usize);
+
+    let span = audit::Span::start_fresh().with_verb_phase("audit_query");
+    let finish =
+        |span: audit::Span, read: usize, selected: usize, emitted: usize, errors: usize| {
+            let mut extra = serde_json::Map::new();
+            extra.insert(
+                "audit_query_outcome".into(),
+                json!({
+                    "spans_read": read,
+                    "spans_selected": selected,
+                    "emitted_count": emitted,
+                    "error_count": errors,
+                }),
+            );
+            span.finish_as_verb(extra);
+        };
+
+    let trail = match audit_query::read_trail(&dir) {
+        Ok(t) => t,
+        Err(e) => {
+            finish(span, 0, 0, 0, 1);
+            return Err(anyhow!("{e}"));
+        }
+    };
+    let selected = audit_query::select(&trail, since);
+    if selected.is_empty() {
+        eprintln!(
+            "0 spans selected ({} read from {}, {} file(s))",
+            trail.spans.len(),
+            dir.display(),
+            trail.files_read
+        );
+    }
+
+    let mut out_records: Vec<Record> = Vec::new();
+    if args.group_by.is_none() && window.is_none() {
+        out_records.push(audit_query::corpus(&selected, &trail));
+    }
+    if let Some(field) = &args.group_by {
+        out_records.extend(audit_query::group_by(&selected, field, top));
+    }
+    if let Some(window) = window {
+        let field = args.group_by.as_deref().unwrap_or("operation.id");
+        out_records.extend(audit_query::cooccur(&selected, field, window, top));
+    }
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let mut emitted = 0usize;
+    let mut last_error: Option<anyhow::Error> = None;
+    for record in &out_records {
+        if let Err(e) = write_record(&mut out, record) {
+            last_error = Some(anyhow!("{e}"));
+            break;
+        }
+        emitted += 1;
+    }
+    finish(
+        span,
+        trail.spans.len(),
+        selected.len(),
+        emitted,
+        usize::from(last_error.is_some()),
+    );
     match last_error {
         Some(e) => Err(e),
         None => Ok(()),
