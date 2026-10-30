@@ -1,0 +1,57 @@
+openapi: 3.0.3
+info:
+  title: synthetic spec for the documentation tests
+  version: "2"
+paths:
+  /docs:
+    get:
+      operationId: getDocs
+      summary: Fetch a thing by its filters
+      description: Returns the thing, now with a longer explanation.
+      parameters:
+        - name: limit
+          in: query
+          description: The number of items to return.
+          schema:
+            type: integer
+            example: 25
+      responses:
+        "200":
+          description: the request succeeded
+          content:
+            application/json:
+              schema:
+                title: ThingV2
+                description: A thing, described differently.
+                type: object
+                example:
+                  id: b
+                properties:
+                  id:
+                    type: string
+  /props:
+    get:
+      operationId: getProps
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  description:
+                    type: integer
+                  title:
+                    type: string
+components:
+  schemas:
+    Named:
+      type: object
+      properties:
+        summary:
+          type: integer
+        example:
+          type: string
+        examples:
+          type: string

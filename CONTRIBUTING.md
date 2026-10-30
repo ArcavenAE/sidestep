@@ -25,7 +25,7 @@ If the StepSecurity OpenAPI spec changes upstream:
 
 ```sh
 cargo xtask sync-spec         # fetch and update spec/ + sha256
-cargo xtask diff-spec         # (forthcoming) summarize the diff
+cargo xtask diff-spec         # summarize the diff (added/removed/changed operations)
 cargo xtask regen             # (forthcoming) regenerate sidestep-api
 ```
 
