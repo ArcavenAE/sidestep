@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: synthetic spec for diff-spec tests
+  version: "1"
+paths:
+  /a:
+    get:
+      operationId: listA
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Thing"
+  /b:
+    get:
+      operationId: listB
+      responses:
+        "200":
+          description: ok
+    post:
+      operationId: createB
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: created
+  /c:
+    get:
+      operationId: getC
+      responses:
+        "200":
+          description: ok
+  /d/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getD
+      responses:
+        "200":
+          description: ok
+  /f:
+    get:
+      responses:
+        "200":
+          description: ok
+components:
+  schemas:
+    Thing:
+      type: object
+      properties:
+        id:
+          type: string
+    Gone:
+      type: string

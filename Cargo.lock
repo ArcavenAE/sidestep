@@ -3599,6 +3599,8 @@ dependencies = [
  "progenitor",
  "regex",
  "reqwest",
+ "serde",
+ "serde_json",
  "serde_yaml",
  "sha2",
  "syn 3.0.9",

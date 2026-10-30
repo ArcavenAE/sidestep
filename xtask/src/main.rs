@@ -6,12 +6,14 @@
 //! Commands (filled in by follow-on tickets):
 //!   * `sync-spec`  — fetch the live OpenAPI spec, write to spec/, update sha256
 //!   * `regen`      — run progenitor against vendored spec, write sidestep-api
-//!   * `diff-spec`  — compare local vendored spec vs upstream, summarize ops added/removed/changed
+//!   * `diff-spec`  : compare the vendored spec with upstream (or two files), summarize ops added/removed/changed
 
-use std::{fs, path::PathBuf, sync::OnceLock};
+mod diff_spec;
+
+use std::{fs, path::PathBuf, process::Command, sync::OnceLock};
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use regex::Regex;
 use sha2::{Digest, Sha256};
 
@@ -68,8 +70,32 @@ enum Cmd {
     SyncSpec,
     /// Regenerate sidestep-api from the vendored spec. Not yet implemented.
     Regen,
-    /// Diff the vendored spec against upstream. Not yet implemented.
-    DiffSpec,
+    /// Summarize the operations added, removed and changed between two OpenAPI files.
+    ///
+    /// With no flags it compares the vendored spec (old) with the live
+    /// upstream spec (new), fetched and sanitized but not written anywhere.
+    /// `--old` and `--new` name files instead; given alone, the other side
+    /// is the vendored spec. `--against-head` compares the git HEAD copy of
+    /// the vendored spec (old) with the working-tree copy (new), which is
+    /// how to review what `sync-spec` just wrote.
+    ///
+    /// Operations are keyed on path and method. A changed operation lists
+    /// its operationId, parameter, request body and response differences.
+    /// Descriptions and examples are ignored.
+    DiffSpec(DiffSpecArgs),
+}
+
+#[derive(Args, Debug)]
+struct DiffSpecArgs {
+    /// The older OpenAPI file.
+    #[arg(long, value_name = "FILE", conflicts_with = "against_head")]
+    old: Option<PathBuf>,
+    /// The newer OpenAPI file.
+    #[arg(long, value_name = "FILE", conflicts_with = "against_head")]
+    new: Option<PathBuf>,
+    /// Compare the git HEAD copy of the vendored spec with the working tree.
+    #[arg(long)]
+    against_head: bool,
 }
 
 fn main() -> Result<()> {
@@ -77,9 +103,7 @@ fn main() -> Result<()> {
     match cli.cmd {
         Cmd::SyncSpec => sync_spec(),
         Cmd::Regen => regen(),
-        Cmd::DiffSpec => {
-            anyhow::bail!("xtask diff-spec: not yet implemented (follow-on ticket)");
-        }
+        Cmd::DiffSpec(args) => diff_spec_cmd(&args),
     }
 }
 
@@ -154,18 +178,7 @@ fn sync_spec() -> Result<()> {
     let spec_path = workspace_root.join(SPEC_REL_PATH);
     let sha_path = workspace_root.join(SPEC_SHA_REL_PATH);
 
-    eprintln!("xtask: fetching spec from {SPEC_URL}");
-    let body = reqwest::blocking::get(SPEC_URL)
-        .context("fetch spec")?
-        .error_for_status()
-        .context("spec endpoint returned non-2xx")?
-        .text()
-        .context("read spec body")?;
-
-    let (sanitized, applied) = sanitize(&body);
-    if applied > 0 {
-        eprintln!("xtask: sanitized {applied} secret-shaped example(s) before writing");
-    }
+    let sanitized = fetch_upstream_sanitized()?;
 
     // Synthesize missing operationIds in the vendored copy. Keeps the spec
     // self-contained: progenitor and the SDK both read the same file with
@@ -190,6 +203,73 @@ fn sync_spec() -> Result<()> {
         body.len()
     );
     eprintln!("xtask: sha256 {digest}");
+    Ok(())
+}
+
+/// Fetch the live spec and run the sanitize rules over it, as `sync-spec`
+/// does before anything reaches disk.
+fn fetch_upstream_sanitized() -> Result<String> {
+    eprintln!("xtask: fetching spec from {SPEC_URL}");
+    let body = reqwest::blocking::get(SPEC_URL)
+        .context("fetch spec")?
+        .error_for_status()
+        .context("spec endpoint returned non-2xx")?
+        .text()
+        .context("read spec body")?;
+
+    let (sanitized, applied) = sanitize(&body);
+    if applied > 0 {
+        eprintln!("xtask: sanitized {applied} secret-shaped example(s) before writing");
+    }
+    Ok(sanitized)
+}
+
+/// Parse a spec and give every operation an id, the same way the vendored
+/// copy is prepared, so an operation with no id compares equal to itself.
+fn parse_spec(label: &str, yaml: &str) -> Result<openapiv3::OpenAPI> {
+    let mut spec: openapiv3::OpenAPI =
+        serde_yaml::from_str(yaml).with_context(|| format!("parse {label} as OpenAPI v3"))?;
+    fill_missing_operation_ids(&mut spec);
+    Ok(spec)
+}
+
+fn read_spec_file(path: &std::path::Path) -> Result<openapiv3::OpenAPI> {
+    let text = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    parse_spec(&path.display().to_string(), &text)
+}
+
+fn diff_spec_cmd(args: &DiffSpecArgs) -> Result<()> {
+    let root = workspace_root()?;
+    let vendored = root.join(SPEC_REL_PATH);
+    let (old, new) = if args.against_head {
+        let out = Command::new("git")
+            .args(["show", &format!("HEAD:{SPEC_REL_PATH}")])
+            .current_dir(&root)
+            .output()
+            .context("run git show")?;
+        if !out.status.success() {
+            anyhow::bail!(
+                "git show HEAD:{SPEC_REL_PATH}: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            );
+        }
+        let head = parse_spec(
+            &format!("HEAD:{SPEC_REL_PATH}"),
+            &String::from_utf8_lossy(&out.stdout),
+        )?;
+        (head, read_spec_file(&vendored)?)
+    } else {
+        match (&args.old, &args.new) {
+            (Some(old), Some(new)) => (read_spec_file(old)?, read_spec_file(new)?),
+            (Some(old), None) => (read_spec_file(old)?, read_spec_file(&vendored)?),
+            (None, Some(new)) => (read_spec_file(&vendored)?, read_spec_file(new)?),
+            (None, None) => (
+                read_spec_file(&vendored)?,
+                parse_spec("the upstream spec", &fetch_upstream_sanitized()?)?,
+            ),
+        }
+    };
+    print!("{}", diff_spec::render(&diff_spec::diff(&old, &new)));
     Ok(())
 }
 
