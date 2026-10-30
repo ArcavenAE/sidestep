@@ -77,7 +77,7 @@ impl SortKey {
 /// Look up a dotted path. `_kind` reads the record's kind; any other
 /// first segment reads a domain field. A missing step or a `null`
 /// yields `None`.
-fn lookup(record: &Record, path: &str) -> Option<Value> {
+pub(crate) fn lookup(record: &Record, path: &str) -> Option<Value> {
     let mut segments = path.split('.');
     let first = segments.next()?;
     let mut current = if first == "_kind" {
