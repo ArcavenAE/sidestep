@@ -204,6 +204,7 @@ sidestep get <kind> <id>                         # one record by id
 sidestep search <kind> <text>                    # substring match on name field
 sidestep filter --where '<CEL>' [--explain]      # predicate over stdin stream
 sidestep enrich --with <recipe> [--policies f]   # join/derive fields
+sidestep rank --by <field[:asc|:desc]> [--top N]  # order the stream, ties keep input order
 sidestep emit --format {jsonl|md}                # sink / render
 ```
 

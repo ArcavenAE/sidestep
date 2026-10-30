@@ -195,7 +195,7 @@ fn policy_summary(p: &Record) -> Value {
 /// Severity ordering matches the recipe scripts in `examples/recipes/`:
 /// critical > high > medium > low > info. Unknown values rank lower
 /// than any known value (caller falls back to the other operand).
-fn severity_rank(s: &str) -> Option<u8> {
+pub(crate) fn severity_rank(s: &str) -> Option<u8> {
     match s {
         "critical" => Some(4),
         "high" => Some(3),
