@@ -181,3 +181,41 @@ fn help_says_what_the_defaults_compare() {
     assert!(help.contains("upstream"), "{help}");
     assert!(help.contains("--against-head"), "{help}");
 }
+
+const DOCS_OLD: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/diff_docs_old.yaml"
+);
+const DOCS_NEW: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/diff_docs_new.yaml"
+);
+
+#[test]
+fn an_operation_that_differs_only_in_documentation_is_not_listed() {
+    // /docs changes its summary, description, parameter and response
+    // descriptions, a schema title and description, and two examples.
+    let text = stdout_of(&["--old", DOCS_OLD, "--new", DOCS_NEW]);
+    assert!(!text.contains("/docs"), "{text}");
+    assert!(!text.contains("getDocs"), "{text}");
+}
+
+#[test]
+fn a_property_named_like_a_documentation_key_is_still_compared() {
+    // /props has properties called `description` and `title`; the first
+    // changes type. Those words are field names there, not documentation.
+    let text = stdout_of(&["--old", DOCS_OLD, "--new", DOCS_NEW]);
+    let changed = section(&text, "changed (1)");
+    assert!(changed.contains("~ GET /props  getProps"), "{changed}");
+    assert!(changed.contains("response changed: 200"), "{changed}");
+}
+
+#[test]
+fn a_component_schema_property_named_like_a_documentation_key_is_compared() {
+    let text = stdout_of(&["--old", DOCS_OLD, "--new", DOCS_NEW]);
+    assert!(text.contains("schemas: 1 changed (Named)"), "{text}");
+    assert!(
+        text.contains("summary: 0 added, 0 removed, 1 changed, 1 unchanged"),
+        "{text}"
+    );
+}
