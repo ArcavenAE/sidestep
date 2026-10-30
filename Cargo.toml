@@ -46,6 +46,9 @@ keyring = "4"
 
 # Codegen runtime (progenitor's runtime crate, used by sidestep-api)
 progenitor-client = "0.15"
+# Pattern matching used by generated string types that carry a `pattern`
+# (the 2026-10 spec adds the first ones); same crate typify already pulls in.
+regress = "0.12"
 bytes = "1"
 
 # Misc utilities used in the SDK
