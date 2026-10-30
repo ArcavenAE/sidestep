@@ -16,7 +16,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use assert_cmd::cargo::CommandCargoExt;
 use serde_json::{Value, json};
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param, query_param_is_missing};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn now() -> i64 {
@@ -190,4 +190,57 @@ async fn policy_has_no_time_field_so_since_is_refused() {
     let out = list(&server, &["policy", "--since", "24h"]);
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("no primary timestamp field"));
+}
+
+#[tokio::test]
+async fn a_good_record_ahead_of_a_bad_one_leaves_stdout_empty() {
+    // The failure must not be preceded by output: a caller that reads the
+    // records before it reads the exit status would take them for the list.
+    let body = json!({"data": {"detections": [
+        {"id": "det_ok", "timestamp": (now() - HOUR).to_string()},
+        {"id": "det_bad", "severity": "high"},
+    ], "has_more": false, "next_token": ""}});
+    let server = serve(DETECTIONS, body).await;
+    let out = list(&server, &["detection", "--since", "24h"]);
+    assert!(!out.status.success());
+    assert!(
+        out.stdout.is_empty(),
+        "stdout must be empty on failure, got: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+    assert!(String::from_utf8_lossy(&out.stderr).contains("timestamp"));
+}
+
+#[tokio::test]
+async fn a_bad_record_on_a_later_page_leaves_stdout_empty() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(DETECTIONS))
+        .and(query_param_is_missing("next_token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {
+            "detections": [{"id": "det_p1", "timestamp": (now() - HOUR).to_string()}],
+            "has_more": true, "next_token": "PAGE2"}})))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path(DETECTIONS))
+        .and(query_param("next_token", "PAGE2"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {
+            "detections": [{"id": "det_p2"}], "has_more": false, "next_token": ""}})))
+        .mount(&server)
+        .await;
+    let out = list(&server, &["detection", "--since", "24h"]);
+    assert!(!out.status.success());
+    assert!(
+        out.stdout.is_empty(),
+        "page one must not reach stdout when page two fails: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}
+
+#[tokio::test]
+async fn since_with_limit_still_returns_the_first_n_matches() {
+    let server = serve(DETECTIONS, detections()).await;
+    let out = list(&server, &["detection", "--since", "8760h", "--limit", "2"]);
+    assert_eq!(ids(&out), ["det_new", "det_mid"]);
 }

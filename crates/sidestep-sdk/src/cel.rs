@@ -602,6 +602,7 @@ mod tests {
             json!("yesterday"),
             json!("12ab"),
             json!("-5"),
+            json!(-5),
             json!(1.5),
             json!(null),
             json!(true),
