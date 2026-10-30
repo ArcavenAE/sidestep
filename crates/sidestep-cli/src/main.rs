@@ -11,7 +11,7 @@ use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value, json};
 use sidestep_sdk::{
     CallOptions, Client, ParamSource, Record, SourceRef, audit, auth, cel, enrich, kind_spec,
-    kinds, read_stream, registry, write_record,
+    kinds, rank, read_stream, registry, write_record,
 };
 
 #[derive(Parser, Debug)]
@@ -46,6 +46,8 @@ enum Cmd {
     Filter(FilterArgs),
     /// Attach computed/joined fields per a named recipe.
     Enrich(EnrichArgs),
+    /// Order a record stream by typed fields (highest first by default).
+    Rank(RankArgs),
     /// Inspect or modify the persisted config.
     Config(ConfigArgs),
 }
@@ -347,6 +349,33 @@ struct FilterArgs {
 
 #[derive(clap::Args, Debug)]
 #[command(
+    long_about = "Order a JSON-line stream by one or more typed fields. The same input and the \
+                  same keys always give the same output; ties keep input order.\n\n\
+                  A key is FIELD, FIELD:asc or FIELD:desc, where FIELD is a dotted path \
+                  (repo.name). A bare FIELD is descending, highest first. Earlier --by keys \
+                  win; later ones break ties.\n\n\
+                  Records with the field missing or null go last in both directions. Numbers \
+                  compare as numbers, strings bytewise; a field named `severity` uses severity \
+                  order (critical, high, medium, low, info) and unknown values rank below it. \
+                  Records pass through unchanged.\n\n\
+                  rank reads the whole stream before it writes, and writes nothing if any line \
+                  fails to parse.\n\n\
+                  Examples:\n  \
+                  sidestep list detections | sidestep rank --by severity --by created_at --top 10\n  \
+                  cat detections.jsonl | sidestep rank --by repo.name:asc --by severity"
+)]
+struct RankArgs {
+    /// Sort key: FIELD, FIELD:asc or FIELD:desc. Repeatable; earlier keys win.
+    #[arg(long = "by", value_name = "FIELD[:DIR]", required = true)]
+    by: Vec<String>,
+
+    /// Keep only the first N records after ranking (at least 1).
+    #[arg(long, value_name = "N")]
+    top: Option<usize>,
+}
+
+#[derive(clap::Args, Debug)]
+#[command(
     long_about = "Attach computed or joined fields to records per a named recipe.\n\n\
                   Recipes (v0.1):\n  \
                   policy-context     for each rule, attach parent policy as `policy: {...}`. \
@@ -494,6 +523,7 @@ fn main() -> ExitCode {
         Cmd::Emit(args) => run_emit(args),
         Cmd::Filter(args) => run_filter(args),
         Cmd::Enrich(args) => run_enrich(args),
+        Cmd::Rank(args) => run_rank(args),
         Cmd::Config(args) => run_config(args),
     };
 
@@ -1713,6 +1743,79 @@ fn fetch_policies_context(owner_flag: Option<&str>) -> anyhow::Result<enrich::En
         .map(|(idx, item)| Record::wrap(spec.name, SourceRef::now(op_id, idx), item))
         .collect();
     Ok(enrich::EnrichmentContext::with_policies(policies))
+}
+
+fn run_rank(args: RankArgs) -> anyhow::Result<()> {
+    let keys: Vec<rank::SortKey> = args
+        .by
+        .iter()
+        .map(|s| rank::SortKey::parse(s).map_err(|e| anyhow!("{e}")))
+        .collect::<anyhow::Result<_>>()?;
+    if args.top == Some(0) {
+        return Err(anyhow!("--top must be at least 1"));
+    }
+
+    let span = audit::Span::start_fresh().with_verb_phase("rank");
+
+    let stdin = std::io::stdin();
+    let stdin = BufReader::new(stdin.lock());
+    // Ranking needs the whole stream. A bad line fails the run before
+    // anything is written, so a partial ranking is never emitted.
+    let records: Vec<Record> = match read_stream(stdin).collect::<sidestep_sdk::Result<Vec<_>>>() {
+        Ok(records) => records,
+        Err(e) => {
+            let mut extra = serde_json::Map::new();
+            extra.insert("rank_keys".into(), rank_keys_json(&keys));
+            extra.insert(
+                "rank_outcome".into(),
+                json!({"input_count": 0, "emitted_count": 0, "top": args.top, "error_count": 1}),
+            );
+            span.finish_as_verb(extra);
+            return Err(anyhow!("read stdin: {e}"));
+        }
+    };
+    let input_count = records.len();
+    let absent = rank::absent_counts(&records, &keys);
+    let ranked = rank::rank(records, &keys, args.top);
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let mut emitted = 0usize;
+    let mut last_error: Option<anyhow::Error> = None;
+    for record in &ranked {
+        if let Err(e) = write_record(&mut out, record) {
+            last_error = Some(anyhow!("{e}"));
+            break;
+        }
+        emitted += 1;
+    }
+
+    let mut extra = serde_json::Map::new();
+    extra.insert("rank_keys".into(), rank_keys_json(&keys));
+    extra.insert(
+        "rank_outcome".into(),
+        json!({
+            "input_count": input_count,
+            "emitted_count": emitted,
+            "top": args.top,
+            "absent_by_key": absent,
+            "error_count": usize::from(last_error.is_some()),
+        }),
+    );
+    span.finish_as_verb(extra);
+
+    match last_error {
+        Some(e) => Err(e),
+        None => Ok(()),
+    }
+}
+
+fn rank_keys_json(keys: &[rank::SortKey]) -> Value {
+    Value::Array(
+        keys.iter()
+            .map(|k| json!({"path": k.path, "direction": k.direction.as_str()}))
+            .collect(),
+    )
 }
 
 fn run_emit(args: EmitArgs) -> anyhow::Result<()> {

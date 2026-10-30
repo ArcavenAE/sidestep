@@ -5,6 +5,7 @@
 //!   * `audit`   — JSONL audit trail (see `docs/audit-trail-format.md`)
 //!   * `client`  — `Client::call_op(operation_id, params)` execution surface
 //!   * `error`   — `SidestepError` + `Result<T>`
+//!   * `rank`    : deterministic ordering of a record stream by typed fields
 //!   * `redact`  — argv + header redaction policy
 //!   * `spec`    — operation registry over the vendored OpenAPI spec
 
@@ -17,6 +18,7 @@ pub mod client;
 pub mod enrich;
 pub mod error;
 pub mod kinds;
+pub mod rank;
 pub mod redact;
 pub mod spec;
 pub mod stream;
