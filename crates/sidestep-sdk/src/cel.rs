@@ -374,15 +374,45 @@ fn walk_expr(
 }
 
 /// True when the field name should be promoted to a timestamp by the
-/// canonical adapter. Currently: any field ending in `_at`, plus the
-/// audit-log `ts` field.
+/// canonical adapter: any field ending in `_at`, the audit-log `ts`, and the
+/// time fields the API names otherwise (`timestamp` on detections,
+/// `start_time_utc` on runs, `created_on` and `updated_on` on rules).
 fn is_timestamp_field(name: &str) -> bool {
-    name == "ts" || name.ends_with("_at")
+    name == "ts"
+        || name.ends_with("_at")
+        || matches!(
+            name,
+            "timestamp" | "start_time_utc" | "created_on" | "updated_on"
+        )
 }
 
+/// Read a time from a record value. Accepts an RFC 3339 string, or Unix
+/// time as a JSON integer or a string of digits: seconds, or milliseconds
+/// once the value is too large to be seconds (the API sends detections as
+/// a string of seconds and runs as an integer of seconds). Anything else
+/// is not a time, and the caller keeps the value as it was. A negative
+/// number is refused, as a string with a sign is.
 fn parse_timestamp(v: &JsonValue) -> Option<DateTime<FixedOffset>> {
-    let s = v.as_str()?;
-    DateTime::parse_from_rfc3339(s).ok()
+    const MAX_SECONDS: i64 = 100_000_000_000;
+    let epoch = match v {
+        JsonValue::Number(n) => n.as_i64().filter(|e| *e >= 0),
+        JsonValue::String(s) => {
+            if let Ok(t) = DateTime::parse_from_rfc3339(s) {
+                return Some(t);
+            }
+            if s.is_empty() || s.len() > 15 || !s.bytes().all(|b| b.is_ascii_digit()) {
+                return None;
+            }
+            s.parse::<i64>().ok()
+        }
+        _ => None,
+    }?;
+    let utc = if epoch.abs() < MAX_SECONDS {
+        DateTime::from_timestamp(epoch, 0)?
+    } else {
+        DateTime::from_timestamp_millis(epoch)?
+    };
+    Some(to_fixed(utc))
 }
 
 fn to_fixed(t: DateTime<Utc>) -> DateTime<FixedOffset> {
@@ -545,6 +575,60 @@ mod tests {
         let now = Utc.with_ymd_and_hms(2026, 4, 30, 10, 0, 0).unwrap();
         let p = compile("created_at < now").unwrap();
         assert!(evaluate(&p, &r, now, "created_at < now").unwrap());
+    }
+
+    #[test]
+    fn parse_timestamp_reads_rfc3339_and_unix_time() {
+        let want = Utc.with_ymd_and_hms(2026, 10, 30, 12, 0, 0).unwrap();
+        let secs = want.timestamp();
+        for v in [
+            json!("2026-10-30T12:00:00Z"),
+            json!(secs),
+            json!(secs.to_string()),
+            json!(secs * 1000),
+            json!((secs * 1000).to_string()),
+        ] {
+            assert_eq!(
+                parse_timestamp(&v).map(|t| t.timestamp()),
+                Some(secs),
+                "{v}"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_timestamp_refuses_what_is_not_a_time() {
+        for v in [
+            json!(""),
+            json!("yesterday"),
+            json!("12ab"),
+            json!("-5"),
+            json!(-5),
+            json!(1.5),
+            json!(null),
+            json!(true),
+            json!({"a": 1}),
+            json!("1234567890123456789"),
+        ] {
+            assert!(parse_timestamp(&v).is_none(), "{v}");
+        }
+    }
+
+    #[test]
+    fn epoch_string_time_fields_promote_for_comparison_with_now() {
+        let now = Utc.with_ymd_and_hms(2026, 10, 30, 12, 0, 0).unwrap();
+        let r = make_record(
+            "detection",
+            json!({"id": "d1", "timestamp": (now.timestamp() - 3600).to_string()}),
+        );
+        let src = r#"timestamp > now - duration("24h")"#;
+        let p = compile(src).unwrap();
+        assert!(evaluate(&p, &r, now, src).unwrap());
+        let old = make_record(
+            "detection",
+            json!({"id": "d2", "timestamp": (now.timestamp() - 48 * 3600).to_string()}),
+        );
+        assert!(!evaluate(&p, &old, now, src).unwrap());
     }
 
     #[test]

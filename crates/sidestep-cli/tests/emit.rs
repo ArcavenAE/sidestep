@@ -8,7 +8,7 @@ use std::process::Command;
 
 use assert_cmd::cargo::CommandCargoExt;
 
-const DETECTION_LINE: &str = r#"{"_kind":"detection","_source":{"operation_id":"get_github_owner_actions_detections","response_index":0,"fetched_at":"2026-04-30T10:00:00Z"},"id":"det_001","severity":"critical","status":"open","created_at":"2026-04-29T14:23:11Z"}"#;
+const DETECTION_LINE: &str = r#"{"_kind":"detection","_source":{"operation_id":"get_github_owner_actions_detections","response_index":0,"fetched_at":"2026-04-30T10:00:00Z"},"id":"det_001","severity":"critical","status":"open","created_at":"2026-04-29T14:23:11Z","timestamp":"1777472591"}"#;
 
 const RULE_LINE: &str = r#"{"_kind":"rule","_source":{"operation_id":"get_github_owner_actions_rules","response_index":0,"fetched_at":"2026-04-30T10:00:00Z"},"id":"rule_001","severity":"high","policy_id":"pol_001"}"#;
 
@@ -69,7 +69,7 @@ fn emit_md_renders_a_markdown_table() {
     assert!(row1.contains("detection"));
     assert!(row1.contains("det_001"));
     assert!(row1.contains("critical"));
-    assert!(row1.contains("2026-04-29T14:23:11Z"));
+    assert!(row1.contains("1777472591"));
     let row2 = lines.next().expect("row 2");
     assert!(row2.contains("rule"));
     assert!(row2.contains("rule_001"));
