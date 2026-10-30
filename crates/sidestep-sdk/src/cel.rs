@@ -390,11 +390,12 @@ fn is_timestamp_field(name: &str) -> bool {
 /// time as a JSON integer or a string of digits: seconds, or milliseconds
 /// once the value is too large to be seconds (the API sends detections as
 /// a string of seconds and runs as an integer of seconds). Anything else
-/// is not a time, and the caller keeps the value as it was.
+/// is not a time, and the caller keeps the value as it was. A negative
+/// number is refused, as a string with a sign is.
 fn parse_timestamp(v: &JsonValue) -> Option<DateTime<FixedOffset>> {
     const MAX_SECONDS: i64 = 100_000_000_000;
     let epoch = match v {
-        JsonValue::Number(n) => n.as_i64(),
+        JsonValue::Number(n) => n.as_i64().filter(|e| *e >= 0),
         JsonValue::String(s) => {
             if let Ok(t) = DateTime::parse_from_rfc3339(s) {
                 return Some(t);

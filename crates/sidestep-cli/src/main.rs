@@ -980,6 +980,12 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
     let mut abs_idx = 0usize;
     let mut params = resolved.params;
     let mut pager = Pager::for_op(op_id);
+    // Under --since a record can fail the filter after earlier ones passed.
+    // Hold the passing records until the listing is done, so a failure leaves
+    // stdout empty and the exit status is not the only signal. Without
+    // --since nothing can fail per record and records stream as before.
+    let mut held: Vec<Record> = Vec::new();
+    let hold = since_program.is_some();
     'pages: loop {
         let response = call_op_blocking_for_verb(
             op_id,
@@ -1003,7 +1009,11 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
                     continue;
                 }
             }
-            write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+            if hold {
+                held.push(record);
+            } else {
+                write_record(&mut out, &record).map_err(|e| anyhow!("{e}"))?;
+            }
             emitted += 1;
             if let Some(limit) = args.limit
                 && emitted >= limit
@@ -1023,6 +1033,9 @@ fn run_list(args: ListArgs) -> anyhow::Result<()> {
                 break;
             }
         }
+    }
+    for record in &held {
+        write_record(&mut out, record).map_err(|e| anyhow!("{e}"))?;
     }
     Ok(())
 }
