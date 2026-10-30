@@ -10,7 +10,7 @@ use anyhow::{Context, anyhow};
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value, json};
 use sidestep_sdk::{
-    CallOptions, Client, ParamSource, Record, SourceRef, audit, auth, cel, enrich, kind_spec,
+    CallOptions, Client, ParamSource, Record, SourceRef, audit, auth, cel, diff, enrich, kind_spec,
     kinds, rank, read_stream, registry, write_record,
 };
 
@@ -48,6 +48,8 @@ enum Cmd {
     Enrich(EnrichArgs),
     /// Order a record stream by typed fields (highest first by default).
     Rank(RankArgs),
+    /// Set difference of stdin against a prior stream, keyed on fields.
+    Diff(DiffArgs),
     /// Inspect or modify the persisted config.
     Config(ConfigArgs),
 }
@@ -374,6 +376,71 @@ struct RankArgs {
     top: Option<usize>,
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum DiffSemantics {
+    /// Records in stdin whose key is not in the prior stream.
+    Added,
+    /// Records in the prior stream whose key is not in stdin.
+    Removed,
+    /// Both of the above.
+    Both,
+}
+
+impl From<DiffSemantics> for diff::Semantics {
+    fn from(s: DiffSemantics) -> Self {
+        match s {
+            DiffSemantics::Added => diff::Semantics::Added,
+            DiffSemantics::Removed => diff::Semantics::Removed,
+            DiffSemantics::Both => diff::Semantics::Both,
+        }
+    }
+}
+
+#[derive(clap::Args, Debug)]
+#[command(
+    long_about = "Compare a JSON-line stream on stdin (the current state) with a prior stream \
+                  (--against FILE) and emit what changed. A record's identity is the tuple of \
+                  values at the --on fields; two records with the same tuple are the same member, \
+                  whatever else differs.\n\n\
+                  Every emitted record is a copy of its source with a `_diff` field:\n  \
+                  added      key is in stdin and not in the prior stream\n  \
+                  removed    key is in the prior stream and not in stdin\n  \
+                  unchanged  key is in both (the stdin record; only with --include-unchanged)\n\n\
+                  --semantics picks what is emitted: added, removed or both (the default). \
+                  Output order is stdin order for added and unchanged, then prior order for \
+                  removed. Duplicate keys within a stream collapse to the first record.\n\n\
+                  A record with a missing or null key field fails the run before anything is \
+                  written: it has no identity, and skipping it would read as 'unchanged'.\n\n\
+                  The prior stream comes from a file. Reading it from an earlier trace is not \
+                  supported: the audit trail keeps response shapes, not records.\n\n\
+                  Examples:\n  \
+                  sidestep list detections | sidestep diff --against last-week.jsonl --on id\n  \
+                  sidestep list rules | sidestep diff --against prior.jsonl --on id,severity \\\n    \
+                  --semantics added"
+)]
+struct DiffArgs {
+    /// Prior stream: a JSON-line file of records.
+    #[arg(long, value_name = "FILE")]
+    against: std::path::PathBuf,
+
+    /// Key fields, comma-separated dotted paths: the tuple that identifies a record.
+    #[arg(
+        long,
+        value_name = "FIELD[,FIELD...]",
+        value_delimiter = ',',
+        required = true
+    )]
+    on: Vec<String>,
+
+    /// Which labelled records to emit.
+    #[arg(long, value_enum, default_value_t = DiffSemantics::Both)]
+    semantics: DiffSemantics,
+
+    /// Also emit records present in both streams, labelled `unchanged`.
+    #[arg(long)]
+    include_unchanged: bool,
+}
+
 #[derive(clap::Args, Debug)]
 #[command(
     long_about = "Attach computed or joined fields to records per a named recipe.\n\n\
@@ -524,6 +591,7 @@ fn main() -> ExitCode {
         Cmd::Filter(args) => run_filter(args),
         Cmd::Enrich(args) => run_enrich(args),
         Cmd::Rank(args) => run_rank(args),
+        Cmd::Diff(args) => run_diff(args),
         Cmd::Config(args) => run_config(args),
     };
 
@@ -1799,6 +1867,94 @@ fn run_rank(args: RankArgs) -> anyhow::Result<()> {
             "emitted_count": emitted,
             "top": args.top,
             "absent_by_key": absent,
+            "error_count": usize::from(last_error.is_some()),
+        }),
+    );
+    span.finish_as_verb(extra);
+
+    match last_error {
+        Some(e) => Err(e),
+        None => Ok(()),
+    }
+}
+
+fn run_diff(args: DiffArgs) -> anyhow::Result<()> {
+    diff::validate_on(&args.on).map_err(|e| anyhow!("{e}"))?;
+    let semantics: diff::Semantics = args.semantics.into();
+
+    let span = audit::Span::start_fresh().with_verb_phase("diff");
+    let diff_keys = json!(args.on);
+    let fail = |span: audit::Span, e: anyhow::Error, current: usize, prior: usize| {
+        let mut extra = serde_json::Map::new();
+        extra.insert("diff_keys".into(), diff_keys.clone());
+        extra.insert("diff_semantics".into(), json!(semantics.as_str()));
+        extra.insert(
+            "diff_outcome".into(),
+            json!({
+                "current_count": current,
+                "prior_count": prior,
+                "emitted_count": 0,
+                "error_count": 1,
+            }),
+        );
+        span.finish_as_verb(extra);
+        e
+    };
+
+    let file = match std::fs::File::open(&args.against) {
+        Ok(f) => f,
+        Err(e) => {
+            let err = anyhow!("open --against {}: {e}", args.against.display());
+            return Err(fail(span, err, 0, 0));
+        }
+    };
+    let prior: Vec<Record> =
+        match read_stream(BufReader::new(file)).collect::<sidestep_sdk::Result<Vec<_>>>() {
+            Ok(p) => p,
+            Err(e) => {
+                let err = anyhow!("read --against {}: {e}", args.against.display());
+                return Err(fail(span, err, 0, 0));
+            }
+        };
+    let stdin = std::io::stdin();
+    let current: Vec<Record> =
+        match read_stream(BufReader::new(stdin.lock())).collect::<sidestep_sdk::Result<Vec<_>>>() {
+            Ok(c) => c,
+            Err(e) => return Err(fail(span, anyhow!("read stdin: {e}"), 0, prior.len())),
+        };
+    let (current_count, prior_count) = (current.len(), prior.len());
+
+    let result = match diff::diff(current, prior, &args.on, semantics, args.include_unchanged) {
+        Ok(r) => r,
+        Err(e) => return Err(fail(span, anyhow!("{e}"), current_count, prior_count)),
+    };
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let mut emitted = 0usize;
+    let mut last_error: Option<anyhow::Error> = None;
+    for record in &result.records {
+        if let Err(e) = write_record(&mut out, record) {
+            last_error = Some(anyhow!("{e}"));
+            break;
+        }
+        emitted += 1;
+    }
+
+    let mut extra = serde_json::Map::new();
+    extra.insert("diff_keys".into(), diff_keys);
+    extra.insert("diff_semantics".into(), json!(semantics.as_str()));
+    extra.insert(
+        "diff_outcome".into(),
+        json!({
+            "current_count": current_count,
+            "prior_count": prior_count,
+            "added": result.added,
+            "removed": result.removed,
+            "unchanged": result.unchanged,
+            "duplicate_current": result.duplicate_current,
+            "duplicate_prior": result.duplicate_prior,
+            "emitted_count": emitted,
             "error_count": usize::from(last_error.is_some()),
         }),
     );

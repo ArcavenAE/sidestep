@@ -4,6 +4,7 @@
 //!   * `auth`    — token resolution: env → keyring → config file (env-only in v0.1)
 //!   * `audit`   — JSONL audit trail (see `docs/audit-trail-format.md`)
 //!   * `client`  — `Client::call_op(operation_id, params)` execution surface
+//!   * `diff`    : set difference over two record streams, keyed on a field tuple
 //!   * `error`   — `SidestepError` + `Result<T>`
 //!   * `rank`    : deterministic ordering of a record stream by typed fields
 //!   * `redact`  — argv + header redaction policy
@@ -15,6 +16,7 @@ pub mod audit;
 pub mod auth;
 pub mod cel;
 pub mod client;
+pub mod diff;
 pub mod enrich;
 pub mod error;
 pub mod kinds;
