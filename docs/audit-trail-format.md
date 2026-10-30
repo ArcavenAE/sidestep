@@ -140,6 +140,17 @@ see *what* they were.
 
 `SIDESTEP_AUDIT=off` writes nothing at all.
 
+## Reading a trace back: `sidestep replay`
+
+`sidestep replay <trace_id>` reads the trail and emits the spans that one
+trace id produced, in `ts_start` order across all files, as a JSON-line
+stream (`_kind: audit_span`, `_source.trace_ref: <trace_id>:<span_id>`, the
+span's own fields alongside). It returns what was called and the shape of
+each response, not the records: the trail stores no payloads (see
+`response.shape_hash` above), so there is nothing to re-emit. A trace id
+with no spans is an error. The trail is read even when `SIDESTEP_AUDIT=off`,
+which only stops new lines being written.
+
 ## Future analysis surface
 
 Out of scope for v0.1. Charter F3 tracks this. Likely shapes:

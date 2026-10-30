@@ -206,6 +206,7 @@ sidestep filter --where '<CEL>' [--explain]      # predicate over stdin stream
 sidestep enrich --with <recipe> [--policies f]   # join/derive fields
 sidestep rank --by <field[:asc|:desc]> [--top N]  # order the stream, ties keep input order
 sidestep diff --against f --on <f[,f]> [--semantics added|removed|both]  # set difference vs a prior stream
+sidestep replay <trace_id>                       # audit spans of one trace (calls and shapes, not records)
 sidestep emit --format {jsonl|md}                # sink / render
 ```
 

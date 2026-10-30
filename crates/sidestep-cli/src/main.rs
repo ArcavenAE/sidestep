@@ -11,7 +11,7 @@ use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use serde_json::{Map, Value, json};
 use sidestep_sdk::{
     CallOptions, Client, ParamSource, Record, SourceRef, audit, auth, cel, diff, enrich, kind_spec,
-    kinds, rank, read_stream, registry, write_record,
+    kinds, rank, read_stream, registry, replay, write_record,
 };
 
 #[derive(Parser, Debug)]
@@ -50,6 +50,8 @@ enum Cmd {
     Rank(RankArgs),
     /// Set difference of stdin against a prior stream, keyed on fields.
     Diff(DiffArgs),
+    /// Emit the audit spans one trace id produced (what was called, not the records).
+    Replay(ReplayArgs),
     /// Inspect or modify the persisted config.
     Config(ConfigArgs),
 }
@@ -376,6 +378,30 @@ struct RankArgs {
     top: Option<usize>,
 }
 
+#[derive(clap::Args, Debug)]
+#[command(
+    long_about = "Read the local audit trail and emit the spans one trace id produced, as a \
+                  JSON-line stream.\n\n\
+                  replay returns what was called and the shape of each response (operation, \
+                  parameters, status, size, shape_hash), not the records. The audit trail \
+                  stores no payloads, so there is nothing to re-emit; to see records again, \
+                  call the API again. It reads the trail only and makes no API call.\n\n\
+                  Each span is a record with `_kind: audit_span` and `_source.trace_ref` \
+                  `<trace_id>:<span_id>`, with the span's own fields alongside, so the other \
+                  verbs work on it. Spans come out in time order across all trail files. A \
+                  trace id with no spans is an error, not an empty success.\n\n\
+                  The trail is read from SIDESTEP_AUDIT_DIR, or the default location, even \
+                  when SIDESTEP_AUDIT=off (which only stops new lines being written).\n\n\
+                  Examples:\n  \
+                  sidestep replay 01900000-0000-7000-8000-000000000001\n  \
+                  sidestep replay <trace_id> | sidestep filter --where 'response.status != 200'"
+)]
+struct ReplayArgs {
+    /// Trace id to read back: letters, digits and hyphens, up to 64 characters.
+    #[arg(value_name = "TRACE_ID")]
+    trace_id: String,
+}
+
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum DiffSemantics {
     /// Records in stdin whose key is not in the prior stream.
@@ -592,6 +618,7 @@ fn main() -> ExitCode {
         Cmd::Enrich(args) => run_enrich(args),
         Cmd::Rank(args) => run_rank(args),
         Cmd::Diff(args) => run_diff(args),
+        Cmd::Replay(args) => run_replay(args),
         Cmd::Config(args) => run_config(args),
     };
 
@@ -1867,6 +1894,70 @@ fn run_rank(args: RankArgs) -> anyhow::Result<()> {
             "emitted_count": emitted,
             "top": args.top,
             "absent_by_key": absent,
+            "error_count": usize::from(last_error.is_some()),
+        }),
+    );
+    span.finish_as_verb(extra);
+
+    match last_error {
+        Some(e) => Err(e),
+        None => Ok(()),
+    }
+}
+
+fn run_replay(args: ReplayArgs) -> anyhow::Result<()> {
+    replay::validate_trace_id(&args.trace_id).map_err(|e| anyhow!("{e}"))?;
+    let dir =
+        audit::trail_dir().ok_or_else(|| anyhow!("no audit trail directory is configured"))?;
+
+    let span = audit::Span::start_fresh().with_verb_phase("replay");
+    let fail = |span: audit::Span, e: anyhow::Error| {
+        let mut extra = serde_json::Map::new();
+        extra.insert("replay_trace_id".into(), json!(args.trace_id));
+        extra.insert(
+            "replay_outcome".into(),
+            json!({"spans_found": 0, "emitted_count": 0, "error_count": 1}),
+        );
+        span.finish_as_verb(extra);
+        e
+    };
+
+    let replayed = match replay::read_trace(&dir, &args.trace_id) {
+        Ok(r) => r,
+        Err(e) => return Err(fail(span, anyhow!("{e}"))),
+    };
+    if replayed.records.is_empty() {
+        let err = anyhow!(
+            "no spans for trace id {} in {} ({} file(s) read, {} unparsed line(s))",
+            args.trace_id,
+            dir.display(),
+            replayed.files_read,
+            replayed.lines_unparsed
+        );
+        return Err(fail(span, err));
+    }
+
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let mut emitted = 0usize;
+    let mut last_error: Option<anyhow::Error> = None;
+    for record in &replayed.records {
+        if let Err(e) = write_record(&mut out, record) {
+            last_error = Some(anyhow!("{e}"));
+            break;
+        }
+        emitted += 1;
+    }
+
+    let mut extra = serde_json::Map::new();
+    extra.insert("replay_trace_id".into(), json!(args.trace_id));
+    extra.insert(
+        "replay_outcome".into(),
+        json!({
+            "spans_found": replayed.records.len(),
+            "files_read": replayed.files_read,
+            "lines_unparsed": replayed.lines_unparsed,
+            "emitted_count": emitted,
             "error_count": usize::from(last_error.is_some()),
         }),
     );
