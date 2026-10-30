@@ -7,7 +7,7 @@ local audit trail intended to be mined for meta-action patterns.
 > Status: usable. Auth (env / keyring / config), the v0.1 primitive verb
 > set (`list` / `get` / `search` / `filter` / `enrich` / `emit`) with
 > transparent pagination, spec-aware operation dispatch
-> (`sidestep api <operationId>` reaches all 130 spec operations), and
+> (`sidestep api <operationId>` reaches all 243 spec operations), and
 > the audit trail are all wired.
 
 ## Why sidestep
@@ -236,7 +236,7 @@ sidestep api <operationId> \               # invoke any spec operation
     [--no-audit]
 ```
 
-`sidestep api` reaches all 130 operations in the vendored spec —
+`sidestep api` reaches all 243 operations in the vendored spec,
 including surfaces the curated kinds don't cover yet (developer-mdm,
 secure-registry, api-keys, run-policies). It resolves `owner`/`customer`
 through the same chain as the curated verbs. Composite verbs (`triage`,
