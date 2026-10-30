@@ -4,7 +4,8 @@
 //! new file are added, operations only in the old file are removed, and an
 //! operation in both is changed when its operationId, parameters, request
 //! body or responses differ in shape. Descriptions, titles and examples are
-//! ignored, so a documentation edit is not reported as an API change. A
+//! ignored (except where they are field names inside a `properties` map), so a
+//! documentation edit is not reported as an API change. A
 //! `$ref` is compared as a reference; the component schemas it points at
 //! are compared separately, by name, in the schemas line.
 //!
@@ -53,23 +54,35 @@ pub struct SpecDiff {
     pub schemas_changed: Vec<String>,
 }
 
+/// Keys that are documentation wherever they appear as a key of a schema,
+/// operation, parameter, response or media type object.
+const DOC_KEYS: [&str; 5] = ["description", "title", "example", "examples", "summary"];
+
 /// Remove prose that does not change the shape of an API.
-fn strip_docs(v: &mut Value) {
+///
+/// Inside a `properties` map the keys are field names, so a property called
+/// `description` or `title` is kept; only the schema objects it holds are
+/// stripped. `in_properties` says the object being visited is such a map.
+fn strip_docs(v: &mut Value, in_properties: bool) {
     match v {
         Value::Object(map) => {
-            for key in ["description", "title", "example", "examples", "summary"] {
-                map.remove(key);
+            if !in_properties {
+                for key in DOC_KEYS {
+                    map.remove(key);
+                }
             }
-            map.values_mut().for_each(strip_docs);
+            for (key, child) in map.iter_mut() {
+                strip_docs(child, !in_properties && key == "properties");
+            }
         }
-        Value::Array(items) => items.iter_mut().for_each(strip_docs),
+        Value::Array(items) => items.iter_mut().for_each(|c| strip_docs(c, false)),
         _ => {}
     }
 }
 
 fn shape<T: serde::Serialize>(item: &T) -> Value {
     let mut v = serde_json::to_value(item).unwrap_or(Value::Null);
-    strip_docs(&mut v);
+    strip_docs(&mut v, false);
     v
 }
 
