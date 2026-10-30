@@ -7,6 +7,7 @@
 //!   * `diff`    : set difference over two record streams, keyed on a field tuple
 //!   * `error`   — `SidestepError` + `Result<T>`
 //!   * `rank`    : deterministic ordering of a record stream by typed fields
+//!   * `replay`  : read the audit spans one trace id produced (metadata, not records)
 //!   * `redact`  — argv + header redaction policy
 //!   * `spec`    — operation registry over the vendored OpenAPI spec
 
@@ -22,6 +23,7 @@ pub mod error;
 pub mod kinds;
 pub mod rank;
 pub mod redact;
+pub mod replay;
 pub mod spec;
 pub mod stream;
 

@@ -24,6 +24,13 @@ pub fn audit_dir() -> Option<PathBuf> {
     if std::env::var("SIDESTEP_AUDIT").is_ok_and(|v| v.eq_ignore_ascii_case("off")) {
         return None;
     }
+    trail_dir()
+}
+
+/// Where the trail lives, whether or not writing to it is switched off.
+/// The read path (`replay`) uses this: turning the trail off stops new
+/// lines, it does not hide the ones already there.
+pub fn trail_dir() -> Option<PathBuf> {
     if let Ok(custom) = std::env::var("SIDESTEP_AUDIT_DIR") {
         return Some(PathBuf::from(custom));
     }
