@@ -25,9 +25,22 @@ content: |
     `auth_source` field — should a config-file-sourced token have
     different default scoping than env?
 
+  UPDATE 2026-11-01 (harvest I-86, finding-sidestep-0a17-policy-store-egress-without-workflow-edit).
+  The desk finding on Policy Store egress designs a workflow-scope policy
+  verb (list, create, attach, with detach as its undo). It would be the
+  first mutating verb in sidestep, and there is no write-guard yet, so
+  the guard is part of building it: this question's granularity and
+  scoping points become load-bearing at that moment. Today the same
+  change is reachable as three `sidestep api` calls, which
+  `docs/permissions.md` already gates as mutations.
+
   Output: `docs/permissions.md` recommending patterns for typical
   agent scopes (read-only triage, write-permitted suppression flows,
   org-admin operations).
+edges:
+  - target: finding-sidestep-0a17-policy-store-egress-without-workflow-edit
+    type: supports
+    note: "a first mutating verb would need a write-guard; the Policy Store verb design names it"
 provenance:
   created_by: human
   created_at: 2026-04-29
