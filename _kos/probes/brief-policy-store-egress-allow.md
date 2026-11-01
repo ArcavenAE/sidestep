@@ -21,7 +21,7 @@ The Policy Store is the surface. A policy attached at workflow scope overrides b
 
 Desk phase, read-only, no tenant contact:
 
-1. Read the vendored OpenAPI spec (`spec/stepsecurity-v1.yaml`, vendored 2026-07-24 at ba3779b) for every operation whose path names policies, baselines or endpoints.
+1. Read the vendored OpenAPI spec (`spec/stepsecurity-v1.yaml`; first read as vendored 2026-07-24 at ba3779b, re-read after the 2026-10-30 re-vendor at b103042, which added the policy read, delete and history operations) for every operation whose path names policies, baselines or endpoints.
 2. Read the vendored vendor docs (`docs/research/stepsecurity-llms-full.txt`, vendored 2026-05-01 at ffe1427), sections "Policy Store", "Self-Hosted Runners" and the changelog entries for the Policy Store.
 3. Compare each answer against sidestep's bedrock: primitives over composites, the ActionItem schema (`attach_policy` is already a kind), the audit trail schema, and the permissions doc's gating of `api post_*`.
 
@@ -42,5 +42,6 @@ Read-only against any production tenant throughout. On a test tenant, with a thr
 4. An ARC job with no Harden-Runner step, cluster-scope policy in block mode, then a workflow-scope policy adding an endpoint. Expected: the workflow-scope policy wins (documented precedence).
 5. An ARC job that carries the Harden-Runner step with inline block settings, under a workflow-scope store policy. Which wins is not documented.
 6. Detach the workflow-scope policy after each case and re-run, to show the undo.
+7. Attach a throwaway policy to the throwaway workflow and delete it without detaching. Record what the attachment list and the workflow's next run show, and confirm the history endpoint returns 404 after the delete.
 
 Each case records the policy YAML, the attach and detach responses, the run's egress verdicts, and the audit trail lines sidestep wrote.

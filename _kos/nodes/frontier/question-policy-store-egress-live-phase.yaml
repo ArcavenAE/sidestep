@@ -4,8 +4,8 @@ confidence: frontier
 title: "Does a stored Policy Store policy change a blocked workflow's egress, on each runner type, without a workflow edit?"
 content: |
   Opened 2026-11-01 (harvest I-86) from finding-sidestep-0a17 and its probe
-  brief. The desk phase is complete: the vendored spec has four Policy Store
-  operations, a workflow-scope policy overrides broader scopes, and a stored
+  brief. The desk phase is complete: the vendored spec has seven Policy Store
+  operations (re-vendored 2026-10-30, with a read, a delete and a history), a workflow-scope policy overrides broader scopes, and a stored
   policy applies without a workflow change only where the runner fetches it.
   Nothing was run against a tenant.
 
@@ -13,6 +13,8 @@ content: |
   - whether the API, unlike the UI, refuses a second attach (the 409 is in
     the spec and was not observed) rather than replacing the current one;
   - whether a partial update can remove an endpoint, or only add and replace;
+  - what deleting an attached policy leaves behind (the spec warns it can
+    leave the attachment; the 2026-05-01 docs say the UI detaches first);
   - on every runner type, whether inline `allowed-endpoints` and
     `use-policy-store: true` in one step combine, or one wins;
   - on an ARC runner whose job carries a Harden-Runner step with inline
