@@ -26,10 +26,29 @@ content: |
   examples; regen + full gates green in one session. diff-spec is
   still a stub; the operation-set diff was hand-rolled — its absence
   is now a demonstrated gap with a bd ticket.
+
+  UPDATE 2026-11-01 (harvest I-86). Second upstream sync, 2026-10-30
+  (sidestep#50, finding-sidestep-8rsm): 130 → 243 operations by method
+  and path, and not purely additive this time: 114 new, 1 moved (the
+  reusable-workflows read lost its `actions` path segment) and 12 shared
+  operations with changed parameter lists. The sanitizer replaced 3
+  secret-shaped examples and 158 operations got a synthesized
+  operationId. The generated client now needs `regress` for string
+  patterns. diff-spec is built (sidestep#52) and no longer a stub: it
+  reports added, removed and changed operations keyed on path and method,
+  and found 36 changed operations for this sync once request bodies and
+  responses are compared too. The element is confirmed more strongly, not
+  changed in kind.
 edges:
   - target: elem-codegen-via-progenitor
     type: supports
     note: "Vendored spec is what gets generated against"
+  - target: finding-sidestep-8rsm-second-upstream-sync-and-trail-readers
+    type: supports
+    note: "second sync: 130 to 243 operations, with moved and changed operations; diff-spec built"
+  - target: finding-007-first-upstream-spec-sync
+    type: supports
+    note: "the first sync, purely additive"
 provenance:
   created_by: human
   created_at: 2026-04-29

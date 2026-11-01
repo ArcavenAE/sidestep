@@ -47,6 +47,13 @@ content: |
   TRIZ reframe (schema-aware tooling collapses ergonomics/completeness
   contradiction).
 
+  UPDATE 2026-11-01 (harvest I-86). Three further primitives shipped on
+  2026-10-30 (finding-sidestep-8rsm): `rank` (sidestep#48, stable ordering
+  by typed fields), `diff` (sidestep#49, set difference over two keyed
+  record streams) and `replay` (sidestep#51, one trace's audit spans read
+  back as a stream). All three read and write the same JSON-line stream
+  and emit a verb audit line with their keys and outcome counts.
+
   See `_kos/findings/finding-001-primitives-over-composites.md`,
   `_kos/probes/brief-primitive-layer-v01.md`, charter B6.
 
@@ -75,6 +82,9 @@ edges:
   - target: val-evidence-driven-design
     type: instantiates
     note: "Raw CEL + rich audit metadata in v0.1; sugar/composites designed from data in v0.2"
+  - target: finding-sidestep-8rsm-second-upstream-sync-and-trail-readers
+    type: supports
+    note: "rank, diff and replay as further primitives"
 provenance:
   created_by: human
   created_at: 2026-05-01

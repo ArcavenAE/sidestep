@@ -45,6 +45,16 @@ content: |
   threshold for v0.2 sugar design: ~200 distinct `predicate_text`
   values × ≥10 invocation contexts (~8-12 weeks of dogfooding).
 
+  **UPDATE 2026-11-01 (harvest I-86).** Two of the candidates above now
+  exist (finding-sidestep-8rsm). `sidestep audit query` (sidestep#53) is
+  the first candidate: it summarizes the corpus, groups by a field and
+  counts operations called together inside a window, and its output feeds
+  `rank`, `filter` and `diff`. `sidestep replay <trace_id>` (sidestep#51)
+  reads one trace's spans back, which is close to the `audit traces`
+  candidate. Neither returns records, because the trail stores no
+  payloads. The question stays open: what to build from weeks of trail is
+  not settled, and the corpus is still small.
+
   **First mining pass ran 2026-06-30**
   (`docs/research/audit-mined-meta-command-candidates.md`): 251
   records / 60 days / one operator — below threshold for general
@@ -79,6 +89,9 @@ edges:
   - target: val-resolution-chain
     type: derives
     note: "Resolution-chain noise reduction lowers the F3 threshold"
+  - target: finding-sidestep-8rsm-second-upstream-sync-and-trail-readers
+    type: supports
+    note: "audit query and replay are the first two readers of the trail"
 provenance:
   created_by: human
   created_at: 2026-04-29
