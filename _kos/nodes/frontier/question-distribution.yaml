@@ -57,6 +57,9 @@ edges:
   - target: elem-sdk-backed-cli
     type: supports
     note: "Distribution is what makes the CLI reachable"
+  - target: grv-single-channel-distribution
+    type: supersedes
+    note: "Three-channel gitflow replaces the single formula"
 provenance:
   created_by: human
   created_at: 2026-04-30

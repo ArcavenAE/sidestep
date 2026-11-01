@@ -38,7 +38,7 @@ edges:
   - target: elem-auth-three-layer
     type: supports
   - target: question-audit-mining
-    type: related
+    type: supports
 provenance:
   created_by: human
   session: session-047
