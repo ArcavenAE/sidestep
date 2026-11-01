@@ -11,7 +11,7 @@ The first upstream sync (finding-007) was purely additive. This one was not, so 
 
 ## The second sync (#50)
 
-- The vendored spec went from 130 to 243 operations by method and path: 114 new and 1 moved (the reusable-workflows read lost its `actions` path segment; no curated kind uses it).
+- The vendored spec went from 130 to 243 operations by method and path: 114 added and 1 removed, the removed one reappearing at a new path (the reusable-workflows read lost its `actions` path segment; no curated kind uses it), so 130 - 1 + 114 = 243. The sync PR (#50) worded this as "114 new, one moved", which counts the moved operation twice; `diff-spec` (#52) reports 114 added and 1 removed.
 - A method-and-path comparison of parameter lists found 12 shared operations whose parameters changed (#50). `diff-spec` (#52), which also compares request bodies and responses, reports 36 changed operations for the same sync, so the two counts measure different things and neither is wrong.
 - The sanitizer replaced 3 secret-shaped examples, and 158 operations got a synthesized operationId.
 - The generated client now depends on `regress`, because the spec carries its first string types with a `pattern`. Without it the regenerated crate does not compile.

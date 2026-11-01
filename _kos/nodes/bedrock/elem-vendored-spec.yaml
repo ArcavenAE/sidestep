@@ -29,9 +29,10 @@ content: |
 
   UPDATE 2026-11-01 (harvest I-86). Second upstream sync, 2026-10-30
   (sidestep#50, finding-sidestep-8rsm): 130 → 243 operations by method
-  and path, and not purely additive this time: 114 new, 1 moved (the
-  reusable-workflows read lost its `actions` path segment) and 12 shared
-  operations with changed parameter lists. The sanitizer replaced 3
+  and path, and not purely additive this time: 114 added and 1 removed,
+  the removed one reappearing at a new path (the reusable-workflows read
+  lost its `actions` path segment), and 12 shared operations with changed
+  parameter lists. The sanitizer replaced 3
   secret-shaped examples and 158 operations got a synthesized
   operationId. The generated client now needs `regress` for string
   patterns. diff-spec is built (sidestep#52) and no longer a stub: it
