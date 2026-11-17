@@ -25,6 +25,12 @@ content: |
   Developer ID signing + notarytool zip submission + GitHub artifact
   attestation. Raw signed binary via URL + sha256.
 
+  Harvest 2026-11-17: the alpha formula is no longer written by
+  `alpha.yml`. Commit 06063c2 (#62, 2026-11-07) removed the job's direct tap
+  push because the tap requires signed commits and refused it with GH013;
+  the tap's own signed sync now updates `Formula/sidestep-a.rb`. The channel
+  model above is unchanged; only the writer of the alpha formula changed.
+
   The `release` environment carries no branch restrictions (verified
   2026-07-25), so develop-triggered signing works unchanged.
 
