@@ -71,7 +71,7 @@ ignore = [
     # release, still requires serde_yaml ^0.9, so moving sidestep's own crates
     # to a maintained fork would leave unsafe-libyaml in the tree. Re-check
     # 2026-12-18.
-    { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml unmaintained, no safe upgrade; via serde_yaml 0.9, which progenitor-macro 0.16.1 still requires; re-check 2026-12-18" },
+    { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml unmaintained, no safe upgrade; via serde_yaml 0.9 from sidestep-sdk, xtask and progenitor-macro 0.15.1; progenitor-macro 0.16.1, the latest, still requires serde_yaml ^0.9; re-check 2026-12-18" },
     # chrono 0.4.x is unmaintained per RUSTSEC-2026-0543, with no patched
     # version. sidestep-api, sidestep-cli and sidestep-sdk use it directly, and
     # cel (imported as cel-interpreter) pulls it too through its "chrono"
