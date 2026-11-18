@@ -56,17 +56,22 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # until the cel 0.13 upgrade dropped paste from the tree entirely.
 ignore = [
     # zvariant, zbus_names and zvariant_derive are unmaintained per
-    # RUSTSEC-2026-0370, 0371 and 0372, with no patched version. All three come
-    # from zbus 5, which keyring pulls through secret-service and
-    # zbus-secret-service-keyring-store (the Linux secret store). zbus 6 is the
-    # migration. Re-check 2026-11-06.
-    { id = "RUSTSEC-2026-0370", reason = "zvariant unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
-    { id = "RUSTSEC-2026-0371", reason = "zbus_names unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
-    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive unmaintained, no patched version; via zbus 5 from keyring; zbus 6 is the migration; re-check 2026-11-06" },
+    # RUSTSEC-2026-0370, 0371 and 0372, with no patched release. All three come
+    # from zbus 5.19, which keyring 4.2.0 pulls through
+    # zbus-secret-service-keyring-store 1.0.1 and secret-service 5.2.0. Both
+    # still require zbus ^5. zbus 6.3 exists, but secret-service 6 is only
+    # 6.0.0-rc.1, so the way out is blocked at the keyring store, not at zbus.
+    # Re-check 2026-12-18.
+    { id = "RUSTSEC-2026-0370", reason = "zvariant unmaintained, no patched release; zbus 5.19 comes through keyring 4.2.0's zbus-secret-service-keyring-store 1.0.1 and secret-service 5.2.0, which still require zbus ^5 (zbus 6.3 exists; secret-service 6 is rc.1 only); re-check 2026-12-18" },
+    { id = "RUSTSEC-2026-0371", reason = "zbus_names unmaintained, no patched release; zbus 5.19 comes through keyring 4.2.0's zbus-secret-service-keyring-store 1.0.1 and secret-service 5.2.0, which still require zbus ^5 (zbus 6.3 exists; secret-service 6 is rc.1 only); re-check 2026-12-18" },
+    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive unmaintained, no patched release; zbus 5.19 comes through keyring 4.2.0's zbus-secret-service-keyring-store 1.0.1 and secret-service 5.2.0, which still require zbus ^5 (zbus 6.3 exists; secret-service 6 is rc.1 only); re-check 2026-12-18" },
     # unsafe-libyaml 0.2.11 is unmaintained per RUSTSEC-2024-0449, with no safe
     # upgrade. It comes from serde_yaml 0.9.34+deprecated, which sidestep-sdk,
-    # progenitor-macro and xtask pull. Re-check 2026-11-06.
-    { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml unmaintained, no safe upgrade; via serde_yaml 0.9 from sidestep-sdk, progenitor-macro and xtask; re-check 2026-11-06" },
+    # progenitor-macro and xtask pull. progenitor-macro 0.16.1, the latest
+    # release, still requires serde_yaml ^0.9, so moving sidestep's own crates
+    # to a maintained fork would leave unsafe-libyaml in the tree. Re-check
+    # 2026-12-18.
+    { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml unmaintained, no safe upgrade; via serde_yaml 0.9 from sidestep-sdk, xtask and progenitor-macro 0.15.1; progenitor-macro 0.16.1, the latest, still requires serde_yaml ^0.9; re-check 2026-12-18" },
     # chrono 0.4.x is unmaintained per RUSTSEC-2026-0543, with no patched
     # version. sidestep-api, sidestep-cli and sidestep-sdk use it directly, and
     # cel (imported as cel-interpreter) pulls it too through its "chrono"
