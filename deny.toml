@@ -67,6 +67,16 @@ ignore = [
     # upgrade. It comes from serde_yaml 0.9.34+deprecated, which sidestep-sdk,
     # progenitor-macro and xtask pull. Re-check 2026-11-06.
     { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml unmaintained, no safe upgrade; via serde_yaml 0.9 from sidestep-sdk, progenitor-macro and xtask; re-check 2026-11-06" },
+    # chrono 0.4.x is unmaintained per RUSTSEC-2026-0543, with no patched
+    # version. sidestep-api, sidestep-cli and sidestep-sdk use it directly, and
+    # cel (imported as cel-interpreter) pulls it too through its "chrono"
+    # feature (workspace Cargo.toml), so migrating sidestep's own code alone
+    # does not clear the advisory. Re-check 2026-12-18.
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained, no patched version; also via cel chrono feature, so a sidestep-only migration does not clear it; re-check 2026-12-18" },
+    # chrono-tz 0.10.4 is unmaintained per RUSTSEC-2026-0555, with no patched
+    # version. It comes only from cel 0.15, which sidestep-cli and sidestep-sdk
+    # pull as cel-interpreter. Re-check 2026-12-18.
+    { id = "RUSTSEC-2026-0555", reason = "chrono-tz unmaintained, no patched version; via cel 0.15 from sidestep-cli and sidestep-sdk; re-check 2026-12-18" },
 ]
 
 [sources]
