@@ -19,7 +19,7 @@ hex = "0.4"
 regex = "1"
 
 # Codegen pipeline (xtask regen)
-progenitor = "0.15"
+progenitor = "0.16"
 openapiv3 = "2"
 serde_yaml = "0.9"
 serde = "1"

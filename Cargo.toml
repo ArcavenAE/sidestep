@@ -45,7 +45,7 @@ dirs = "7"
 keyring = "4"
 
 # Codegen runtime (progenitor's runtime crate, used by sidestep-api)
-progenitor-client = "0.15"
+progenitor-client = "0.16"
 # Pattern matching used by generated string types that carry a `pattern`
 # (the 2026-10 spec adds the first ones); same crate typify already pulls in.
 regress = "0.12"
@@ -56,7 +56,7 @@ sha2 = "0.11"
 urlencoding = "2"
 
 # Predicate language for `sidestep filter --where '<CEL>'`
-cel-interpreter = { package = "cel", version = "0.15", default-features = false, features = ["chrono", "json"] }
+cel-interpreter = { package = "cel", version = "0.16", default-features = false, features = ["chrono", "json"] }
 
 # Tests
 wiremock = "0.6"
